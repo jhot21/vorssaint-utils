@@ -16343,6 +16343,24 @@ struct MetricsTests {
                "an unchanged fixture does not reorder or drop rows on a second refresh")
         chromeReader.refreshIfNeeded(enabled: false)
         expect(chromeReader.cachedBookmarks.isEmpty, "disabling the source clears its cache")
+
+        // A validly empty Bookmarks file must win over a Bookmarks.bak that
+        // still has stale (non-empty) content — Chrome's atomic-write
+        // mechanism can leave exactly this behind, and "no bookmarks" must
+        // not silently resurrect old ones from the backup.
+        let emptyBookmarksJSON = """
+        {"roots":{"bookmark_bar":{"name":"Bookmarks bar","type":"folder","children":[]},\
+        "other":{"name":"Other bookmarks","type":"folder","children":[]}}}
+        """
+        try? emptyBookmarksJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks"),
+                                      atomically: true, encoding: .utf8)
+        try? chromeReaderFixtureJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks.bak"),
+                                           atomically: true, encoding: .utf8)
+        let chromeReaderEmptyPrimary = CommandBarBookmarksChrome(rootDirectory: chromeFixtureRoot)
+        chromeReaderEmptyPrimary.refreshIfNeeded(enabled: true)
+        expect(chromeReaderEmptyPrimary.cachedBookmarks.isEmpty,
+               "a validly empty Bookmarks file is the correct result, not a cue to fall back to a stale " +
+               "Bookmarks.bak")
         try? FileManager.default.removeItem(at: chromeFixtureRoot)
 
         // MARK: The Mac's own Settings panes

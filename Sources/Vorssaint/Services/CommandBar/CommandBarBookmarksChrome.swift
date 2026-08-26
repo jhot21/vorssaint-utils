@@ -87,15 +87,21 @@ final class CommandBarBookmarksChrome {
     /// parse — Chrome's own atomic-write fallback file.
     private func parsedBookmarks(accountPath: String, bookmarksPath: String,
                                  backupPath: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark] {
-        for candidate in [accountPath, bookmarksPath, backupPath] {
-            if let parsed = Self.parseFile(at: candidate), !parsed.isEmpty {
-                return parsed
-            }
+        // AccountBookmarks is only preferred when present AND non-empty.
+        if let parsed = Self.parseFile(at: accountPath), !parsed.isEmpty {
+            return parsed
         }
-        // A genuinely empty (but well-formed) Bookmarks file is a valid
-        // result, not a failure — try once more without the emptiness check
-        // so "no bookmarks" doesn't fall through to the backup file.
-        return Self.parseFile(at: bookmarksPath) ?? []
+        // Bookmarks is the primary file. If it parses at all — empty or
+        // not — that result is final and correct; do NOT fall through to
+        // the backup just because it's empty. Falling through here would
+        // return stale data from Bookmarks.bak, which is exactly the case
+        // Chrome's atomic-write mechanism can leave behind.
+        if let parsed = Self.parseFile(at: bookmarksPath) {
+            return parsed
+        }
+        // Bookmarks itself failed to parse (missing or corrupt): fall back
+        // to Bookmarks.bak, Chrome's own atomic-write backup file.
+        return Self.parseFile(at: backupPath) ?? []
     }
 
     private static func parseFile(at path: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark]? {
