@@ -16223,6 +16223,38 @@ struct MetricsTests {
                 && CommandBarPreferences.rankBias(for: .apps) == 0,
                "a file leads only when it is a plainly better match than a command")
 
+        // MARK: Shared bookmark parsing rules
+        expect(CommandBarBookmarksSupport.isOfferableURL("https://example.com/page")
+                && CommandBarBookmarksSupport.isOfferableURL("http://example.com"),
+               "ordinary web bookmarks are offered")
+        expect(!CommandBarBookmarksSupport.isOfferableURL("javascript:alert(1)")
+                && !CommandBarBookmarksSupport.isOfferableURL("data:text/html,hi")
+                && !CommandBarBookmarksSupport.isOfferableURL(""),
+               "a bookmarklet or a data URL is never handed to NSWorkspace.open")
+        expect(!CommandBarBookmarksSupport.isOfferableURL("file:///Users/x/notes.html")
+                && CommandBarBookmarksSupport.isOfferableURL("file:///Users/x/notes.html", allowFileScheme: true),
+               "file:// is offered only where the caller opts in")
+        expect(CommandBarBookmarksSupport.keywords(title: "PR review", url: "https://github.com/org/repo/pull/1",
+                                                    folder: "Work/Dev")
+                == "PR review github.com Work/Dev",
+               "typing the domain or the folder still finds a bookmark the title alone would not")
+        expect(CommandBarBookmarksSupport.keywords(title: "Untitled", url: "not a url", folder: "")
+                == "Untitled",
+               "an unparseable URL or an empty folder drops out instead of leaving stray spaces")
+        let sigA = CommandBarBookmarksSupport.signature([
+            .init(path: "/a", size: 10, modified: Date(timeIntervalSince1970: 100)),
+            .init(path: "/b", size: 20, modified: Date(timeIntervalSince1970: 200)),
+        ])
+        let sigB = CommandBarBookmarksSupport.signature([
+            .init(path: "/a", size: 10, modified: Date(timeIntervalSince1970: 100)),
+            .init(path: "/b", size: 21, modified: Date(timeIntervalSince1970: 200)),
+        ])
+        expect(sigA != sigB, "a one-byte size change produces a different signature")
+        expect(sigA == CommandBarBookmarksSupport.signature([
+            .init(path: "/a", size: 10, modified: Date(timeIntervalSince1970: 100)),
+            .init(path: "/b", size: 20, modified: Date(timeIntervalSince1970: 200)),
+        ]), "the same inputs always produce the same signature")
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
