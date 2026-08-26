@@ -25,6 +25,8 @@ When the Command Bar's Chrome Bookmarks source is on, it reads Chrome's own loca
 
 When the Command Bar's Firefox Bookmarks source is on, it reads Firefox's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
 
+When the Command Bar's Safari Bookmarks source is on, it reads Safari's own local bookmarks file to make them searchable; nothing about them is sent anywhere, turning the source off in Settings stops it from reading that file at all, and it only reads it once Full Disk Access is granted.
+
 ## Network connections
 
 Vorssaint opens only a few kinds of connection, and each one belongs to a visible feature.
