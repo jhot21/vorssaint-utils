@@ -1022,7 +1022,7 @@ This closes the Chrome group. It is mergeable and useful on its own — the Fire
 - Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarService.swift`
 - Modify: `Sources/Vorssaint/UI/Settings/CommandBarSettings.swift`
 - Modify: `Sources/Vorssaint/Core/CommandBarStrings.swift`
-- Modify: `Tests/MetricsTests.swift:17421` (pinned count, now 155 → 156)
+- Modify: `Tests/MetricsTests.swift:17421` (pinned count, now 155 → 157 (two new fields: sourceFirefoxBookmarks, firefoxBookmarksNotInstalled))
 
 Same red/green enum-completeness approach as Task 1, one new case: `CommandBarSource.firefoxBookmarks`, `idPrefix: "firefoxbookmark."`, `symbolName: "globe"`, added to the same five switches (`rankBias`, `acceptsAlias`, `acceptsPin`, `isHubOwned`, `categoryHasContent`, `categoryContent`, `categoryTitle`, `browseGroup`, `title(for:)`) and `kindLimits` (`("firefoxbookmark.", 5)`).
 
@@ -1032,7 +1032,7 @@ New localized field, in all 13 languages: `sourceFirefoxBookmarks` (e.g. `"Firef
 
 - [ ] **Step 1: Add the case, watch it fail, fix every switch** — same procedure as Task 1 Steps 1-2, substituting `firefoxBookmarks`/`sourceFirefoxBookmarks`/`firefoxBookmarksNotInstalled` throughout. Write out each switch's full new body before moving on (do not shorthand it as "same as Task 1" in the actual commit — the exhaustive switches must compile).
 
-- [ ] **Step 2: Bump the pinned count** to `156` in `Tests/MetricsTests.swift`.
+- [ ] **Step 2: Bump the pinned count** to `157` in `Tests/MetricsTests.swift`.
 
 - [ ] **Step 3: Build and test**
 
@@ -1487,7 +1487,7 @@ git commit -am "docs(privacy): note the Command Bar's Firefox bookmarks read"
 - Modify: `Sources/Vorssaint/UI/Settings/CommandBarSettings.swift`
 - Modify: `Sources/Vorssaint/Core/CommandBarStrings.swift`
 - Modify: `Sources/Vorssaint/Core/FeatureCatalog.swift:237` (`commandBar.permissions`)
-- Modify: `Tests/MetricsTests.swift:17421` (pinned count, now 156 → 158)
+- Modify: `Tests/MetricsTests.swift:17421` (pinned count, now 157 → 159)
 
 Same procedure as Tasks 1 and 7: `CommandBarSource.safariBookmarks`, `idPrefix: "safaribookmark."`, `symbolName: "safari"` (a real SF Symbol, distinct from `.links`' `"bookmark"` and from the generic `"globe"` used for Chrome/Firefox). Extend `browseGroup`'s bookmark arm to `case .chromeBookmarks, .firefoxBookmarks, .safariBookmarks: return bar.kindBookmark`, and `kindLimits` gains `("safaribookmark.", 5)`.
 
@@ -1511,7 +1511,7 @@ In `Sources/Vorssaint/Core/FeatureCatalog.swift`, extend the `commandBar` case i
 
 - [ ] **Step 1: Add the case, watch it fail, fix every switch and the FeatureCatalog permission list** — write out each one in full, same discipline as Tasks 1 and 7.
 
-- [ ] **Step 2: Bump the pinned count** to `158`.
+- [ ] **Step 2: Bump the pinned count** to `159`.
 
 - [ ] **Step 3: Build and test**
 
