@@ -1030,8 +1030,7 @@ This closes the Chrome group. It is mergeable and useful on its own — the Fire
 ## Task 7: Firefox Command Bar source scaffolding
 
 **Files:**
-- Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarCatalog.swift` (`CommandBarSource` enum)
-- Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarPreferences.swift`
+- Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarPreferences.swift` (`CommandBarSource` enum — Task 1's implementer found this lives here, not in `CommandBarCatalog.swift` as originally written; see the plan's ledger)
 - Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarService.swift`
 - Modify: `Sources/Vorssaint/UI/Settings/CommandBarSettings.swift`
 - Modify: `Sources/Vorssaint/Core/CommandBarStrings.swift`
@@ -1494,8 +1493,7 @@ git commit -am "docs(privacy): note the Command Bar's Firefox bookmarks read"
 ## Task 11: Safari Command Bar source scaffolding + Full Disk Access wiring
 
 **Files:**
-- Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarCatalog.swift`
-- Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarPreferences.swift`
+- Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarPreferences.swift` (`CommandBarSource` enum)
 - Modify: `Sources/Vorssaint/Services/CommandBar/CommandBarService.swift`
 - Modify: `Sources/Vorssaint/UI/Settings/CommandBarSettings.swift`
 - Modify: `Sources/Vorssaint/Core/CommandBarStrings.swift`
