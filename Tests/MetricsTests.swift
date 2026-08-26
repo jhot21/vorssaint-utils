@@ -16474,6 +16474,46 @@ struct MetricsTests {
                    "a leaf with no URIDictionary title falls back to its own URL rather than a blank row")
         }
 
+        // MARK: Safari bookmark reader against a fixture profile
+        let safariReaderFixturePlist: [String: Any] = [
+            "WebBookmarkType": "WebBookmarkTypeList",
+            "Title": "root",
+            "Children": [
+                [
+                    "WebBookmarkType": "WebBookmarkTypeList",
+                    "Title": "BookmarksBar",
+                    "Children": [
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "ru1",
+                            "URLString": "https://vorssaint.example/",
+                            "URIDictionary": ["title": "Vorssaint"],
+                        ],
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "ru2",
+                            "URLString": "https://example.com/second",
+                            "URIDictionary": ["title": "Second"],
+                        ],
+                    ],
+                ],
+            ],
+        ]
+        let safariFixtureDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-safari-fixture-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: safariFixtureDir, withIntermediateDirectories: true)
+        let safariPlistPath = safariFixtureDir.appendingPathComponent("Bookmarks.plist")
+        if let readerFixtureData = try? PropertyListSerialization.data(
+            fromPropertyList: safariReaderFixturePlist, format: .xml, options: 0) {
+            try? readerFixtureData.write(to: safariPlistPath)
+        }
+        let safariReader = CommandBarBookmarksSafari(plistPath: safariPlistPath)
+        safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: false)
+        expect(safariReader.cachedBookmarks.isEmpty, "no Full Disk Access means no bookmarks, even if enabled")
+        safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: true)
+        expect(safariReader.cachedBookmarks.count == 2, "with access granted, the fixture's two bookmarks appear")
+        try? FileManager.default.removeItem(at: safariFixtureDir)
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
