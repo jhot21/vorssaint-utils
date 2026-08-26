@@ -23,6 +23,8 @@ When a feature needs a macOS permission such as Accessibility, Screen Recording 
 
 When the Command Bar's Chrome Bookmarks source is on, it reads Chrome's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
 
+When the Command Bar's Firefox Bookmarks source is on, it reads Firefox's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
+
 ## Network connections
 
 Vorssaint opens only a few kinds of connection, and each one belongs to a visible feature.
