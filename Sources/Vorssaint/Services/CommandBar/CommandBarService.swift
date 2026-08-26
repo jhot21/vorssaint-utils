@@ -584,7 +584,7 @@ final class CommandBarService: ObservableObject {
             let hidden = hiddenKeys
             return emojiEntries.contains { !hidden.contains($0.stableKey) }
         case .actions, .settingsPages, .snippets, .folders, .links, .chromeBookmarks,
-             .firefoxBookmarks:
+             .firefoxBookmarks, .safariBookmarks:
             // Asked once per chip on every pass with an empty field, so it
             // stops at the first row that qualifies instead of building a copy
             // of the catalog five times over.
@@ -615,7 +615,8 @@ final class CommandBarService: ObservableObject {
         case .windows: rows = windowEntries
         case .menus: rows = menuEntries
         case .emoji: rows = emojiEntries
-        case .settingsPages, .snippets, .folders, .links, .chromeBookmarks, .firefoxBookmarks:
+        case .settingsPages, .snippets, .folders, .links, .chromeBookmarks, .firefoxBookmarks,
+             .safariBookmarks:
             rows = catalog.filter { CommandBarPreferences.source(ofRowID: $0.id) == source }
         case .clipboard:
             rows = CommandBarCatalog.clipboardBrowseEntries(limit: limit, bar: bar) { [weak self] entry in
@@ -659,6 +660,7 @@ final class CommandBarService: ObservableObject {
         case .links: return bar.linksTitle
         case .chromeBookmarks: return bar.sourceChromeBookmarks
         case .firefoxBookmarks: return bar.sourceFirefoxBookmarks
+        case .safariBookmarks: return bar.sourceSafariBookmarks
         case .killProcess: return FeatureStrings.killProcess(L10n.shared.language).pageTitle
         }
     }
@@ -1124,7 +1126,7 @@ final class CommandBarService: ObservableObject {
         case .links: return bar.kindLink
         case .snippets: return bar.kindSnippet
         case .folders: return bar.kindFolder
-        case .chromeBookmarks, .firefoxBookmarks: return bar.kindBookmark
+        case .chromeBookmarks, .firefoxBookmarks, .safariBookmarks: return bar.kindBookmark
         case .actions, .apps, .menus, .windows, .quitApps, .settingsPages, .macSettings,
              .clipboard, .emoji, .calculator, .selection, .files, .killProcess:
             return entry.subtitle.isEmpty ? bar.everythingTitle : entry.subtitle
@@ -1143,6 +1145,7 @@ final class CommandBarService: ObservableObject {
         ("toggle.", 5),
         ("chromebookmark.", 5),
         ("firefoxbookmark.", 5),
+        ("safaribookmark.", 5),
     ]
 
     /// The folded text a row is ranked against. Almost every row answers to

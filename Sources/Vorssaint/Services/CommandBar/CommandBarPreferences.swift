@@ -33,6 +33,8 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
     case chromeBookmarks
     /// Bookmarks read from Firefox's own profile files.
     case firefoxBookmarks
+    /// Bookmarks read from Safari's own profile files.
+    case safariBookmarks
     case killProcess
 
     var id: String { rawValue }
@@ -61,6 +63,7 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
         case .files: return "doc.text.magnifyingglass"
         case .chromeBookmarks: return "globe"
         case .firefoxBookmarks: return "globe"
+        case .safariBookmarks: return "safari"
         case .killProcess: return "xmark.octagon"
         }
     }
@@ -86,6 +89,7 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
         case .files: return "file."
         case .chromeBookmarks: return "chromebookmark."
         case .firefoxBookmarks: return "firefoxbookmark."
+        case .safariBookmarks: return "safaribookmark."
         case .killProcess: return "kill."
         }
     }
@@ -144,7 +148,7 @@ enum CommandBarPreferences {
         case .files: return -40
         case .actions, .apps, .windows, .quitApps, .settingsPages, .macSettings, .snippets,
              .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links,
-             .chromeBookmarks, .firefoxBookmarks, .killProcess:
+             .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .killProcess:
             return 0
         }
     }
@@ -175,7 +179,8 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .menus, .windows, .clipboard, .selection, .files, .killProcess: return false
         case .actions, .apps, .quitApps, .settingsPages, .macSettings, .snippets, .emoji,
-             .folders, .answers, .calculator, .links, .chromeBookmarks, .firefoxBookmarks:
+             .folders, .answers, .calculator, .links, .chromeBookmarks, .firefoxBookmarks,
+             .safariBookmarks:
             return true
         }
     }
@@ -243,7 +248,7 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .menus, .quitApps, .clipboard, .emoji, .selection, .files, .killProcess: return false
         case .actions, .apps, .windows, .settingsPages, .macSettings, .snippets, .folders,
-             .links, .chromeBookmarks, .firefoxBookmarks, .answers, .calculator:
+             .links, .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .answers, .calculator:
             return true
         }
     }
@@ -297,7 +302,7 @@ enum CommandBarPreferences {
         case .actions, .settingsPages, .snippets: return true
         case .apps, .menus, .windows, .quitApps, .macSettings, .clipboard, .emoji,
              .folders, .answers, .calculator, .selection, .links, .files, .chromeBookmarks,
-             .firefoxBookmarks, .killProcess:
+             .firefoxBookmarks, .safariBookmarks, .killProcess:
             return false
         }
     }
