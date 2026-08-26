@@ -287,6 +287,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksChromeSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksFirefoxSupport.swift \
+        Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksSafariSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksChrome.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksFirefox.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarQueryMemory.swift \

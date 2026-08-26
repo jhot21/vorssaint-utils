@@ -16434,6 +16434,46 @@ struct MetricsTests {
         expect(cyclicPaths[100] == "B/A", "a cycle terminates: the second node visited stops recursing and the first joins onto it")
         expect(cyclicPaths[101] == "B", "the node that closes the cycle falls back to its own name rather than recursing forever")
 
+        // MARK: Safari bookmark parsing
+        let safariPlist: [String: Any] = [
+            "WebBookmarkType": "WebBookmarkTypeList",
+            "Title": "com.apple.ReadingList", // sibling roots would appear here too in real data;
+            "Children": [
+                [
+                    "WebBookmarkType": "WebBookmarkTypeList",
+                    "Title": "BookmarksBar",
+                    "Children": [
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "u1",
+                            "URLString": "https://vorssaint.example/",
+                            "URIDictionary": ["title": "Vorssaint"],
+                        ],
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "u2",
+                            "URLString": "https://example.com/untitled",
+                            "URIDictionary": [String: String](),
+                        ],
+                    ],
+                ],
+            ],
+        ]
+        let plistData = try? PropertyListSerialization.data(fromPropertyList: safariPlist,
+                                                             format: .xml, options: 0)
+        let decodedSafari = plistData.flatMap {
+            try? PropertyListDecoder().decode(CommandBarBookmarksSafariSupport.SafariNode.self, from: $0)
+        }
+        expect(decodedSafari != nil, "well-formed Safari Bookmarks.plist decodes")
+        if let root = decodedSafari {
+            let flat = CommandBarBookmarksSafariSupport.flattenedBookmarks(from: root)
+            expect(flat.count == 2, "both leaves are found under the nested root")
+            expect(flat.contains { $0.id == "u1" && $0.title == "Vorssaint" && $0.folder == "Favourites" },
+                   "BookmarksBar reads as the friendly name Safari itself shows: Favourites")
+            expect(flat.contains { $0.id == "u2" && $0.title == "https://example.com/untitled" },
+                   "a leaf with no URIDictionary title falls back to its own URL rather than a blank row")
+        }
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
