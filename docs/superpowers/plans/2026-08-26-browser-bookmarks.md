@@ -793,16 +793,31 @@ final class CommandBarBookmarksChrome {
 
 - [ ] **Step 2: Add a temp-fixture behavioral test**
 
-Add to `Tests/MetricsTests.swift`, in the Chrome section from Task 3:
+Add to `Tests/MetricsTests.swift`. Build this test's own local fixture JSON rather than reusing Task 3's `chromeJSON` binding — that string lives in a different task's diff, and depending on another `MARK` section's local `let` for correctness is fragile cross-task coupling this plan avoids elsewhere:
 
 ```swift
         // MARK: Chrome bookmark reader against a fixture profile
+        let chromeReaderFixtureJSON = """
+        {
+          "roots": {
+            "bookmark_bar": {
+              "name": "Bookmarks bar",
+              "type": "folder",
+              "children": [
+                { "guid": "rg1", "name": "Vorssaint", "type": "url", "url": "https://vorssaint.example/" },
+                { "guid": "rg2", "name": "Second", "type": "url", "url": "https://example.com/second" }
+              ]
+            },
+            "other": { "name": "Other bookmarks", "type": "folder", "children": [] }
+          }
+        }
+        """
         let chromeFixtureRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("vorssaint-chrome-fixture-\(UUID().uuidString)")
         let chromeProfile = chromeFixtureRoot.appendingPathComponent("Default")
         try? FileManager.default.createDirectory(at: chromeProfile, withIntermediateDirectories: true)
-        try? chromeJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks"),
-                              atomically: true, encoding: .utf8)
+        try? chromeReaderFixtureJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks"),
+                                           atomically: true, encoding: .utf8)
         let localState = """
         {"profile":{"info_cache":{"Default":{}},"last_used":"Default"}}
         """
@@ -820,8 +835,6 @@ Add to `Tests/MetricsTests.swift`, in the Chrome section from Task 3:
         expect(chromeReader.cachedBookmarks.isEmpty, "disabling the source clears its cache")
         try? FileManager.default.removeItem(at: chromeFixtureRoot)
 ```
-
-(This reuses the `chromeJSON` string literal declared in Task 3's tests — keep this block textually after that one in the file so it's in scope.)
 
 - [ ] **Step 3: Build and test**
 
@@ -849,7 +862,7 @@ git commit -m "feat(command-bar): add Chrome bookmark reader with mtime caching"
 
 **Interfaces:**
 - Consumes: `CommandBarBookmarksChrome.cachedBookmarks`, `InstalledApps.url(for:) -> URL?` (existing helper, `Sources/Vorssaint/Services/InstalledApps.swift:25`), `CommandBarEntry.Icon.appIcon(path:)` (existing case).
-- Produces: `CommandBarCatalog.build(automationDenied:chromeBookmarks:) -> [CommandBarEntry]` — the new parameter is required from this point on; Tasks 9 and 13 extend this signature further, not replace it.
+- Produces: `CommandBarCatalog.build(automationDenied:chromeBookmarks:) -> [CommandBarEntry]` — the new parameter is required from this point on; Tasks 10 and 14 extend this signature further, not replace it.
 
 - [ ] **Step 1: Add the catalog entry builder**
 
@@ -1739,41 +1752,56 @@ final class CommandBarBookmarksSafari {
 
 - [ ] **Step 2: Add a temp-fixture behavioral test**
 
-```swift
-        // MARK: Safari bookmark reader against a fixture profile
-        let safariFixtureDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("vorssaint-safari-fixture-\(UUID().uuidString)")
-        try? FileManager.default.createDirectory(at: safariFixtureDir, withIntermediateDirectories: true)
-        let safariPlistPath = safariFixtureDir.appendingPathComponent("Bookmarks.plist")
-        if let plistData {
-            try? plistData.write(to: safariPlistPath)
-        }
-        let safariReader = CommandBarBookmarksSafari(plistPath: safariPlistPath)
-        // This exercises the parsing path directly; it does not, and cannot,
-        // exercise the Permissions.shared.fullDiskAccess gate itself, since
-        // that reads real TCC state. Confirm the gate manually (Task 14).
-        expect(Permissions.shared.fullDiskAccess == Permissions.shared.fullDiskAccess,
-               "placeholder kept honest below — see the real check that follows")
-```
-
-Note: the fixture above cannot fully exercise `refreshIfNeeded` end-to-end, because it is gated on real `Permissions.shared.fullDiskAccess`, not an injectable flag. Rather than leave a fake assertion in place, restructure `refreshIfNeeded` to take the FDA state as a parameter instead of reading the singleton directly, which makes this genuinely testable and is a small, justified change:
+`refreshIfNeeded` as written in Step 1 gates on the real `Permissions.shared.fullDiskAccess` singleton, which reads actual TCC state and cannot be driven from a test. Before writing the test, restructure it to take the FDA state as a parameter instead — a small, justified change that makes this genuinely testable:
 
 ```swift
     func refreshIfNeeded(enabled: Bool, fullDiskAccess: Bool = Permissions.shared.fullDiskAccess) {
         guard enabled, fullDiskAccess else {
 ```
 
-Then replace the placeholder test above with a real one:
+Then the test, built entirely from its own local fixture data — do not reuse the `safariPlist`/`plistData` bindings from Task 12's tests; those live in a different task's diff, and depending on another `MARK` section's local `let` for correctness is exactly the fragile cross-task coupling this plan avoids elsewhere:
 
 ```swift
+        // MARK: Safari bookmark reader against a fixture profile
+        let safariReaderFixturePlist: [String: Any] = [
+            "WebBookmarkType": "WebBookmarkTypeList",
+            "Title": "root",
+            "Children": [
+                [
+                    "WebBookmarkType": "WebBookmarkTypeList",
+                    "Title": "BookmarksBar",
+                    "Children": [
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "ru1",
+                            "URLString": "https://vorssaint.example/",
+                            "URIDictionary": ["title": "Vorssaint"],
+                        ],
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "ru2",
+                            "URLString": "https://example.com/second",
+                            "URIDictionary": ["title": "Second"],
+                        ],
+                    ],
+                ],
+            ],
+        ]
+        let safariFixtureDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-safari-fixture-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: safariFixtureDir, withIntermediateDirectories: true)
+        let safariPlistPath = safariFixtureDir.appendingPathComponent("Bookmarks.plist")
+        if let readerFixtureData = try? PropertyListSerialization.data(
+            fromPropertyList: safariReaderFixturePlist, format: .xml, options: 0) {
+            try? readerFixtureData.write(to: safariPlistPath)
+        }
+        let safariReader = CommandBarBookmarksSafari(plistPath: safariPlistPath)
         safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: false)
         expect(safariReader.cachedBookmarks.isEmpty, "no Full Disk Access means no bookmarks, even if enabled")
         safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: true)
         expect(safariReader.cachedBookmarks.count == 2, "with access granted, the fixture's two bookmarks appear")
         try? FileManager.default.removeItem(at: safariFixtureDir)
 ```
-
-(This reuses the `plistData` binding from Task 12's tests — confirm it is still in scope, or rebuild it locally in this block from `safariPlist` if the two `MARK` sections end up non-adjacent.)
 
 Update Task 14's call site in `CommandBarService` to pass `fullDiskAccess: Permissions.shared.fullDiskAccess` explicitly, since the default parameter only covers call sites that don't specify it — being explicit there is clearer anyway.
 
