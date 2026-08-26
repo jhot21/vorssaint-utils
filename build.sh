@@ -288,6 +288,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksChromeSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksFirefoxSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksChrome.swift \
+        Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksFirefox.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarQueryMemory.swift \
         Sources/Vorssaint/Services/SpotlightNamesSupport.swift \
         Sources/Vorssaint/Services/QuickTools/MicMuteSupport.swift \

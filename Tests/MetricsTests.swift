@@ -18326,6 +18326,38 @@ struct MetricsTests {
         expect(uninstallScriptSource.contains("Library/Preferences/ByHost"),
                "script uninstall sweeps ByHost preferences")
 
+        // MARK: Firefox bookmark reader against a fixture profile
+        let firefoxFixtureRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-firefox-fixture-\(UUID().uuidString)")
+        let firefoxProfile = firefoxFixtureRoot.appendingPathComponent("abc123.default-release")
+        try? FileManager.default.createDirectory(at: firefoxProfile, withIntermediateDirectories: true)
+        try? """
+        [Install4F96D1932A9F858E]
+        Default=abc123.default-release
+        """.write(to: firefoxFixtureRoot.appendingPathComponent("profiles.ini"),
+                 atomically: true, encoding: .utf8)
+        let dbPath = firefoxProfile.appendingPathComponent("places.sqlite").path
+        let setupSQL = """
+        CREATE TABLE moz_bookmarks (id INTEGER PRIMARY KEY, type INTEGER, fk INTEGER, parent INTEGER, title TEXT, guid TEXT);
+        CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT);
+        INSERT INTO moz_bookmarks VALUES (1, 2, NULL, 0, 'root________', 'root________');
+        INSERT INTO moz_bookmarks VALUES (2, 2, NULL, 1, 'toolbar', 'toolbar_____');
+        INSERT INTO moz_places VALUES (100, 'https://vorssaint.example/');
+        INSERT INTO moz_bookmarks VALUES (10, 1, 100, 2, 'Vorssaint', 'bk1');
+        """
+        let setupProcess = Process()
+        setupProcess.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        setupProcess.arguments = [dbPath, setupSQL]
+        try? setupProcess.run()
+        setupProcess.waitUntilExit()
+        let firefoxReader = CommandBarBookmarksFirefox(rootDirectory: firefoxFixtureRoot,
+                                                        minimumReparseInterval: 0)
+        firefoxReader.refreshIfNeeded(enabled: true)
+        expect(firefoxReader.cachedBookmarks.count == 1, "the reader finds the one bookmark in the fixture")
+        expect(firefoxReader.cachedBookmarks.first?.folder == "Bookmarks Toolbar",
+               "its folder resolves to the toolbar's friendly name")
+        try? FileManager.default.removeItem(at: firefoxFixtureRoot)
+
         if failures.isEmpty {
             print("TESTS OK (\(checks) checks)")
             exit(0)
