@@ -108,9 +108,16 @@ struct CommandBarSettings: View {
             } header: {
                 Text(text.sourcesTitle)
             } footer: {
-                Text(text.sourcesCaption)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(text.sourcesCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") == nil {
+                        Text(text.chromeBookmarksNotInstalled)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             Section {

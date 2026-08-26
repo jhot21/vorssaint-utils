@@ -165,7 +165,8 @@ enum CommandBarCatalog {
         "action.snippetLibrary",
     ]
 
-    static func build(automationDenied: Bool) -> [CommandBarEntry] {
+    static func build(automationDenied: Bool,
+                      chromeBookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark]) -> [CommandBarEntry] {
         let s = L10n.shared.s
         let language = L10n.shared.language
         let bar = FeatureStrings.commandBar(language)
@@ -179,6 +180,7 @@ enum CommandBarCatalog {
         entries.append(contentsOf: linkEntries(
             CommandBarLinks.decode(UserDefaults.standard.data(forKey: DefaultsKey.commandBarLinks)),
             bar: bar))
+        entries.append(contentsOf: chromeBookmarkEntries(chromeBookmarks, bar: bar))
         return entries
     }
 
@@ -1215,6 +1217,34 @@ enum CommandBarCatalog {
                     } else {
                         open(link)
                     }
+                })
+        }
+    }
+
+    // MARK: - Chrome bookmarks
+
+    static func chromeBookmarkEntries(
+        _ bookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark],
+        bar: CommandBarFeatureStrings
+    ) -> [CommandBarEntry] {
+        let chromeIconPath = InstalledApps.url(for: "com.google.Chrome")?.path
+        return bookmarks.map { bookmark in
+            CommandBarEntry(
+                id: "chromebookmark.\(bookmark.id)",
+                title: bookmark.title,
+                subtitle: bookmark.folder.isEmpty ? bar.sourceChromeBookmarks : bookmark.folder,
+                keywords: CommandBarBookmarksSupport.keywords(
+                    title: bookmark.title, url: bookmark.url, folder: bookmark.folder),
+                icon: chromeIconPath.map { .appIcon(path: $0) } ?? .symbol("globe"),
+                run: { _ in
+                    guard CommandBarBookmarksSupport.isOfferableURL(bookmark.url),
+                          let url = URL(string: bookmark.url) else { return }
+                    guard let appURL = InstalledApps.url(for: "com.google.Chrome") else {
+                        NSWorkspace.shared.open(url)
+                        return
+                    }
+                    NSWorkspace.shared.open([url], withApplicationAt: appURL,
+                                            configuration: NSWorkspace.OpenConfiguration())
                 })
         }
     }
