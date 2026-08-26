@@ -435,6 +435,7 @@ struct CommandBarSettings: View {
         case .links: return text.linksTitle
         case .files: return text.sourceFiles
         case .chromeBookmarks: return text.sourceChromeBookmarks
+        case .firefoxBookmarks: return text.sourceFirefoxBookmarks
         case .killProcess: return FeatureStrings.killProcess(l10n.language).pageTitle
         }
     }
