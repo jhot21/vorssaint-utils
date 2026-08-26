@@ -117,6 +117,11 @@ struct CommandBarSettings: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "org.mozilla.firefox") == nil {
+                        Text(text.firefoxBookmarksNotInstalled)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 

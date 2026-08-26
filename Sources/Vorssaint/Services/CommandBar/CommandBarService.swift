@@ -106,6 +106,7 @@ final class CommandBarService: ObservableObject {
     let scriptRunner = CommandBarScriptRunner()
     let fileSearch = CommandBarFileSearch()
     private let chromeBookmarks = CommandBarBookmarksChrome()
+    private let firefoxBookmarks = CommandBarBookmarksFirefox()
     /// Which row answered which few letters, for as long as the app runs. Not
     /// stored: the bar forgets everything typed into it when it goes.
     private var queryMemory = CommandBarQueryMemory()
@@ -691,6 +692,7 @@ final class CommandBarService: ObservableObject {
         hasCustomPosition = positionOffset != .zero
         reloadFileSearchCaches()
         chromeBookmarks.refreshIfNeeded(enabled: isEnabled(.chromeBookmarks))
+        firefoxBookmarks.refreshIfNeeded(enabled: isEnabled(.firefoxBookmarks))
     }
 
     private func reloadFileSearchCaches() {
@@ -830,7 +832,8 @@ final class CommandBarService: ObservableObject {
 
     private func rebuildCatalog(index: Bool = true) {
         catalog = CommandBarCatalog.build(automationDenied: finderAutomationDenied,
-                                          chromeBookmarks: chromeBookmarks.cachedBookmarks)
+                                          chromeBookmarks: chromeBookmarks.cachedBookmarks,
+                                          firefoxBookmarks: firefoxBookmarks.cachedBookmarks)
         emojiEntries = CommandBarCatalog.emojiEntries(bar: FeatureStrings.commandBar(L10n.shared.language))
         builtLanguage = L10n.shared.language
         if index { indexEntries() }

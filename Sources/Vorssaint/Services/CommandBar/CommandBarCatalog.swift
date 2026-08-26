@@ -166,7 +166,8 @@ enum CommandBarCatalog {
     ]
 
     static func build(automationDenied: Bool,
-                      chromeBookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark]) -> [CommandBarEntry] {
+                      chromeBookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark],
+                      firefoxBookmarks: [CommandBarBookmarksFirefoxSupport.ParsedBookmark]) -> [CommandBarEntry] {
         let s = L10n.shared.s
         let language = L10n.shared.language
         let bar = FeatureStrings.commandBar(language)
@@ -181,6 +182,7 @@ enum CommandBarCatalog {
             CommandBarLinks.decode(UserDefaults.standard.data(forKey: DefaultsKey.commandBarLinks)),
             bar: bar))
         entries.append(contentsOf: chromeBookmarkEntries(chromeBookmarks, bar: bar))
+        entries.append(contentsOf: firefoxBookmarkEntries(firefoxBookmarks, bar: bar))
         return entries
     }
 
@@ -1240,6 +1242,34 @@ enum CommandBarCatalog {
                     guard CommandBarBookmarksSupport.isOfferableURL(bookmark.url),
                           let url = URL(string: bookmark.url) else { return }
                     guard let appURL = InstalledApps.url(for: "com.google.Chrome") else {
+                        NSWorkspace.shared.open(url)
+                        return
+                    }
+                    NSWorkspace.shared.open([url], withApplicationAt: appURL,
+                                            configuration: NSWorkspace.OpenConfiguration())
+                })
+        }
+    }
+
+    // MARK: - Firefox bookmarks
+
+    static func firefoxBookmarkEntries(
+        _ bookmarks: [CommandBarBookmarksFirefoxSupport.ParsedBookmark],
+        bar: CommandBarFeatureStrings
+    ) -> [CommandBarEntry] {
+        let firefoxIconPath = InstalledApps.url(for: "org.mozilla.firefox")?.path
+        return bookmarks.map { bookmark in
+            CommandBarEntry(
+                id: "firefoxbookmark.\(bookmark.id)",
+                title: bookmark.title,
+                subtitle: bookmark.folder.isEmpty ? bar.sourceFirefoxBookmarks : bookmark.folder,
+                keywords: CommandBarBookmarksSupport.keywords(
+                    title: bookmark.title, url: bookmark.url, folder: bookmark.folder),
+                icon: firefoxIconPath.map { .appIcon(path: $0) } ?? .symbol("globe"),
+                run: { _ in
+                    guard CommandBarBookmarksSupport.isOfferableURL(bookmark.url),
+                          let url = URL(string: bookmark.url) else { return }
+                    guard let appURL = InstalledApps.url(for: "org.mozilla.firefox") else {
                         NSWorkspace.shared.open(url)
                         return
                     }
