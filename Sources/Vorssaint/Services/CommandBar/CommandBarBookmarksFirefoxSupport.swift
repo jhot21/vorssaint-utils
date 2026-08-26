@@ -71,16 +71,31 @@ enum CommandBarBookmarksFirefoxSupport {
     ) -> [Int: String] {
         let byID = Dictionary(uniqueKeysWithValues: folderRows.map { ($0.id, $0) })
         var resolved: [Int: String] = [:]
+        var visiting: Set<Int> = []
 
         func resolve(_ id: Int) -> String {
             if let cached = resolved[id] { return cached }
             guard let row = byID[id] else { return "" }
             let ownName = friendlyRootName(row.title)
-            guard let parent = byID[row.parentId], parent.id != row.id else {
+
+            // No parent row at all: this is the top of the chain (Firefox's
+            // hidden super-root has no folder row of its own), and
+            // contributes nothing to paths beneath it.
+            guard let parent = byID[row.parentId] else {
+                resolved[id] = ""
+                return ""
+            }
+            // A self-referential parent, or a cycle already being resolved
+            // higher up the call stack, marks a genuine top-level container:
+            // stop here and use this row's own name rather than recursing
+            // forever.
+            guard parent.id != row.id, !visiting.contains(row.parentId) else {
                 resolved[id] = ownName
                 return ownName
             }
+            visiting.insert(id)
             let parentPath = resolve(parent.id)
+            visiting.remove(id)
             let full = parentPath.isEmpty ? ownName : "\(parentPath)/\(ownName)"
             resolved[id] = full
             return full

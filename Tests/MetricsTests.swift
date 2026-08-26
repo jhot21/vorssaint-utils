@@ -16420,6 +16420,19 @@ struct MetricsTests {
                "a bookmark's folder is its parent's resolved path")
         expect(parsed.contains { $0.id == "11" && $0.folder == "Bookmarks Toolbar" },
                "a bookmark directly under the toolbar folder gets the toolbar's own friendly name")
+        // A two-node cycle (neither row self-referential) must terminate
+        // rather than recurse forever: row 100's parent is 101 and row
+        // 101's parent is 100. Resolving 100 first marks 100 as
+        // "in progress"; resolving 101 then sees 100 already being
+        // resolved and stops there, using its own name. 100 then
+        // finishes by joining onto that.
+        let cyclicFolderRows: [(id: Int, parentId: Int, title: String, guid: String)] = [
+            (100, 101, "A", "a___________"),
+            (101, 100, "B", "b___________"),
+        ]
+        let cyclicPaths = CommandBarBookmarksFirefoxSupport.buildFolderPaths(folderRows: cyclicFolderRows)
+        expect(cyclicPaths[100] == "B/A", "a cycle terminates: the second node visited stops recursing and the first joins onto it")
+        expect(cyclicPaths[101] == "B", "the node that closes the cycle falls back to its own name rather than recursing forever")
 
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
