@@ -16306,6 +16306,45 @@ struct MetricsTests {
         expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(infoCache: [:], lastUsed: nil) == nil,
                "no eligible profile means nothing to read")
 
+        // MARK: Chrome bookmark reader against a fixture profile
+        let chromeReaderFixtureJSON = """
+        {
+          "roots": {
+            "bookmark_bar": {
+              "name": "Bookmarks bar",
+              "type": "folder",
+              "children": [
+                { "guid": "rg1", "name": "Vorssaint", "type": "url", "url": "https://vorssaint.example/" },
+                { "guid": "rg2", "name": "Second", "type": "url", "url": "https://example.com/second" }
+              ]
+            },
+            "other": { "name": "Other bookmarks", "type": "folder", "children": [] }
+          }
+        }
+        """
+        let chromeFixtureRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-chrome-fixture-\(UUID().uuidString)")
+        let chromeProfile = chromeFixtureRoot.appendingPathComponent("Default")
+        try? FileManager.default.createDirectory(at: chromeProfile, withIntermediateDirectories: true)
+        try? chromeReaderFixtureJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks"),
+                                           atomically: true, encoding: .utf8)
+        let localState = """
+        {"profile":{"info_cache":{"Default":{}},"last_used":"Default"}}
+        """
+        try? localState.write(to: chromeFixtureRoot.appendingPathComponent("Local State"),
+                              atomically: true, encoding: .utf8)
+        let chromeReader = CommandBarBookmarksChrome(rootDirectory: chromeFixtureRoot)
+        chromeReader.refreshIfNeeded(enabled: true)
+        expect(chromeReader.cachedBookmarks.count == 2,
+               "the reader finds both bookmarks in the fixture profile")
+        let signatureAfterFirstRead = chromeReader.cachedBookmarks
+        chromeReader.refreshIfNeeded(enabled: true)
+        expect(chromeReader.cachedBookmarks.map(\.id) == signatureAfterFirstRead.map(\.id),
+               "an unchanged fixture does not reorder or drop rows on a second refresh")
+        chromeReader.refreshIfNeeded(enabled: false)
+        expect(chromeReader.cachedBookmarks.isEmpty, "disabling the source clears its cache")
+        try? FileManager.default.removeItem(at: chromeFixtureRoot)
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
