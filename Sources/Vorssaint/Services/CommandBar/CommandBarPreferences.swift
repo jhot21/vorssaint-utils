@@ -29,6 +29,8 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
     /// Files found by name in the folders the person named. Last, because it
     /// is the one source that has to go and look.
     case files
+    /// Bookmarks read from Chrome's own profile files.
+    case chromeBookmarks
     case killProcess
 
     var id: String { rawValue }
@@ -55,6 +57,7 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
         case .selection: return "text.cursor"
         case .links: return "bookmark"
         case .files: return "doc.text.magnifyingglass"
+        case .chromeBookmarks: return "globe"
         case .killProcess: return "xmark.octagon"
         }
     }
@@ -78,6 +81,7 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
         case .selection: return "selection."
         case .links: return "link."
         case .files: return "file."
+        case .chromeBookmarks: return "chromebookmark."
         case .killProcess: return "kill."
         }
     }
@@ -135,7 +139,8 @@ enum CommandBarPreferences {
         // better match than a command to lead the list, never merely as good.
         case .files: return -40
         case .actions, .apps, .windows, .quitApps, .settingsPages, .macSettings, .snippets,
-             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links, .killProcess:
+             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links,
+             .chromeBookmarks, .killProcess:
             return 0
         }
     }
@@ -166,7 +171,7 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .menus, .windows, .clipboard, .selection, .files, .killProcess: return false
         case .actions, .apps, .quitApps, .settingsPages, .macSettings, .snippets, .emoji,
-             .folders, .answers, .calculator, .links:
+             .folders, .answers, .calculator, .links, .chromeBookmarks:
             return true
         }
     }
@@ -234,7 +239,7 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .menus, .quitApps, .clipboard, .emoji, .selection, .files, .killProcess: return false
         case .actions, .apps, .windows, .settingsPages, .macSettings, .snippets, .folders,
-             .links, .answers, .calculator:
+             .links, .chromeBookmarks, .answers, .calculator:
             return true
         }
     }
@@ -287,7 +292,8 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .actions, .settingsPages, .snippets: return true
         case .apps, .menus, .windows, .quitApps, .macSettings, .clipboard, .emoji,
-             .folders, .answers, .calculator, .selection, .links, .files, .killProcess:
+             .folders, .answers, .calculator, .selection, .links, .files, .chromeBookmarks,
+             .killProcess:
             return false
         }
     }
