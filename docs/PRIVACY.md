@@ -21,6 +21,8 @@ Recent Captures keeps up to 12 screenshots, within a 256 MB limit, in the app's 
 
 When a feature needs a macOS permission such as Accessibility, Screen Recording or Microphone, that access is used only for the feature it belongs to. Captured content leaves the Mac only when you explicitly create a temporary link. The [permissions guide](PERMISSIONS.md) breaks down each permission.
 
+When the Command Bar's Chrome Bookmarks source is on, it reads Chrome's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
+
 ## Network connections
 
 Vorssaint opens only a few kinds of connection, and each one belongs to a visible feature.
