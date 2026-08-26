@@ -285,6 +285,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/CommandBar/CommandBarSystemSettingsSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarFileSearchSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksSupport.swift \
+        Sources/Vorssaint/Services/CommandBar/CommandBarBookmarksChromeSupport.swift \
         Sources/Vorssaint/Services/CommandBar/CommandBarQueryMemory.swift \
         Sources/Vorssaint/Services/SpotlightNamesSupport.swift \
         Sources/Vorssaint/Services/QuickTools/MicMuteSupport.swift \

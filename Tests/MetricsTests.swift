@@ -16255,6 +16255,57 @@ struct MetricsTests {
             .init(path: "/b", size: 20, modified: Date(timeIntervalSince1970: 200)),
         ]), "the same inputs always produce the same signature")
 
+        // MARK: Chrome bookmark parsing
+        let chromeJSON = """
+        {
+          "roots": {
+            "bookmark_bar": {
+              "name": "Bookmarks bar",
+              "type": "folder",
+              "children": [
+                { "guid": "g1", "name": "Vorssaint", "type": "url", "url": "https://vorssaint.example/" },
+                {
+                  "guid": "g2", "name": "Dev", "type": "folder",
+                  "children": [
+                    { "guid": "g3", "name": "PR review", "type": "url", "url": "https://github.com/org/repo/pull/1" }
+                  ]
+                }
+              ]
+            },
+            "other": { "name": "Other bookmarks", "type": "folder", "children": [] }
+          }
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let decodedChrome = try? decoder.decode(
+            CommandBarBookmarksChromeSupport.ChromeBookmarksRoot.self,
+            from: Data(chromeJSON.utf8))
+        expect(decodedChrome != nil, "well-formed Chrome Bookmarks JSON decodes")
+        if let root = decodedChrome {
+            let flat = CommandBarBookmarksChromeSupport.flattenedBookmarks(from: root)
+            expect(flat.count == 2, "one root-level bookmark and one nested inside a folder")
+            expect(flat.contains { $0.id == "g1" && $0.title == "Vorssaint" && $0.folder == "Bookmarks bar" },
+                   "a bookmark directly on the bar carries the bar's own name as its folder")
+            expect(flat.contains { $0.id == "g3" && $0.folder == "Bookmarks bar/Dev" },
+                   "a nested bookmark's folder is the full path down to it")
+        }
+        let emptyLocalState = try? JSONDecoder().decode(
+            CommandBarBookmarksChromeSupport.ChromeLocalState.self,
+            from: Data("{}".utf8))
+        expect(emptyLocalState != nil, "a Local State missing the profile key still decodes, as an empty one")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(
+                infoCache: ["Default": true, "Profile 1": true], lastUsed: "Profile 1") == "Profile 1",
+               "the last-used profile wins when it actually has bookmarks")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(
+                infoCache: ["Default": true, "Profile 1": false], lastUsed: "Profile 1") == "Default",
+               "a last-used profile with no bookmarks file falls back to Default")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(
+                infoCache: ["Profile 2": true, "Profile 1": true], lastUsed: nil) == "Profile 1",
+               "with no recorded last-used profile, the alphabetically first eligible one is picked")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(infoCache: [:], lastUsed: nil) == nil,
+               "no eligible profile means nothing to read")
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
