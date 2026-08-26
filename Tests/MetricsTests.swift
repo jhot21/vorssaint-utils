@@ -16363,6 +16363,64 @@ struct MetricsTests {
                "Bookmarks.bak")
         try? FileManager.default.removeItem(at: chromeFixtureRoot)
 
+        // MARK: Firefox bookmark parsing
+        let profilesIni = """
+        [Install4F96D1932A9F858E]
+        Default=abc123.default-release
+        Locked=1
+
+        [Profile1]
+        Name=default-release
+        IsRelative=1
+        Path=abc123.default-release
+        Default=1
+
+        [Profile0]
+        Name=work
+        IsRelative=1
+        Path=xyz789.work
+        """
+        expect(CommandBarBookmarksFirefoxSupport.defaultProfilePath(profilesIni: profilesIni)
+                == "abc123.default-release",
+               "the Install section's Default key wins, not a per-profile Default flag")
+        let noInstallSection = """
+        [Profile0]
+        Name=work
+        IsRelative=1
+        Path=xyz789.work
+        """
+        expect(CommandBarBookmarksFirefoxSupport.defaultProfilePath(profilesIni: noInstallSection)
+                == "xyz789.work",
+               "with no Install section, the first profile found is used")
+        expect(CommandBarBookmarksFirefoxSupport.defaultProfilePath(profilesIni: "") == nil,
+               "an empty or missing profiles.ini has nothing to read")
+        expect(CommandBarBookmarksFirefoxSupport.friendlyRootName("toolbar") == "Bookmarks Toolbar"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("menu") == "Bookmarks Menu"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("unfiled") == "Other Bookmarks"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("mobile") == "Mobile Bookmarks"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("Dev") == "Dev",
+               "the four root guids get a friendly name; an ordinary folder keeps its own title")
+        // id, parentId, title, guid
+        let folderRows: [(id: Int, parentId: Int, title: String, guid: String)] = [
+            (1, 0, "root________", "root________"),
+            (2, 1, "toolbar", "toolbar_____"),
+            (3, 2, "Dev", "abc"),
+        ]
+        let paths = CommandBarBookmarksFirefoxSupport.buildFolderPaths(folderRows: folderRows)
+        expect(paths[2] == "Bookmarks Toolbar", "the toolbar root resolves to its friendly name")
+        expect(paths[3] == "Bookmarks Toolbar/Dev", "a nested folder's path includes its parent chain")
+        let bookmarkRows: [(id: Int, parentId: Int, title: String, url: String)] = [
+            (10, 3, "PR review", "https://github.com/org/repo/pull/1"),
+            (11, 2, "Vorssaint", "https://vorssaint.example/"),
+        ]
+        let parsed = CommandBarBookmarksFirefoxSupport.parsedBookmarks(
+            bookmarkRows: bookmarkRows, folderPaths: paths)
+        expect(parsed.count == 2, "both rows become bookmarks")
+        expect(parsed.contains { $0.id == "10" && $0.folder == "Bookmarks Toolbar/Dev" },
+               "a bookmark's folder is its parent's resolved path")
+        expect(parsed.contains { $0.id == "11" && $0.folder == "Bookmarks Toolbar" },
+               "a bookmark directly under the toolbar folder gets the toolbar's own friendly name")
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
