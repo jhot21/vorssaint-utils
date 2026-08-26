@@ -167,7 +167,8 @@ enum CommandBarCatalog {
 
     static func build(automationDenied: Bool,
                       chromeBookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark],
-                      firefoxBookmarks: [CommandBarBookmarksFirefoxSupport.ParsedBookmark]) -> [CommandBarEntry] {
+                      firefoxBookmarks: [CommandBarBookmarksFirefoxSupport.ParsedBookmark],
+                      safariBookmarks: [CommandBarBookmarksSafariSupport.ParsedBookmark]) -> [CommandBarEntry] {
         let s = L10n.shared.s
         let language = L10n.shared.language
         let bar = FeatureStrings.commandBar(language)
@@ -183,6 +184,7 @@ enum CommandBarCatalog {
             bar: bar))
         entries.append(contentsOf: chromeBookmarkEntries(chromeBookmarks, bar: bar))
         entries.append(contentsOf: firefoxBookmarkEntries(firefoxBookmarks, bar: bar))
+        entries.append(contentsOf: safariBookmarkEntries(safariBookmarks, bar: bar))
         return entries
     }
 
@@ -1270,6 +1272,34 @@ enum CommandBarCatalog {
                     guard CommandBarBookmarksSupport.isOfferableURL(bookmark.url),
                           let url = URL(string: bookmark.url) else { return }
                     guard let appURL = InstalledApps.url(for: "org.mozilla.firefox") else {
+                        NSWorkspace.shared.open(url)
+                        return
+                    }
+                    NSWorkspace.shared.open([url], withApplicationAt: appURL,
+                                            configuration: NSWorkspace.OpenConfiguration())
+                })
+        }
+    }
+
+    // MARK: - Safari bookmarks
+
+    static func safariBookmarkEntries(
+        _ bookmarks: [CommandBarBookmarksSafariSupport.ParsedBookmark],
+        bar: CommandBarFeatureStrings
+    ) -> [CommandBarEntry] {
+        let safariIconPath = InstalledApps.url(for: "com.apple.Safari")?.path
+        return bookmarks.map { bookmark in
+            CommandBarEntry(
+                id: "safaribookmark.\(bookmark.id)",
+                title: bookmark.title,
+                subtitle: bookmark.folder.isEmpty ? bar.sourceSafariBookmarks : bookmark.folder,
+                keywords: CommandBarBookmarksSupport.keywords(
+                    title: bookmark.title, url: bookmark.url, folder: bookmark.folder),
+                icon: safariIconPath.map { .appIcon(path: $0) } ?? .symbol("globe"),
+                run: { _ in
+                    guard CommandBarBookmarksSupport.isOfferableURL(bookmark.url, allowFileScheme: true),
+                          let url = URL(string: bookmark.url) else { return }
+                    guard let appURL = InstalledApps.url(for: "com.apple.Safari") else {
                         NSWorkspace.shared.open(url)
                         return
                     }

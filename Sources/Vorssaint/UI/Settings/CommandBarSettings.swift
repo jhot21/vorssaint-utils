@@ -7,6 +7,7 @@ import SwiftUI
 struct CommandBarSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var service = CommandBarService.shared
+    @ObservedObject private var permissions = Permissions.shared
     @AppStorage(DefaultsKey.commandBarShortcutEnabled) private var shortcutEnabled = false
     @AppStorage(DefaultsKey.commandBarCompactMode) private var compactMode = false
     @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources = ""
@@ -122,6 +123,13 @@ struct CommandBarSettings: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                }
+            }
+
+            if CommandBarPreferences.isEnabled(.safariBookmarks, disabledRaw: disabledSources),
+               !permissions.fullDiskAccess {
+                Section {
+                    FullDiskAccessNote(reason: text.safariBookmarksFDAReason)
                 }
             }
 
