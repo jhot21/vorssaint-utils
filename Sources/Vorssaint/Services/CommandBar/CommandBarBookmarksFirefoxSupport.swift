@@ -105,11 +105,11 @@ enum CommandBarBookmarksFirefoxSupport {
     }
 
     static func parsedBookmarks(
-        bookmarkRows: [(id: Int, parentId: Int, title: String, url: String)],
+        bookmarkRows: [(id: Int, parentId: Int, title: String, url: String, guid: String)],
         folderPaths: [Int: String]
     ) -> [ParsedBookmark] {
         bookmarkRows.map { row in
-            ParsedBookmark(id: String(row.id), title: row.title, url: row.url,
+            ParsedBookmark(id: row.guid, title: row.title, url: row.url,
                            folder: folderPaths[row.parentId] ?? "")
         }
     }
