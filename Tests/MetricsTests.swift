@@ -11069,8 +11069,8 @@ struct MetricsTests {
         expect(activeSet(.filesAndFolders, on: [DefaultsKey.whatsAppDownloadsEnabled]) == [.cleaner],
                "the cleaner owns WhatsApp Downloads folder access")
 
-        expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller],
-               "cleaner and uninstaller are on-demand full disk users")
+        expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller, .commandBar],
+               "cleaner, uninstaller, and command bar are on-demand full disk users")
         expect(activeSet(.automationFinder, on: [DefaultsKey.finderCutPasteEnabled])
                 == [.finderCutPaste, .uninstaller, .quickToggles],
                "finder automation is used by cut and paste, the uninstaller and the quick toggles")
@@ -16803,8 +16803,8 @@ struct MetricsTests {
                 && GlobalShortcutRole.commandBar.feature == .commandBar,
                "the command bar shortcut role gates on its toggle and feature")
         expect(AppFeature.commandBar.group == .tools && AppFeature.commandBar.enabledKeys.isEmpty
-                && AppFeature.commandBar.permissions == [.accessibility],
-               "the command bar is an on-demand tool that reads and types through accessibility")
+                && AppFeature.commandBar.permissions == [.accessibility, .fullDiskAccess],
+               "the command bar is an on-demand tool that reads and types through accessibility and accesses Safari bookmarks through Full Disk Access")
         expect(AppFeature.commandBar.energyProfile == .idle,
                "the command bar costs nothing while closed")
         expect(pageVisible(.commandBar, available: [.commandBar])

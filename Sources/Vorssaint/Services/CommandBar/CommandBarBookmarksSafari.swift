@@ -17,7 +17,7 @@ final class CommandBarBookmarksSafari {
         self.plistPath = plistPath
     }
 
-    func refreshIfNeeded(enabled: Bool, fullDiskAccess: Bool = Permissions.shared.fullDiskAccess) {
+    func refreshIfNeeded(enabled: Bool, fullDiskAccess: Bool) {
         guard enabled, fullDiskAccess else {
             if lastSignature != nil || !cachedBookmarks.isEmpty {
                 lastSignature = nil
