@@ -1146,6 +1146,8 @@ final class CommandBarService: ObservableObject {
         ("app.", 5), ("window.", 4), ("quit.", 3), ("menu.", 5), ("emoji.", 6),
         ("settings.", 4), ("macsettings.", 4), ("clipboard.", 4), ("snippet.", 4),
         ("file.", 4),
+        // Every switch answers to the same verb, so searching that verb would
+        // otherwise fill the list with twenty rows that all read alike.
         ("toggle.", 5),
         ("chromebookmark.", 5),
         ("firefoxbookmark.", 5),
