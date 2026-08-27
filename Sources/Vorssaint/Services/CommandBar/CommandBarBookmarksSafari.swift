@@ -32,8 +32,13 @@ final class CommandBarBookmarksSafari {
         }
         let signature = CommandBarBookmarksSupport.signature([signatureFile])
         guard signature != lastSignature else { return }
+        // A transient parse failure keeps both the previous bookmarks and
+        // the previous signature: committing the signature here would make
+        // the next `refreshIfNeeded` believe this failed state was already
+        // seen, and skip retrying until the file changes again.
+        guard let parsed = Self.parse(at: plistPath) else { return }
         lastSignature = signature
-        cachedBookmarks = Self.parse(at: plistPath) ?? cachedBookmarks
+        cachedBookmarks = Array(parsed.prefix(CommandBarBookmarksSupport.maximumBookmarks))
     }
 
     private static func parse(at url: URL) -> [CommandBarBookmarksSafariSupport.ParsedBookmark]? {

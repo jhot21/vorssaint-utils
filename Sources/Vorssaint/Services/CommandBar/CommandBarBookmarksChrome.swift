@@ -40,9 +40,17 @@ final class CommandBarBookmarksChrome {
         let signature = CommandBarBookmarksSupport.signature(
             [localStatePath, accountPath, bookmarksPath].compactMap(Self.fileSignature))
         guard signature != lastSignature else { return }
+        guard let parsed = parsedBookmarks(accountPath: accountPath, bookmarksPath: bookmarksPath,
+                                           backupPath: backupPath) else {
+            // A transient parse failure keeps both the previous bookmarks
+            // and the previous signature: committing the signature here
+            // would make the next `refreshIfNeeded` believe this failed
+            // state was already seen, and skip retrying until the file
+            // changes again.
+            return
+        }
         lastSignature = signature
-        cachedBookmarks = parsedBookmarks(accountPath: accountPath, bookmarksPath: bookmarksPath,
-                                          backupPath: backupPath)
+        cachedBookmarks = Array(parsed.prefix(CommandBarBookmarksSupport.maximumBookmarks))
     }
 
     private func resolveProfileDirectory(localStatePath: String) -> URL? {
@@ -85,8 +93,11 @@ final class CommandBarBookmarksChrome {
     /// Prefers `AccountBookmarks` (present and non-empty) over `Bookmarks`,
     /// and `Bookmarks.bak` as a last resort if the primary file fails to
     /// parse — Chrome's own atomic-write fallback file.
+    /// `nil` means every file failed to parse — a transient failure the
+    /// caller keeps the previous cache (and signature) across, rather than
+    /// blanking either.
     private func parsedBookmarks(accountPath: String, bookmarksPath: String,
-                                 backupPath: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark] {
+                                 backupPath: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark]? {
         // AccountBookmarks is only preferred when present AND non-empty.
         if let parsed = Self.parseFile(at: accountPath), !parsed.isEmpty {
             return parsed
@@ -101,7 +112,7 @@ final class CommandBarBookmarksChrome {
         }
         // Bookmarks itself failed to parse (missing or corrupt): fall back
         // to Bookmarks.bak, Chrome's own atomic-write backup file.
-        return Self.parseFile(at: backupPath) ?? []
+        return Self.parseFile(at: backupPath)
     }
 
     private static func parseFile(at path: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark]? {

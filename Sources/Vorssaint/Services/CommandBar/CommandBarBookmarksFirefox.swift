@@ -56,9 +56,14 @@ final class CommandBarBookmarksFirefox {
         if let lastParseDate, Date().timeIntervalSince(lastParseDate) < minimumReparseInterval {
             return
         }
-        lastSignature = signature
         lastParseDate = Date()
-        cachedBookmarks = Self.readBookmarks(atPath: dbPath) ?? cachedBookmarks
+        // A transient parse failure keeps both the previous bookmarks and
+        // the previous signature: committing the signature here would make
+        // the next `refreshIfNeeded` believe this failed state was already
+        // seen, and skip retrying until the file changes again.
+        guard let parsed = Self.readBookmarks(atPath: dbPath) else { return }
+        lastSignature = signature
+        cachedBookmarks = Array(parsed.prefix(CommandBarBookmarksSupport.maximumBookmarks))
     }
 
     /// Opens read-only, tolerant of Firefox already holding the file open:
@@ -66,7 +71,12 @@ final class CommandBarBookmarksFirefox {
     /// missing a bookmark added moments ago before Firefox checkpoints its
     /// WAL file — an acceptable tradeoff for a search feature.
     private static func readBookmarks(atPath path: String) -> [CommandBarBookmarksFirefoxSupport.ParsedBookmark]? {
-        guard let uri = "file:\(path)?immutable=1".cString(using: .utf8) else { return nil }
+        // Percent-encode the path before it goes into a URI: an unescaped
+        // space, `#` or `?` in the profile path would otherwise produce a
+        // malformed `file:` URI. Falls back to the raw path (still usually
+        // valid) if encoding somehow fails rather than force-unwrapping.
+        let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+        guard let uri = "file:\(encodedPath)?immutable=1".cString(using: .utf8) else { return nil }
         var db: OpaquePointer?
         let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI
         guard sqlite3_open_v2(uri, &db, flags, nil) == SQLITE_OK, let db else {
@@ -86,16 +96,19 @@ final class CommandBarBookmarksFirefox {
             return (id, parentId, String(cString: titlePointer), String(cString: guidPointer))
         }
         let bookmarkRows = query(db, sql: """
-            SELECT moz_bookmarks.id, moz_bookmarks.parent, moz_bookmarks.title, moz_places.url
+            SELECT moz_bookmarks.id, moz_bookmarks.parent, moz_bookmarks.title, moz_places.url,
+                   moz_bookmarks.guid
             FROM moz_bookmarks LEFT JOIN moz_places ON moz_bookmarks.fk = moz_places.id
             WHERE moz_bookmarks.type = 1 AND moz_bookmarks.title IS NOT NULL
               AND moz_places.url IS NOT NULL;
-            """) { statement -> (id: Int, parentId: Int, title: String, url: String)? in
+            """) { statement -> (id: Int, parentId: Int, title: String, url: String, guid: String)? in
             let id = Int(sqlite3_column_int(statement, 0))
             let parentId = Int(sqlite3_column_int(statement, 1))
             guard let titlePointer = sqlite3_column_text(statement, 2),
-                  let urlPointer = sqlite3_column_text(statement, 3) else { return nil }
-            return (id, parentId, String(cString: titlePointer), String(cString: urlPointer))
+                  let urlPointer = sqlite3_column_text(statement, 3),
+                  let guidPointer = sqlite3_column_text(statement, 4) else { return nil }
+            return (id, parentId, String(cString: titlePointer), String(cString: urlPointer),
+                    String(cString: guidPointer))
         }
         let folderPaths = CommandBarBookmarksFirefoxSupport.buildFolderPaths(folderRows: folderRows)
         return CommandBarBookmarksFirefoxSupport.parsedBookmarks(bookmarkRows: bookmarkRows,
