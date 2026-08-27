@@ -1232,7 +1232,7 @@ enum CommandBarCatalog {
         bar: CommandBarFeatureStrings
     ) -> [CommandBarEntry] {
         let chromeIconPath = InstalledApps.url(for: "com.google.Chrome")?.path
-        return bookmarks.map { bookmark in
+        return bookmarks.filter { CommandBarBookmarksSupport.isOfferableURL($0.url) }.map { bookmark in
             CommandBarEntry(
                 id: "chromebookmark.\(bookmark.id)",
                 title: bookmark.title,
@@ -1260,7 +1260,7 @@ enum CommandBarCatalog {
         bar: CommandBarFeatureStrings
     ) -> [CommandBarEntry] {
         let firefoxIconPath = InstalledApps.url(for: "org.mozilla.firefox")?.path
-        return bookmarks.map { bookmark in
+        return bookmarks.filter { CommandBarBookmarksSupport.isOfferableURL($0.url) }.map { bookmark in
             CommandBarEntry(
                 id: "firefoxbookmark.\(bookmark.id)",
                 title: bookmark.title,
@@ -1288,7 +1288,7 @@ enum CommandBarCatalog {
         bar: CommandBarFeatureStrings
     ) -> [CommandBarEntry] {
         let safariIconPath = InstalledApps.url(for: "com.apple.Safari")?.path
-        return bookmarks.map { bookmark in
+        return bookmarks.filter { CommandBarBookmarksSupport.isOfferableURL($0.url, allowFileScheme: true) }.map { bookmark in
             CommandBarEntry(
                 id: "safaribookmark.\(bookmark.id)",
                 title: bookmark.title,
