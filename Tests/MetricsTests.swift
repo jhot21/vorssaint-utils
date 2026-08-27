@@ -16409,16 +16409,16 @@ struct MetricsTests {
         let paths = CommandBarBookmarksFirefoxSupport.buildFolderPaths(folderRows: folderRows)
         expect(paths[2] == "Bookmarks Toolbar", "the toolbar root resolves to its friendly name")
         expect(paths[3] == "Bookmarks Toolbar/Dev", "a nested folder's path includes its parent chain")
-        let bookmarkRows: [(id: Int, parentId: Int, title: String, url: String)] = [
-            (10, 3, "PR review", "https://github.com/org/repo/pull/1"),
-            (11, 2, "Vorssaint", "https://vorssaint.example/"),
+        let bookmarkRows: [(id: Int, parentId: Int, title: String, url: String, guid: String)] = [
+            (10, 3, "PR review", "https://github.com/org/repo/pull/1", "guid-pr-review"),
+            (11, 2, "Vorssaint", "https://vorssaint.example/", "guid-vorssaint"),
         ]
         let parsed = CommandBarBookmarksFirefoxSupport.parsedBookmarks(
             bookmarkRows: bookmarkRows, folderPaths: paths)
         expect(parsed.count == 2, "both rows become bookmarks")
-        expect(parsed.contains { $0.id == "10" && $0.folder == "Bookmarks Toolbar/Dev" },
-               "a bookmark's folder is its parent's resolved path")
-        expect(parsed.contains { $0.id == "11" && $0.folder == "Bookmarks Toolbar" },
+        expect(parsed.contains { $0.id == "guid-pr-review" && $0.folder == "Bookmarks Toolbar/Dev" },
+               "a bookmark's id is its stable guid, not the integer rowid, and its folder is its parent's resolved path")
+        expect(parsed.contains { $0.id == "guid-vorssaint" && $0.folder == "Bookmarks Toolbar" },
                "a bookmark directly under the toolbar folder gets the toolbar's own friendly name")
         // A two-node cycle (neither row self-referential) must terminate
         // rather than recurse forever: row 100's parent is 101 and row
@@ -17709,7 +17709,7 @@ struct MetricsTests {
         for language in AppLanguage.allCases {
             let commandBarValues = Mirror(reflecting: FeatureStrings.commandBar(language)).children
                 .compactMap { $0.value as? String }
-            expect(commandBarValues.count == 159 && commandBarValues.allSatisfy { !$0.isEmpty },
+            expect(commandBarValues.count == 158 && commandBarValues.allSatisfy { !$0.isEmpty },
                    "every command bar string is set for \(language.rawValue)")
             expect(commandBarValues.allSatisfy { !$0.contains("—") },
                    "no em-dash in visible command bar strings (\(language.rawValue))")
