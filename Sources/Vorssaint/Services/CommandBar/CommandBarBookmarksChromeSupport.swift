@@ -9,7 +9,7 @@ import Foundation
 /// and the directory-scan fallback all live in `CommandBarBookmarksChrome`,
 /// which is not part of this test harness.
 enum CommandBarBookmarksChromeSupport {
-    struct ParsedBookmark: Equatable {
+    struct ParsedBookmark: Equatable, CommandBarBookmarkRow {
         let id: String
         let title: String
         let url: String

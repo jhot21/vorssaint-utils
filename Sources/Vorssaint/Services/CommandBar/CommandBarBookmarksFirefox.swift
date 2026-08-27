@@ -69,7 +69,7 @@ final class CommandBarBookmarksFirefox {
     /// Opens read-only, tolerant of Firefox already holding the file open:
     /// `?immutable=1` skips SQLite's own locking, at the cost of possibly
     /// missing a bookmark added moments ago before Firefox checkpoints its
-    /// WAL file — an acceptable tradeoff for a search feature.
+    /// WAL file.
     private static func readBookmarks(atPath path: String) -> [CommandBarBookmarksFirefoxSupport.ParsedBookmark]? {
         // Percent-encode the path before it goes into a URI: an unescaped
         // space, `#` or `?` in the profile path would otherwise produce a

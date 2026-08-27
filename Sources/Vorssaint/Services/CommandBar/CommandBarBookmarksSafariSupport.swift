@@ -7,7 +7,7 @@ import Foundation
 /// tree, produces a flat list. Reading the file (behind Full Disk Access)
 /// lives in `CommandBarBookmarksSafari`, outside this test harness.
 enum CommandBarBookmarksSafariSupport {
-    struct ParsedBookmark: Equatable {
+    struct ParsedBookmark: Equatable, CommandBarBookmarkRow {
         let id: String
         let title: String
         let url: String

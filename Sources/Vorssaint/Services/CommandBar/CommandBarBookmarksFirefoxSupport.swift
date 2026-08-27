@@ -8,7 +8,7 @@ import Foundation
 /// Pure: given rows, produces bookmarks. Opening `places.sqlite` and running
 /// the SQL live outside this file.
 enum CommandBarBookmarksFirefoxSupport {
-    struct ParsedBookmark: Equatable {
+    struct ParsedBookmark: Equatable, CommandBarBookmarkRow {
         let id: String
         let title: String
         let url: String

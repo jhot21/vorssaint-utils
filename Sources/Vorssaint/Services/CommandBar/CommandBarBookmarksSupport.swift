@@ -3,6 +3,18 @@
 
 import Foundation
 
+/// A parsed bookmark from any browser. The three browsers' parsers each
+/// produce their own `ParsedBookmark` type — kept separate because each is
+/// the browser-specific reader's own concern — but the shape a Command Bar
+/// row is built from is identical, so this is what lets one function build
+/// all three browsers' rows instead of three near-identical copies.
+protocol CommandBarBookmarkRow {
+    var id: String { get }
+    var title: String { get }
+    var url: String { get }
+    var folder: String { get }
+}
+
 /// The rules every browser's bookmark reader shares: which URLs are worth
 /// offering, what a row is ranked against, and how a reader decides its
 /// cached list is stale. Pure, so these are pinned by tests rather than
