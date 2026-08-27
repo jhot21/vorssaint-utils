@@ -1124,7 +1124,7 @@ enum Defaults {
         DefaultsKey.scratchpadShortcut: GlobalShortcut.scratchpadDefault.storageValue,
         DefaultsKey.commandBarShortcutEnabled: false,
         DefaultsKey.commandBarCompactMode: false,
-        DefaultsKey.commandBarDisabledSources: "",
+        DefaultsKey.commandBarDisabledSources: CommandBarSource.safariBookmarks.rawValue,
         DefaultsKey.commandBarAliases: "",
         DefaultsKey.commandBarPins: "",
         DefaultsKey.commandBarHidden: "",
