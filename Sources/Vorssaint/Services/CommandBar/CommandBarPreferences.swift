@@ -102,6 +102,23 @@ enum CommandBarPreferences {
     /// Row shortcuts persist ids, so this one must never drift.
     static let emojiBrowserRowID = "emoji.browse"
     static let killProcessBrowserRowID = "kill.browse"
+    /// Prefixed to match each browser's own bookmark rows, so disabling a
+    /// browser's bookmarks in Settings hides its browse row along with them,
+    /// without a second toggle.
+    static let chromeBookmarksBrowserRowID = "chromebookmark.browse"
+    static let firefoxBookmarksBrowserRowID = "firefoxbookmark.browse"
+    static let safariBookmarksBrowserRowID = "safaribookmark.browse"
+    /// These share a bookmark source's own id prefix (so their Settings
+    /// toggle stays tied to it), which also puts them in that source's own
+    /// catalog filter. A category's content is the bookmarks themselves, not
+    /// the command that opens the category — so this set is excluded from
+    /// both `categoryContent` and `categoryHasContent`, or the browse row
+    /// would list itself inside the category it opens, and a browser with
+    /// zero bookmarks would still draw a chip for having exactly one "row":
+    /// itself.
+    static let bookmarksBrowserRowIDs: Set<String> = [
+        chromeBookmarksBrowserRowID, firefoxBookmarksBrowserRowID, safariBookmarksBrowserRowID,
+    ]
 
     // MARK: - Sources
 

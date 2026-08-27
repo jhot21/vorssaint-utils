@@ -683,6 +683,41 @@ enum CommandBarCatalog {
             icon: .symbol("face.smiling"),
             keepsBarOpen: true,
             run: { _ in CommandBarService.shared.setCategory(.emoji) }))
+        // Leftover query text is cleared on entry, unlike the emoji row
+        // above: a bookmark's title, host and folder never contain the
+        // words "Chrome"/"Firefox"/"Safari" the way every emoji's own
+        // keywords contain "Emoji", so leaving the typed text in place
+        // would filter every bookmark out the moment the category opens.
+        entries.append(CommandBarEntry(
+            id: CommandBarPreferences.chromeBookmarksBrowserRowID,
+            title: bar.sourceChromeBookmarks,
+            subtitle: bar.pageTitle,
+            icon: .symbol("globe"),
+            keepsBarOpen: true,
+            run: { _ in
+                CommandBarService.shared.setCategory(.chromeBookmarks)
+                CommandBarService.shared.query = ""
+            }))
+        entries.append(CommandBarEntry(
+            id: CommandBarPreferences.firefoxBookmarksBrowserRowID,
+            title: bar.sourceFirefoxBookmarks,
+            subtitle: bar.pageTitle,
+            icon: .symbol("globe"),
+            keepsBarOpen: true,
+            run: { _ in
+                CommandBarService.shared.setCategory(.firefoxBookmarks)
+                CommandBarService.shared.query = ""
+            }))
+        entries.append(CommandBarEntry(
+            id: CommandBarPreferences.safariBookmarksBrowserRowID,
+            title: bar.sourceSafariBookmarks,
+            subtitle: bar.pageTitle,
+            icon: .symbol("safari"),
+            keepsBarOpen: true,
+            run: { _ in
+                CommandBarService.shared.setCategory(.safariBookmarks)
+                CommandBarService.shared.query = ""
+            }))
         if AppFeature.killProcess.isAvailable,
            UserDefaults.standard.bool(forKey: DefaultsKey.killProcessCommandBarEnabled) {
             let killStrings = FeatureStrings.killProcess(language)

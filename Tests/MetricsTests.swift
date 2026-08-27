@@ -16581,6 +16581,24 @@ struct MetricsTests {
                 && CommandBarPreferences.source(ofRowID: CommandBarPreferences.emojiBrowserRowID)
                     == .emoji,
                "every row knows which source it came from")
+        expect(CommandBarPreferences.chromeBookmarksBrowserRowID == "chromebookmark.browse"
+                && CommandBarPreferences.firefoxBookmarksBrowserRowID == "firefoxbookmark.browse"
+                && CommandBarPreferences.safariBookmarksBrowserRowID == "safaribookmark.browse"
+                && CommandBarPreferences.source(ofRowID: CommandBarPreferences.chromeBookmarksBrowserRowID)
+                    == .chromeBookmarks
+                && CommandBarPreferences.source(ofRowID: CommandBarPreferences.firefoxBookmarksBrowserRowID)
+                    == .firefoxBookmarks
+                && CommandBarPreferences.source(ofRowID: CommandBarPreferences.safariBookmarksBrowserRowID)
+                    == .safariBookmarks,
+               "each bookmark browse row shares its browser's own prefix, so disabling that browser's "
+                + "bookmarks in Settings hides its browse row along with them")
+        expect(CommandBarPreferences.bookmarksBrowserRowIDs == [
+                    CommandBarPreferences.chromeBookmarksBrowserRowID,
+                    CommandBarPreferences.firefoxBookmarksBrowserRowID,
+                    CommandBarPreferences.safariBookmarksBrowserRowID,
+               ],
+               "the three browse rows are excluded from their own category's content, or each would "
+                + "list itself inside the category it opens and draw a chip for an empty bookmark list")
         expect(CommandBarPreferences.isEnabled(.folders, disabledRaw: "folders,emoji") == false
                 && CommandBarPreferences.isEnabled(.apps, disabledRaw: "folders,emoji") == true
                 && CommandBarPreferences.isEnabled(.actions, disabledRaw: "actions") == true,

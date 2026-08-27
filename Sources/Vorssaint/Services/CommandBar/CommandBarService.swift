@@ -593,6 +593,7 @@ final class CommandBarService: ObservableObject {
             return catalog.contains {
                 CommandBarPreferences.source(ofRowID: $0.id) == source
                     && !hidden.contains($0.stableKey)
+                    && !CommandBarPreferences.bookmarksBrowserRowIDs.contains($0.id)
             }
         case .killProcess:
             return AppFeature.killProcess.isAvailable
@@ -618,7 +619,10 @@ final class CommandBarService: ObservableObject {
         case .emoji: rows = emojiEntries
         case .settingsPages, .snippets, .folders, .links, .chromeBookmarks, .firefoxBookmarks,
              .safariBookmarks:
-            rows = catalog.filter { CommandBarPreferences.source(ofRowID: $0.id) == source }
+            rows = catalog.filter {
+                CommandBarPreferences.source(ofRowID: $0.id) == source
+                    && !CommandBarPreferences.bookmarksBrowserRowIDs.contains($0.id)
+            }
         case .clipboard:
             rows = CommandBarCatalog.clipboardBrowseEntries(limit: limit, bar: bar) { [weak self] entry in
                 self?.paste(entry)
