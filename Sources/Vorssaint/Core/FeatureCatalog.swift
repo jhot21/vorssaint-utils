@@ -349,6 +349,10 @@ extension AppFeature {
                 return cleanerNotifies || whatsAppNotifies
             case (.screenRecorder, .microphone):
                 return boolFor(DefaultsKey.recorderMicrophone)
+            case (.commandBar, .fullDiskAccess):
+                return CommandBarPreferences.isEnabled(
+                    .safariBookmarks,
+                    disabledRaw: stringFor(DefaultsKey.commandBarDisabledSources) ?? "")
             default:
                 return true
             }

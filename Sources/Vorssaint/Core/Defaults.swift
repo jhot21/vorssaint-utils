@@ -437,6 +437,7 @@ enum DefaultsKey {
     static let commandBarCompactMode = "commandBarCompactMode"
     static let commandBarUsage = "commandBarUsage"           // per-command run counts, never queries
     static let commandBarDisabledSources = "commandBarDisabledSources" // kinds of result switched off
+    static let didMigrateSafariBookmarksDefault = "didMigrateSafariBookmarksDefault"
     static let commandBarAliases = "commandBarAliases"       // {row id: the name the person gave it}
     static let commandBarPins = "commandBarPins"             // row keys kept at the top, in order
     static let commandBarHidden = "commandBarHidden"         // row keys the person never wants offered
@@ -1240,6 +1241,7 @@ enum Defaults {
         migrateFanControlVisibility(in: defaults)
         migrateScrollInverterAxes(in: defaults)
         migrateWhatsAppDownloadsEnabled(in: defaults)
+        migrateSafariBookmarksDefaultDisabled(in: defaults)
         defaults.register(defaults: registeredDefaults)
         defaults.register(defaults: AppFeature.availabilityDefaults)
         activateBetaChannelIfRunningBeta(in: defaults)
@@ -1285,6 +1287,29 @@ enum Defaults {
         if alreadyUsing {
             defaults.set(true, forKey: DefaultsKey.whatsAppDownloadsEnabled)
         }
+    }
+
+    /// Safari Bookmarks ships off by default, but `registeredDefaults` only
+    /// applies when the key was never stored — and `commandBarDisabledSources`
+    /// predates this source, so anyone who ever touched a Command Bar toggle
+    /// already has a stored string it can't reach. Adds Safari Bookmarks to
+    /// that string once, guarded by its own marker key (like
+    /// `activateBetaChannelIfRunningBeta`) rather than a nil-check on the
+    /// target — this key keeps changing by the person's own hand, so a
+    /// plain "re-add if missing" guard would fight anyone who explicitly
+    /// turns Safari Bookmarks back on.
+    static func migrateSafariBookmarksDefaultDisabled(in defaults: UserDefaults) {
+        guard !defaults.bool(forKey: DefaultsKey.didMigrateSafariBookmarksDefault) else { return }
+        defaults.set(true, forKey: DefaultsKey.didMigrateSafariBookmarksDefault)
+        guard let existing = defaults.string(forKey: DefaultsKey.commandBarDisabledSources) else {
+            // Never stored: a genuinely fresh install, where the registered
+            // default already disables Safari Bookmarks correctly.
+            return
+        }
+        let sources = CommandBarPreferences.disabledSources(from: existing)
+        guard !sources.contains(.safariBookmarks) else { return }
+        defaults.set(CommandBarPreferences.storageValue(for: sources.union([.safariBookmarks])),
+                     forKey: DefaultsKey.commandBarDisabledSources)
     }
 
     /// The former single switch also reversed vertical wheel events redirected

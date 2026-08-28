@@ -11,13 +11,22 @@ final class CommandBarBookmarksSafari {
     private(set) var cachedBookmarks: [CommandBarBookmarksSafariSupport.ParsedBookmark] = []
     private var lastSignature: String?
     private let plistPath: URL
+    /// See the identical property on `CommandBarBookmarksChrome`.
+    private var refreshGeneration = 0
+    private let parseQueue = DispatchQueue(label: "com.vorssaint.commandbar.bookmarks.safari",
+                                           qos: .userInitiated)
 
     init(plistPath: URL = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Safari/Bookmarks.plist")) {
         self.plistPath = plistPath
     }
 
-    func refreshIfNeeded(enabled: Bool, fullDiskAccess: Bool) {
+    /// Signature check stays synchronous; the plist decode moves to a
+    /// background queue — see the identical split on
+    /// `CommandBarBookmarksChrome.refreshIfNeeded`.
+    func refreshIfNeeded(enabled: Bool, fullDiskAccess: Bool, completion: @escaping () -> Void = {}) {
+        refreshGeneration &+= 1
+        let generation = refreshGeneration
         guard enabled, fullDiskAccess else {
             if lastSignature != nil || !cachedBookmarks.isEmpty {
                 lastSignature = nil
@@ -32,13 +41,25 @@ final class CommandBarBookmarksSafari {
         }
         let signature = CommandBarBookmarksSupport.signature([signatureFile])
         guard signature != lastSignature else { return }
-        // A transient parse failure keeps both the previous bookmarks and
-        // the previous signature: committing the signature here would make
-        // the next `refreshIfNeeded` believe this failed state was already
-        // seen, and skip retrying until the file changes again.
-        guard let parsed = Self.parse(at: plistPath) else { return }
-        lastSignature = signature
-        cachedBookmarks = Array(parsed.prefix(CommandBarBookmarksSupport.maximumBookmarks))
+        let plistPath = self.plistPath
+        parseQueue.async { [weak self] in
+            let parsed = Self.parse(at: plistPath)
+            DispatchQueue.main.async {
+                guard let self, self.refreshGeneration == generation else { return }
+                // A transient parse failure keeps the previous bookmarks and
+                // signature — see the identical note in
+                // CommandBarBookmarksChrome.refreshIfNeeded.
+                guard let parsed else { return }
+                self.lastSignature = signature
+                // Filtered before capping — see the identical note in
+                // CommandBarBookmarksChrome.refreshIfNeeded. allowFileScheme
+                // is true here: Safari's Reading List can carry file:// entries.
+                self.cachedBookmarks = Array(
+                    parsed.filter { CommandBarBookmarksSupport.isOfferableURL($0.url, allowFileScheme: true) }
+                        .prefix(CommandBarBookmarksSupport.maximumBookmarks))
+                completion()
+            }
+        }
     }
 
     private static func parse(at url: URL) -> [CommandBarBookmarksSafariSupport.ParsedBookmark]? {

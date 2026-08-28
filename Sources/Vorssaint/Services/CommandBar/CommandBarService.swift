@@ -308,6 +308,7 @@ final class CommandBarService: ObservableObject {
         selectionPreview = ""
         selectedText = ""
         killProcessEntries = []
+        refreshBookmarkSources()
         rebuildCatalog(index: false)
         rebuildRunningEntries()
         startBackgroundLoads(for: presentationID)
@@ -698,10 +699,24 @@ final class CommandBarService: ObservableObject {
         compactMode = UserDefaults.standard.bool(forKey: DefaultsKey.commandBarCompactMode)
         hasCustomPosition = positionOffset != .zero
         reloadFileSearchCaches()
-        chromeBookmarks.refreshIfNeeded(enabled: isEnabled(.chromeBookmarks))
-        firefoxBookmarks.refreshIfNeeded(enabled: isEnabled(.firefoxBookmarks))
+    }
+
+    /// Called once per open, immediately before the catalog rebuild that is
+    /// the only thing reading these caches — not from
+    /// `reloadPreferenceCaches()`, which also runs earlier in `show()` where
+    /// nothing yet reads the result. Each completion rebuilds the catalog
+    /// again, the same way `reloadFileSearchCaches` folds in a late result.
+    private func refreshBookmarkSources() {
+        let onUpdate: () -> Void = { [weak self] in
+            guard let self, self.isVisible else { return }
+            self.rebuildCatalog()
+            self.refreshResults()
+        }
+        chromeBookmarks.refreshIfNeeded(enabled: isEnabled(.chromeBookmarks), completion: onUpdate)
+        firefoxBookmarks.refreshIfNeeded(enabled: isEnabled(.firefoxBookmarks), completion: onUpdate)
         safariBookmarks.refreshIfNeeded(enabled: isEnabled(.safariBookmarks),
-                                        fullDiskAccess: Permissions.shared.fullDiskAccess)
+                                        fullDiskAccess: Permissions.shared.fullDiskAccess,
+                                        completion: onUpdate)
     }
 
     private func reloadFileSearchCaches() {

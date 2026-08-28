@@ -10,7 +10,8 @@ struct CommandBarSettings: View {
     @ObservedObject private var permissions = Permissions.shared
     @AppStorage(DefaultsKey.commandBarShortcutEnabled) private var shortcutEnabled = false
     @AppStorage(DefaultsKey.commandBarCompactMode) private var compactMode = false
-    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources = ""
+    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources =
+        CommandBarSource.safariBookmarks.rawValue
     @AppStorage(DefaultsKey.commandBarAliases) private var aliasesRaw = ""
     @AppStorage(DefaultsKey.commandBarPins) private var pinsRaw = ""
     @AppStorage(DefaultsKey.commandBarHidden) private var hiddenRaw = ""
@@ -113,12 +114,14 @@ struct CommandBarSettings: View {
                     Text(text.sourcesCaption)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") == nil {
+                    if CommandBarPreferences.isEnabled(.chromeBookmarks, disabledRaw: disabledSources),
+                       InstalledApps.url(for: "com.google.Chrome") == nil {
                         Text(text.chromeBookmarksNotInstalled)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "org.mozilla.firefox") == nil {
+                    if CommandBarPreferences.isEnabled(.firefoxBookmarks, disabledRaw: disabledSources),
+                       InstalledApps.url(for: "org.mozilla.firefox") == nil {
                         Text(text.firefoxBookmarksNotInstalled)
                             .font(.caption)
                             .foregroundStyle(.secondary)

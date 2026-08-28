@@ -20,6 +20,10 @@ final class CommandBarBookmarksFirefox {
     private var lastParseDate: Date?
     private let rootDirectory: URL
     private let minimumReparseInterval: TimeInterval
+    /// See the identical property on `CommandBarBookmarksChrome`.
+    private var refreshGeneration = 0
+    private let parseQueue = DispatchQueue(label: "com.vorssaint.commandbar.bookmarks.firefox",
+                                           qos: .userInitiated)
 
     init(rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Firefox"),
@@ -28,11 +32,22 @@ final class CommandBarBookmarksFirefox {
         self.minimumReparseInterval = minimumReparseInterval
     }
 
-    func refreshIfNeeded(enabled: Bool) {
+    /// Signature check and reparse throttle stay synchronous; the SQLite
+    /// open and query move to a background queue — see the identical split
+    /// on `CommandBarBookmarksChrome.refreshIfNeeded`.
+    func refreshIfNeeded(enabled: Bool, completion: @escaping () -> Void = {}) {
+        refreshGeneration &+= 1
+        let generation = refreshGeneration
         guard enabled else {
             if lastSignature != nil || !cachedBookmarks.isEmpty {
                 lastSignature = nil
                 cachedBookmarks = []
+                // Also clears the reparse throttle: without this, turning the
+                // source back on inside `minimumReparseInterval` would find
+                // `lastSignature` reset but `lastParseDate` still recent,
+                // hit the throttle below, and return the empty list from the
+                // disabled state instead of actually reparsing.
+                lastParseDate = nil
             }
             return
         }
@@ -57,13 +72,23 @@ final class CommandBarBookmarksFirefox {
             return
         }
         lastParseDate = Date()
-        // A transient parse failure keeps both the previous bookmarks and
-        // the previous signature: committing the signature here would make
-        // the next `refreshIfNeeded` believe this failed state was already
-        // seen, and skip retrying until the file changes again.
-        guard let parsed = Self.readBookmarks(atPath: dbPath) else { return }
-        lastSignature = signature
-        cachedBookmarks = Array(parsed.prefix(CommandBarBookmarksSupport.maximumBookmarks))
+        parseQueue.async { [weak self] in
+            let parsed = Self.readBookmarks(atPath: dbPath)
+            DispatchQueue.main.async {
+                guard let self, self.refreshGeneration == generation else { return }
+                // A transient parse failure keeps the previous bookmarks and
+                // signature — see the identical note in
+                // CommandBarBookmarksChrome.refreshIfNeeded.
+                guard let parsed else { return }
+                self.lastSignature = signature
+                // Filtered before capping — see the identical note in
+                // CommandBarBookmarksChrome.refreshIfNeeded.
+                self.cachedBookmarks = Array(
+                    parsed.filter { CommandBarBookmarksSupport.isOfferableURL($0.url) }
+                        .prefix(CommandBarBookmarksSupport.maximumBookmarks))
+                completion()
+            }
+        }
     }
 
     /// Opens read-only, tolerant of Firefox already holding the file open:

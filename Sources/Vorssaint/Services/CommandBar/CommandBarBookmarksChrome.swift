@@ -10,6 +10,13 @@ final class CommandBarBookmarksChrome {
     private(set) var cachedBookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark] = []
     private var lastSignature: String?
     private let rootDirectory: URL
+    /// Bumped on every call, so a background parse that finishes after a
+    /// newer call already started — the source got disabled, or changed
+    /// again before the first parse returned — never overwrites a decision
+    /// made after it.
+    private var refreshGeneration = 0
+    private let parseQueue = DispatchQueue(label: "com.vorssaint.commandbar.bookmarks.chrome",
+                                           qos: .userInitiated)
 
     /// `rootDirectory` defaults to Chrome's real profile folder; a test
     /// passes a temp directory with hand-written fixture files instead.
@@ -19,8 +26,13 @@ final class CommandBarBookmarksChrome {
     }
 
     /// Re-parses only when enabled and something watched has changed since
-    /// the last call. Safe to call on every bar open.
-    func refreshIfNeeded(enabled: Bool) {
+    /// the last call. Safe to call on every bar open: resolving the profile
+    /// and checking signatures is cheap and stays synchronous, but the
+    /// bookmarks parse itself runs on a background queue, with `completion`
+    /// firing on the main queue once fresh results land.
+    func refreshIfNeeded(enabled: Bool, completion: @escaping () -> Void = {}) {
+        refreshGeneration &+= 1
+        let generation = refreshGeneration
         guard enabled else {
             if lastSignature != nil || !cachedBookmarks.isEmpty {
                 lastSignature = nil
@@ -38,19 +50,33 @@ final class CommandBarBookmarksChrome {
         let bookmarksPath = profileDirectory.appendingPathComponent("Bookmarks").path
         let backupPath = profileDirectory.appendingPathComponent("Bookmarks.bak").path
         let signature = CommandBarBookmarksSupport.signature(
-            [localStatePath, accountPath, bookmarksPath].compactMap(Self.fileSignature))
+            [localStatePath, accountPath, bookmarksPath, backupPath].compactMap(Self.fileSignature))
         guard signature != lastSignature else { return }
-        guard let parsed = parsedBookmarks(accountPath: accountPath, bookmarksPath: bookmarksPath,
-                                           backupPath: backupPath) else {
-            // A transient parse failure keeps both the previous bookmarks
-            // and the previous signature: committing the signature here
-            // would make the next `refreshIfNeeded` believe this failed
-            // state was already seen, and skip retrying until the file
-            // changes again.
-            return
+        parseQueue.async { [weak self] in
+            let parsed = Self.parsedBookmarks(accountPath: accountPath, bookmarksPath: bookmarksPath,
+                                              backupPath: backupPath)
+            DispatchQueue.main.async {
+                guard let self, self.refreshGeneration == generation else { return }
+                guard let parsed else {
+                    // A transient parse failure keeps both the previous
+                    // bookmarks and the previous signature: committing the
+                    // signature here would make the next `refreshIfNeeded`
+                    // believe this failed state was already seen, and skip
+                    // retrying until the file changes again.
+                    return
+                }
+                self.lastSignature = signature
+                // Filtered before capping, not after: a bookmarklet or other
+                // non-offerable URL never becomes a row anyway
+                // (CommandBarCatalog's bookmarkEntries filters the same
+                // way), so letting one spend a cap slot ahead of a real,
+                // openable bookmark would be wrong on a large library.
+                self.cachedBookmarks = Array(
+                    parsed.filter { CommandBarBookmarksSupport.isOfferableURL($0.url) }
+                        .prefix(CommandBarBookmarksSupport.maximumBookmarks))
+                completion()
+            }
         }
-        lastSignature = signature
-        cachedBookmarks = Array(parsed.prefix(CommandBarBookmarksSupport.maximumBookmarks))
     }
 
     private func resolveProfileDirectory(localStatePath: String) -> URL? {
@@ -95,11 +121,12 @@ final class CommandBarBookmarksChrome {
     /// parse — Chrome's own atomic-write fallback file.
     /// `nil` means every file failed to parse — a transient failure the
     /// caller keeps the previous cache (and signature) across, rather than
-    /// blanking either.
-    private func parsedBookmarks(accountPath: String, bookmarksPath: String,
-                                 backupPath: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark]? {
+    /// blanking either. `static`, and reading no instance state, so it can
+    /// run safely on the background parse queue.
+    private static func parsedBookmarks(accountPath: String, bookmarksPath: String,
+                                        backupPath: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark]? {
         // AccountBookmarks is only preferred when present AND non-empty.
-        if let parsed = Self.parseFile(at: accountPath), !parsed.isEmpty {
+        if let parsed = parseFile(at: accountPath), !parsed.isEmpty {
             return parsed
         }
         // Bookmarks is the primary file. If it parses at all — empty or
@@ -107,12 +134,12 @@ final class CommandBarBookmarksChrome {
         // the backup just because it's empty. Falling through here would
         // return stale data from Bookmarks.bak, which is exactly the case
         // Chrome's atomic-write mechanism can leave behind.
-        if let parsed = Self.parseFile(at: bookmarksPath) {
+        if let parsed = parseFile(at: bookmarksPath) {
             return parsed
         }
         // Bookmarks itself failed to parse (missing or corrupt): fall back
         // to Bookmarks.bak, Chrome's own atomic-write backup file.
-        return Self.parseFile(at: backupPath)
+        return parseFile(at: backupPath)
     }
 
     private static func parseFile(at path: String) -> [CommandBarBookmarksChromeSupport.ParsedBookmark]? {

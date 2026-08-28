@@ -3414,6 +3414,48 @@ struct MetricsTests {
         } else {
             expect(false, "WhatsApp downloads migration suite can be created")
         }
+
+        // MARK: Safari Bookmarks default-disabled migration
+
+        let safariDefaultSuite = "vorss.tests.safaribookmarks.default.\(UUID().uuidString)"
+        if let migrationDefaults = UserDefaults(suiteName: safariDefaultSuite) {
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(migrationDefaults.object(forKey: DefaultsKey.commandBarDisabledSources) == nil,
+                   "a genuinely fresh install is left untouched — the registered default already "
+                    + "disables Safari Bookmarks correctly")
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+
+            migrationDefaults.set("emoji", forKey: DefaultsKey.commandBarDisabledSources)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(CommandBarPreferences.disabledSources(
+                        from: migrationDefaults.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+                    == [.emoji, .safariBookmarks],
+                   "an existing user's already-stored choices gain Safari Bookmarks without losing "
+                    + "what they had already turned off")
+
+            migrationDefaults.set(CommandBarPreferences.storageValue(for: [.emoji]),
+                                  forKey: DefaultsKey.commandBarDisabledSources)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(CommandBarPreferences.disabledSources(
+                        from: migrationDefaults.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+                    == [.emoji],
+                   "the migration only ever runs once — someone who explicitly turned Safari "
+                    + "Bookmarks back on after the first run does not get it silently disabled again")
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+
+            migrationDefaults.set(CommandBarPreferences.storageValue(for: [.safariBookmarks]),
+                                  forKey: DefaultsKey.commandBarDisabledSources)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(CommandBarPreferences.disabledSources(
+                        from: migrationDefaults.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+                    == [.safariBookmarks],
+                   "an install that already disables Safari Bookmarks is left exactly as it was")
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+        } else {
+            expect(false, "Safari Bookmarks default migration suite can be created")
+        }
+
         expect(WhatsAppDownloadSupport.isWhatsAppAgent("WhatsApp")
                 && WhatsAppDownloadSupport.isWhatsAppAgent(" whatsapp ")
                 && !WhatsAppDownloadSupport.isWhatsAppAgent("SomeBrowser")
@@ -11070,7 +11112,17 @@ struct MetricsTests {
                "the cleaner owns WhatsApp Downloads folder access")
 
         expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller, .commandBar],
-               "cleaner, uninstaller, and command bar are on-demand full disk users")
+               "cleaner, uninstaller, and command bar are on-demand full disk users, "
+                + "here with Safari Bookmarks enabled (the default `stringFor` reads as empty)")
+        expect(activeSet(.fullDiskAccess,
+                         strings: [DefaultsKey.commandBarDisabledSources: "safariBookmarks"])
+                == [.cleaner, .uninstaller],
+               "the command bar drops off full disk access the moment Safari Bookmarks, "
+                + "its only user of it, is switched off")
+        expect(activeSet(.fullDiskAccess,
+                         strings: [DefaultsKey.commandBarDisabledSources: "emoji,safariBookmarks"])
+                == [.cleaner, .uninstaller],
+               "other disabled sources alongside Safari Bookmarks don't change the answer")
         expect(activeSet(.automationFinder, on: [DefaultsKey.finderCutPasteEnabled])
                 == [.finderCutPaste, .uninstaller, .quickToggles],
                "finder automation is used by cut and paste, the uninstaller and the quick toggles")
@@ -16333,8 +16385,25 @@ struct MetricsTests {
         """
         try? localState.write(to: chromeFixtureRoot.appendingPathComponent("Local State"),
                               atomically: true, encoding: .utf8)
+        // The actual parse now runs on a background queue, with `completion`
+        // called back on the main queue once it lands — this pumps the main
+        // run loop just long enough for that to happen, rather than
+        // asserting against state that hasn't been written yet. Only a call
+        // that actually starts a parse invokes `completion` at all; a call
+        // that returns synchronously (nothing changed, or the source is
+        // disabled) needs no wait, so this only wraps the calls that do.
+        func waitForBookmarkRefresh(timeout: TimeInterval = 2, _ call: (@escaping () -> Void) -> Void) {
+            var completed = false
+            call { completed = true }
+            let deadline = Date().addingTimeInterval(timeout)
+            while !completed && Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            }
+            expect(completed, "the background bookmark parse completed within \(timeout)s")
+        }
+
         let chromeReader = CommandBarBookmarksChrome(rootDirectory: chromeFixtureRoot)
-        chromeReader.refreshIfNeeded(enabled: true)
+        waitForBookmarkRefresh { chromeReader.refreshIfNeeded(enabled: true, completion: $0) }
         expect(chromeReader.cachedBookmarks.count == 2,
                "the reader finds both bookmarks in the fixture profile")
         let signatureAfterFirstRead = chromeReader.cachedBookmarks
@@ -16357,7 +16426,7 @@ struct MetricsTests {
         try? chromeReaderFixtureJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks.bak"),
                                            atomically: true, encoding: .utf8)
         let chromeReaderEmptyPrimary = CommandBarBookmarksChrome(rootDirectory: chromeFixtureRoot)
-        chromeReaderEmptyPrimary.refreshIfNeeded(enabled: true)
+        waitForBookmarkRefresh { chromeReaderEmptyPrimary.refreshIfNeeded(enabled: true, completion: $0) }
         expect(chromeReaderEmptyPrimary.cachedBookmarks.isEmpty,
                "a validly empty Bookmarks file is the correct result, not a cue to fall back to a stale " +
                "Bookmarks.bak")
@@ -16510,7 +16579,9 @@ struct MetricsTests {
         let safariReader = CommandBarBookmarksSafari(plistPath: safariPlistPath)
         safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: false)
         expect(safariReader.cachedBookmarks.isEmpty, "no Full Disk Access means no bookmarks, even if enabled")
-        safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: true)
+        waitForBookmarkRefresh {
+            safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: true, completion: $0)
+        }
         expect(safariReader.cachedBookmarks.count == 2, "with access granted, the fixture's two bookmarks appear")
         try? FileManager.default.removeItem(at: safariFixtureDir)
 
@@ -18450,7 +18521,7 @@ struct MetricsTests {
         setupProcess.waitUntilExit()
         let firefoxReader = CommandBarBookmarksFirefox(rootDirectory: firefoxFixtureRoot,
                                                         minimumReparseInterval: 0)
-        firefoxReader.refreshIfNeeded(enabled: true)
+        waitForBookmarkRefresh { firefoxReader.refreshIfNeeded(enabled: true, completion: $0) }
         expect(firefoxReader.cachedBookmarks.count == 1, "the reader finds the one bookmark in the fixture")
         expect(firefoxReader.cachedBookmarks.first?.folder == "Bookmarks Toolbar",
                "its folder resolves to the toolbar's friendly name")
