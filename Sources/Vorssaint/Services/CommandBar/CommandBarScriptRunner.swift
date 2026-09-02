@@ -82,7 +82,7 @@ final class CommandBarScriptRunner {
         let runGeneration = generation
         let path = (link.destination as NSString).expandingTildeInPath
         inFlight.insert(cacheKey)
-        let args = link.splitArgument ? CommandBarLinks.splitArguments(argument) : [argument]
+        let args = CommandBarLinks.scriptArguments(for: link, argument: argument)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let (status, output) = Shell.run(path, args, maxOutputBytes: 64 * 1024)
             let text = CommandBarLinks.resultText(output)

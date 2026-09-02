@@ -21665,7 +21665,7 @@ struct MetricsTests {
         for language in AppLanguage.allCases {
             let commandBarValues = Mirror(reflecting: FeatureStrings.commandBar(language)).children
                 .compactMap { $0.value as? String }
-            expect(commandBarValues.count == 159 && commandBarValues.allSatisfy { !$0.isEmpty },
+            expect(commandBarValues.count == 162 && commandBarValues.allSatisfy { !$0.isEmpty },
                    "every command bar string is set for \(language.rawValue)")
             expect(commandBarValues.allSatisfy { !$0.contains("—") },
                    "no em-dash in visible command bar strings (\(language.rawValue))")
@@ -22125,6 +22125,26 @@ struct MetricsTests {
                "an unterminated quote still yields the text it opened rather than crashing")
         expect(CommandBarLinks.splitArguments("trailing\\") == ["trailing"],
                "a trailing backslash with nothing after it is dropped rather than crashing")
+        let plainLink = CommandBarLink(name: "passgen", kind: .script, destination: "/tmp/passgen")
+        expect(CommandBarLinks.scriptArguments(for: plainLink, argument: "-l 20") == ["-l 20"],
+               "with splitArgument off, the typed text stays one argument")
+        expect(CommandBarLinks.scriptArguments(for: plainLink, argument: "") == [],
+               "an empty typed argument contributes nothing, not an empty string")
+        let splitLink = CommandBarLink(name: "passgen", kind: .script, destination: "/tmp/passgen",
+                                        splitArgument: true)
+        expect(CommandBarLinks.scriptArguments(for: splitLink, argument: "-l 20 --symbols")
+                == ["-l", "20", "--symbols"],
+               "with splitArgument on, the typed text is shell-word-split")
+        var afterLink = splitLink
+        afterLink.defaultArguments = "--print"
+        expect(CommandBarLinks.scriptArguments(for: afterLink, argument: "-l 20") == ["-l", "20", "--print"],
+               "default arguments trail the typed arguments by default")
+        expect(CommandBarLinks.scriptArguments(for: afterLink, argument: "") == ["--print"],
+               "default arguments still run even when nothing was typed")
+        var beforeLink = afterLink
+        beforeLink.defaultArgumentsPlacement = .before
+        expect(CommandBarLinks.scriptArguments(for: beforeLink, argument: "-l 20") == ["--print", "-l", "20"],
+               "default arguments lead the typed arguments when placement is before")
         // The list drops a script's own row once the answer row stands in for
         // it. That has to use the same rule that decided the script would run,
         // or a bare name shows the script twice: once as an answer and once as
