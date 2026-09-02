@@ -29,6 +29,12 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
     /// Files found by name in the folders the person named. Last, because it
     /// is the one source that has to go and look.
     case files
+    /// Bookmarks read from Chrome's own profile files.
+    case chromeBookmarks
+    /// Bookmarks read from Firefox's own profile files.
+    case firefoxBookmarks
+    /// Bookmarks read from Safari's own profile files.
+    case safariBookmarks
     case killProcess
 
     var id: String { rawValue }
@@ -55,6 +61,9 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
         case .selection: return "text.cursor"
         case .links: return "bookmark"
         case .files: return "doc.text.magnifyingglass"
+        case .chromeBookmarks: return "globe"
+        case .firefoxBookmarks: return "globe"
+        case .safariBookmarks: return "safari"
         case .killProcess: return "xmark.octagon"
         }
     }
@@ -78,6 +87,9 @@ enum CommandBarSource: String, CaseIterable, Identifiable {
         case .selection: return "selection."
         case .links: return "link."
         case .files: return "file."
+        case .chromeBookmarks: return "chromebookmark."
+        case .firefoxBookmarks: return "firefoxbookmark."
+        case .safariBookmarks: return "safaribookmark."
         case .killProcess: return "kill."
         }
     }
@@ -90,6 +102,23 @@ enum CommandBarPreferences {
     /// Row shortcuts persist ids, so this one must never drift.
     static let emojiBrowserRowID = "emoji.browse"
     static let killProcessBrowserRowID = "kill.browse"
+    /// Prefixed to match each browser's own bookmark rows, so disabling a
+    /// browser's bookmarks in Settings hides its browse row along with them,
+    /// without a second toggle.
+    static let chromeBookmarksBrowserRowID = "chromebookmark.browse"
+    static let firefoxBookmarksBrowserRowID = "firefoxbookmark.browse"
+    static let safariBookmarksBrowserRowID = "safaribookmark.browse"
+    /// These share a bookmark source's own id prefix (so their Settings
+    /// toggle stays tied to it), which also puts them in that source's own
+    /// catalog filter. A category's content is the bookmarks themselves, not
+    /// the command that opens the category — so this set is excluded from
+    /// both `categoryContent` and `categoryHasContent`, or the browse row
+    /// would list itself inside the category it opens, and a browser with
+    /// zero bookmarks would still draw a chip for having exactly one "row":
+    /// itself.
+    static let bookmarksBrowserRowIDs: Set<String> = [
+        chromeBookmarksBrowserRowID, firefoxBookmarksBrowserRowID, safariBookmarksBrowserRowID,
+    ]
 
     // MARK: - Sources
 
@@ -135,7 +164,8 @@ enum CommandBarPreferences {
         // better match than a command to lead the list, never merely as good.
         case .files: return -40
         case .actions, .apps, .windows, .quitApps, .settingsPages, .macSettings, .snippets,
-             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links, .killProcess:
+             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links,
+             .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .killProcess:
             return 0
         }
     }
@@ -166,7 +196,8 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .menus, .windows, .clipboard, .selection, .files, .killProcess: return false
         case .actions, .apps, .quitApps, .settingsPages, .macSettings, .snippets, .emoji,
-             .folders, .answers, .calculator, .links:
+             .folders, .answers, .calculator, .links, .chromeBookmarks, .firefoxBookmarks,
+             .safariBookmarks:
             return true
         }
     }
@@ -234,7 +265,7 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .menus, .quitApps, .clipboard, .emoji, .selection, .files, .killProcess: return false
         case .actions, .apps, .windows, .settingsPages, .macSettings, .snippets, .folders,
-             .links, .answers, .calculator:
+             .links, .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .answers, .calculator:
             return true
         }
     }
@@ -287,7 +318,8 @@ enum CommandBarPreferences {
         switch source(ofRowID: rowID) {
         case .actions, .settingsPages, .snippets: return true
         case .apps, .menus, .windows, .quitApps, .macSettings, .clipboard, .emoji,
-             .folders, .answers, .calculator, .selection, .links, .files, .killProcess:
+             .folders, .answers, .calculator, .selection, .links, .files, .chromeBookmarks,
+             .firefoxBookmarks, .safariBookmarks, .killProcess:
             return false
         }
     }

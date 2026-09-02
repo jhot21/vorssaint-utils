@@ -3414,6 +3414,48 @@ struct MetricsTests {
         } else {
             expect(false, "WhatsApp downloads migration suite can be created")
         }
+
+        // MARK: Safari Bookmarks default-disabled migration
+
+        let safariDefaultSuite = "vorss.tests.safaribookmarks.default.\(UUID().uuidString)"
+        if let migrationDefaults = UserDefaults(suiteName: safariDefaultSuite) {
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(migrationDefaults.object(forKey: DefaultsKey.commandBarDisabledSources) == nil,
+                   "a genuinely fresh install is left untouched — the registered default already "
+                    + "disables Safari Bookmarks correctly")
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+
+            migrationDefaults.set("emoji", forKey: DefaultsKey.commandBarDisabledSources)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(CommandBarPreferences.disabledSources(
+                        from: migrationDefaults.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+                    == [.emoji, .safariBookmarks],
+                   "an existing user's already-stored choices gain Safari Bookmarks without losing "
+                    + "what they had already turned off")
+
+            migrationDefaults.set(CommandBarPreferences.storageValue(for: [.emoji]),
+                                  forKey: DefaultsKey.commandBarDisabledSources)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(CommandBarPreferences.disabledSources(
+                        from: migrationDefaults.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+                    == [.emoji],
+                   "the migration only ever runs once — someone who explicitly turned Safari "
+                    + "Bookmarks back on after the first run does not get it silently disabled again")
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+
+            migrationDefaults.set(CommandBarPreferences.storageValue(for: [.safariBookmarks]),
+                                  forKey: DefaultsKey.commandBarDisabledSources)
+            Defaults.migrateSafariBookmarksDefaultDisabled(in: migrationDefaults)
+            expect(CommandBarPreferences.disabledSources(
+                        from: migrationDefaults.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+                    == [.safariBookmarks],
+                   "an install that already disables Safari Bookmarks is left exactly as it was")
+            migrationDefaults.removePersistentDomain(forName: safariDefaultSuite)
+        } else {
+            expect(false, "Safari Bookmarks default migration suite can be created")
+        }
+
         expect(WhatsAppDownloadSupport.isWhatsAppAgent("WhatsApp")
                 && WhatsAppDownloadSupport.isWhatsAppAgent(" whatsapp ")
                 && !WhatsAppDownloadSupport.isWhatsAppAgent("SomeBrowser")
@@ -11069,8 +11111,18 @@ struct MetricsTests {
         expect(activeSet(.filesAndFolders, on: [DefaultsKey.whatsAppDownloadsEnabled]) == [.cleaner],
                "the cleaner owns WhatsApp Downloads folder access")
 
-        expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller],
-               "cleaner and uninstaller are on-demand full disk users")
+        expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller, .commandBar],
+               "cleaner, uninstaller, and command bar are on-demand full disk users, "
+                + "here with Safari Bookmarks enabled (the default `stringFor` reads as empty)")
+        expect(activeSet(.fullDiskAccess,
+                         strings: [DefaultsKey.commandBarDisabledSources: "safariBookmarks"])
+                == [.cleaner, .uninstaller],
+               "the command bar drops off full disk access the moment Safari Bookmarks, "
+                + "its only user of it, is switched off")
+        expect(activeSet(.fullDiskAccess,
+                         strings: [DefaultsKey.commandBarDisabledSources: "emoji,safariBookmarks"])
+                == [.cleaner, .uninstaller],
+               "other disabled sources alongside Safari Bookmarks don't change the answer")
         expect(activeSet(.automationFinder, on: [DefaultsKey.finderCutPasteEnabled])
                 == [.finderCutPaste, .uninstaller, .quickToggles],
                "finder automation is used by cut and paste, the uninstaller and the quick toggles")
@@ -16011,7 +16063,7 @@ struct MetricsTests {
         expect(CommandBarSource.allCases.map(\.rawValue) == [
             "actions", "apps", "menus", "windows", "quitApps", "settingsPages", "macSettings",
             "snippets", "clipboard", "emoji", "folders", "answers", "calculator",
-            "selection", "links", "files", "killProcess",
+            "selection", "links", "files", "chromeBookmarks", "firefoxBookmarks", "safariBookmarks", "killProcess",
         ], "source ids are stable (they persist inside the disabled list)")
         expect(CommandBarSource.actions.isAlwaysOn
                 && CommandBarSource.allCases.filter(\.isAlwaysOn).count == 1,
@@ -16223,6 +16275,316 @@ struct MetricsTests {
                 && CommandBarPreferences.rankBias(for: .apps) == 0,
                "a file leads only when it is a plainly better match than a command")
 
+        // MARK: Shared bookmark parsing rules
+        expect(CommandBarBookmarksSupport.isOfferableURL("https://example.com/page")
+                && CommandBarBookmarksSupport.isOfferableURL("http://example.com"),
+               "ordinary web bookmarks are offered")
+        expect(!CommandBarBookmarksSupport.isOfferableURL("javascript:alert(1)")
+                && !CommandBarBookmarksSupport.isOfferableURL("data:text/html,hi")
+                && !CommandBarBookmarksSupport.isOfferableURL(""),
+               "a bookmarklet or a data URL is never handed to NSWorkspace.open")
+        expect(!CommandBarBookmarksSupport.isOfferableURL("file:///Users/x/notes.html")
+                && CommandBarBookmarksSupport.isOfferableURL("file:///Users/x/notes.html", allowFileScheme: true),
+               "file:// is offered only where the caller opts in")
+        expect(CommandBarBookmarksSupport.keywords(title: "PR review", url: "https://github.com/org/repo/pull/1",
+                                                    folder: "Work/Dev")
+                == "PR review github.com Work/Dev",
+               "typing the domain or the folder still finds a bookmark the title alone would not")
+        expect(CommandBarBookmarksSupport.keywords(title: "Untitled", url: "not a url", folder: "")
+                == "Untitled",
+               "an unparseable URL or an empty folder drops out instead of leaving stray spaces")
+        let sigA = CommandBarBookmarksSupport.signature([
+            .init(path: "/a", size: 10, modified: Date(timeIntervalSince1970: 100)),
+            .init(path: "/b", size: 20, modified: Date(timeIntervalSince1970: 200)),
+        ])
+        let sigB = CommandBarBookmarksSupport.signature([
+            .init(path: "/a", size: 10, modified: Date(timeIntervalSince1970: 100)),
+            .init(path: "/b", size: 21, modified: Date(timeIntervalSince1970: 200)),
+        ])
+        expect(sigA != sigB, "a one-byte size change produces a different signature")
+        expect(sigA == CommandBarBookmarksSupport.signature([
+            .init(path: "/a", size: 10, modified: Date(timeIntervalSince1970: 100)),
+            .init(path: "/b", size: 20, modified: Date(timeIntervalSince1970: 200)),
+        ]), "the same inputs always produce the same signature")
+
+        // MARK: Chrome bookmark parsing
+        let chromeJSON = """
+        {
+          "roots": {
+            "bookmark_bar": {
+              "name": "Bookmarks bar",
+              "type": "folder",
+              "children": [
+                { "guid": "g1", "name": "Vorssaint", "type": "url", "url": "https://vorssaint.example/" },
+                {
+                  "guid": "g2", "name": "Dev", "type": "folder",
+                  "children": [
+                    { "guid": "g3", "name": "PR review", "type": "url", "url": "https://github.com/org/repo/pull/1" }
+                  ]
+                }
+              ]
+            },
+            "other": { "name": "Other bookmarks", "type": "folder", "children": [] }
+          }
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let decodedChrome = try? decoder.decode(
+            CommandBarBookmarksChromeSupport.ChromeBookmarksRoot.self,
+            from: Data(chromeJSON.utf8))
+        expect(decodedChrome != nil, "well-formed Chrome Bookmarks JSON decodes")
+        if let root = decodedChrome {
+            let flat = CommandBarBookmarksChromeSupport.flattenedBookmarks(from: root)
+            expect(flat.count == 2, "one root-level bookmark and one nested inside a folder")
+            expect(flat.contains { $0.id == "g1" && $0.title == "Vorssaint" && $0.folder == "Bookmarks bar" },
+                   "a bookmark directly on the bar carries the bar's own name as its folder")
+            expect(flat.contains { $0.id == "g3" && $0.folder == "Bookmarks bar/Dev" },
+                   "a nested bookmark's folder is the full path down to it")
+        }
+        let emptyLocalState = try? JSONDecoder().decode(
+            CommandBarBookmarksChromeSupport.ChromeLocalState.self,
+            from: Data("{}".utf8))
+        expect(emptyLocalState != nil, "a Local State missing the profile key still decodes, as an empty one")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(
+                infoCache: ["Default": true, "Profile 1": true], lastUsed: "Profile 1") == "Profile 1",
+               "the last-used profile wins when it actually has bookmarks")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(
+                infoCache: ["Default": true, "Profile 1": false], lastUsed: "Profile 1") == "Default",
+               "a last-used profile with no bookmarks file falls back to Default")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(
+                infoCache: ["Profile 2": true, "Profile 1": true], lastUsed: nil) == "Profile 1",
+               "with no recorded last-used profile, the alphabetically first eligible one is picked")
+        expect(CommandBarBookmarksChromeSupport.defaultProfileDirectory(infoCache: [:], lastUsed: nil) == nil,
+               "no eligible profile means nothing to read")
+
+        // MARK: Chrome bookmark reader against a fixture profile
+        let chromeReaderFixtureJSON = """
+        {
+          "roots": {
+            "bookmark_bar": {
+              "name": "Bookmarks bar",
+              "type": "folder",
+              "children": [
+                { "guid": "rg1", "name": "Vorssaint", "type": "url", "url": "https://vorssaint.example/" },
+                { "guid": "rg2", "name": "Second", "type": "url", "url": "https://example.com/second" }
+              ]
+            },
+            "other": { "name": "Other bookmarks", "type": "folder", "children": [] }
+          }
+        }
+        """
+        let chromeFixtureRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-chrome-fixture-\(UUID().uuidString)")
+        let chromeProfile = chromeFixtureRoot.appendingPathComponent("Default")
+        try? FileManager.default.createDirectory(at: chromeProfile, withIntermediateDirectories: true)
+        try? chromeReaderFixtureJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks"),
+                                           atomically: true, encoding: .utf8)
+        let localState = """
+        {"profile":{"info_cache":{"Default":{}},"last_used":"Default"}}
+        """
+        try? localState.write(to: chromeFixtureRoot.appendingPathComponent("Local State"),
+                              atomically: true, encoding: .utf8)
+        // The actual parse now runs on a background queue, with `completion`
+        // called back on the main queue once it lands — this pumps the main
+        // run loop just long enough for that to happen, rather than
+        // asserting against state that hasn't been written yet. Only a call
+        // that actually starts a parse invokes `completion` at all; a call
+        // that returns synchronously (nothing changed, or the source is
+        // disabled) needs no wait, so this only wraps the calls that do.
+        func waitForBookmarkRefresh(timeout: TimeInterval = 2, _ call: (@escaping () -> Void) -> Void) {
+            var completed = false
+            call { completed = true }
+            let deadline = Date().addingTimeInterval(timeout)
+            while !completed && Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            }
+            expect(completed, "the background bookmark parse completed within \(timeout)s")
+        }
+
+        let chromeReader = CommandBarBookmarksChrome(rootDirectory: chromeFixtureRoot)
+        waitForBookmarkRefresh { chromeReader.refreshIfNeeded(enabled: true, completion: $0) }
+        expect(chromeReader.cachedBookmarks.count == 2,
+               "the reader finds both bookmarks in the fixture profile")
+        let signatureAfterFirstRead = chromeReader.cachedBookmarks
+        chromeReader.refreshIfNeeded(enabled: true)
+        expect(chromeReader.cachedBookmarks.map(\.id) == signatureAfterFirstRead.map(\.id),
+               "an unchanged fixture does not reorder or drop rows on a second refresh")
+        chromeReader.refreshIfNeeded(enabled: false)
+        expect(chromeReader.cachedBookmarks.isEmpty, "disabling the source clears its cache")
+
+        // A validly empty Bookmarks file must win over a Bookmarks.bak that
+        // still has stale (non-empty) content — Chrome's atomic-write
+        // mechanism can leave exactly this behind, and "no bookmarks" must
+        // not silently resurrect old ones from the backup.
+        let emptyBookmarksJSON = """
+        {"roots":{"bookmark_bar":{"name":"Bookmarks bar","type":"folder","children":[]},\
+        "other":{"name":"Other bookmarks","type":"folder","children":[]}}}
+        """
+        try? emptyBookmarksJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks"),
+                                      atomically: true, encoding: .utf8)
+        try? chromeReaderFixtureJSON.write(to: chromeProfile.appendingPathComponent("Bookmarks.bak"),
+                                           atomically: true, encoding: .utf8)
+        let chromeReaderEmptyPrimary = CommandBarBookmarksChrome(rootDirectory: chromeFixtureRoot)
+        waitForBookmarkRefresh { chromeReaderEmptyPrimary.refreshIfNeeded(enabled: true, completion: $0) }
+        expect(chromeReaderEmptyPrimary.cachedBookmarks.isEmpty,
+               "a validly empty Bookmarks file is the correct result, not a cue to fall back to a stale " +
+               "Bookmarks.bak")
+        try? FileManager.default.removeItem(at: chromeFixtureRoot)
+
+        // MARK: Firefox bookmark parsing
+        let profilesIni = """
+        [Install4F96D1932A9F858E]
+        Default=abc123.default-release
+        Locked=1
+
+        [Profile1]
+        Name=default-release
+        IsRelative=1
+        Path=abc123.default-release
+        Default=1
+
+        [Profile0]
+        Name=work
+        IsRelative=1
+        Path=xyz789.work
+        """
+        expect(CommandBarBookmarksFirefoxSupport.defaultProfilePath(profilesIni: profilesIni)
+                == "abc123.default-release",
+               "the Install section's Default key wins, not a per-profile Default flag")
+        let noInstallSection = """
+        [Profile0]
+        Name=work
+        IsRelative=1
+        Path=xyz789.work
+        """
+        expect(CommandBarBookmarksFirefoxSupport.defaultProfilePath(profilesIni: noInstallSection)
+                == "xyz789.work",
+               "with no Install section, the first profile found is used")
+        expect(CommandBarBookmarksFirefoxSupport.defaultProfilePath(profilesIni: "") == nil,
+               "an empty or missing profiles.ini has nothing to read")
+        expect(CommandBarBookmarksFirefoxSupport.friendlyRootName("toolbar") == "Bookmarks Toolbar"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("menu") == "Bookmarks Menu"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("unfiled") == "Other Bookmarks"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("mobile") == "Mobile Bookmarks"
+                && CommandBarBookmarksFirefoxSupport.friendlyRootName("Dev") == "Dev",
+               "the four root guids get a friendly name; an ordinary folder keeps its own title")
+        // id, parentId, title, guid
+        let folderRows: [(id: Int, parentId: Int, title: String, guid: String)] = [
+            (1, 0, "root________", "root________"),
+            (2, 1, "toolbar", "toolbar_____"),
+            (3, 2, "Dev", "abc"),
+        ]
+        let paths = CommandBarBookmarksFirefoxSupport.buildFolderPaths(folderRows: folderRows)
+        expect(paths[2] == "Bookmarks Toolbar", "the toolbar root resolves to its friendly name")
+        expect(paths[3] == "Bookmarks Toolbar/Dev", "a nested folder's path includes its parent chain")
+        let bookmarkRows: [(id: Int, parentId: Int, title: String, url: String, guid: String)] = [
+            (10, 3, "PR review", "https://github.com/org/repo/pull/1", "guid-pr-review"),
+            (11, 2, "Vorssaint", "https://vorssaint.example/", "guid-vorssaint"),
+        ]
+        let parsed = CommandBarBookmarksFirefoxSupport.parsedBookmarks(
+            bookmarkRows: bookmarkRows, folderPaths: paths)
+        expect(parsed.count == 2, "both rows become bookmarks")
+        expect(parsed.contains { $0.id == "guid-pr-review" && $0.folder == "Bookmarks Toolbar/Dev" },
+               "a bookmark's id is its stable guid, not the integer rowid, and its folder is its parent's resolved path")
+        expect(parsed.contains { $0.id == "guid-vorssaint" && $0.folder == "Bookmarks Toolbar" },
+               "a bookmark directly under the toolbar folder gets the toolbar's own friendly name")
+        // A two-node cycle (neither row self-referential) must terminate
+        // rather than recurse forever: row 100's parent is 101 and row
+        // 101's parent is 100. Resolving 100 first marks 100 as
+        // "in progress"; resolving 101 then sees 100 already being
+        // resolved and stops there, using its own name. 100 then
+        // finishes by joining onto that.
+        let cyclicFolderRows: [(id: Int, parentId: Int, title: String, guid: String)] = [
+            (100, 101, "A", "a___________"),
+            (101, 100, "B", "b___________"),
+        ]
+        let cyclicPaths = CommandBarBookmarksFirefoxSupport.buildFolderPaths(folderRows: cyclicFolderRows)
+        expect(cyclicPaths[100] == "B/A", "a cycle terminates: the second node visited stops recursing and the first joins onto it")
+        expect(cyclicPaths[101] == "B", "the node that closes the cycle falls back to its own name rather than recursing forever")
+
+        // MARK: Safari bookmark parsing
+        let safariPlist: [String: Any] = [
+            "WebBookmarkType": "WebBookmarkTypeList",
+            "Title": "com.apple.ReadingList", // sibling roots would appear here too in real data;
+            "Children": [
+                [
+                    "WebBookmarkType": "WebBookmarkTypeList",
+                    "Title": "BookmarksBar",
+                    "Children": [
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "u1",
+                            "URLString": "https://vorssaint.example/",
+                            "URIDictionary": ["title": "Vorssaint"],
+                        ],
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "u2",
+                            "URLString": "https://example.com/untitled",
+                            "URIDictionary": [String: String](),
+                        ],
+                    ],
+                ],
+            ],
+        ]
+        let plistData = try? PropertyListSerialization.data(fromPropertyList: safariPlist,
+                                                             format: .xml, options: 0)
+        let decodedSafari = plistData.flatMap {
+            try? PropertyListDecoder().decode(CommandBarBookmarksSafariSupport.SafariNode.self, from: $0)
+        }
+        expect(decodedSafari != nil, "well-formed Safari Bookmarks.plist decodes")
+        if let root = decodedSafari {
+            let flat = CommandBarBookmarksSafariSupport.flattenedBookmarks(from: root)
+            expect(flat.count == 2, "both leaves are found under the nested root")
+            expect(flat.contains { $0.id == "u1" && $0.title == "Vorssaint" && $0.folder == "Favourites" },
+                   "BookmarksBar reads as the friendly name Safari itself shows: Favourites")
+            expect(flat.contains { $0.id == "u2" && $0.title == "https://example.com/untitled" },
+                   "a leaf with no URIDictionary title falls back to its own URL rather than a blank row")
+        }
+
+        // MARK: Safari bookmark reader against a fixture profile
+        let safariReaderFixturePlist: [String: Any] = [
+            "WebBookmarkType": "WebBookmarkTypeList",
+            "Title": "root",
+            "Children": [
+                [
+                    "WebBookmarkType": "WebBookmarkTypeList",
+                    "Title": "BookmarksBar",
+                    "Children": [
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "ru1",
+                            "URLString": "https://vorssaint.example/",
+                            "URIDictionary": ["title": "Vorssaint"],
+                        ],
+                        [
+                            "WebBookmarkType": "WebBookmarkTypeLeaf",
+                            "WebBookmarkUUID": "ru2",
+                            "URLString": "https://example.com/second",
+                            "URIDictionary": ["title": "Second"],
+                        ],
+                    ],
+                ],
+            ],
+        ]
+        let safariFixtureDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-safari-fixture-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: safariFixtureDir, withIntermediateDirectories: true)
+        let safariPlistPath = safariFixtureDir.appendingPathComponent("Bookmarks.plist")
+        if let readerFixtureData = try? PropertyListSerialization.data(
+            fromPropertyList: safariReaderFixturePlist, format: .xml, options: 0) {
+            try? readerFixtureData.write(to: safariPlistPath)
+        }
+        let safariReader = CommandBarBookmarksSafari(plistPath: safariPlistPath)
+        safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: false)
+        expect(safariReader.cachedBookmarks.isEmpty, "no Full Disk Access means no bookmarks, even if enabled")
+        waitForBookmarkRefresh {
+            safariReader.refreshIfNeeded(enabled: true, fullDiskAccess: true, completion: $0)
+        }
+        expect(safariReader.cachedBookmarks.count == 2, "with access granted, the fixture's two bookmarks appear")
+        try? FileManager.default.removeItem(at: safariFixtureDir)
+
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [
             "EXAppExtensionAttributes": [
@@ -16290,6 +16652,24 @@ struct MetricsTests {
                 && CommandBarPreferences.source(ofRowID: CommandBarPreferences.emojiBrowserRowID)
                     == .emoji,
                "every row knows which source it came from")
+        expect(CommandBarPreferences.chromeBookmarksBrowserRowID == "chromebookmark.browse"
+                && CommandBarPreferences.firefoxBookmarksBrowserRowID == "firefoxbookmark.browse"
+                && CommandBarPreferences.safariBookmarksBrowserRowID == "safaribookmark.browse"
+                && CommandBarPreferences.source(ofRowID: CommandBarPreferences.chromeBookmarksBrowserRowID)
+                    == .chromeBookmarks
+                && CommandBarPreferences.source(ofRowID: CommandBarPreferences.firefoxBookmarksBrowserRowID)
+                    == .firefoxBookmarks
+                && CommandBarPreferences.source(ofRowID: CommandBarPreferences.safariBookmarksBrowserRowID)
+                    == .safariBookmarks,
+               "each bookmark browse row shares its browser's own prefix, so disabling that browser's "
+                + "bookmarks in Settings hides its browse row along with them")
+        expect(CommandBarPreferences.bookmarksBrowserRowIDs == [
+                    CommandBarPreferences.chromeBookmarksBrowserRowID,
+                    CommandBarPreferences.firefoxBookmarksBrowserRowID,
+                    CommandBarPreferences.safariBookmarksBrowserRowID,
+               ],
+               "the three browse rows are excluded from their own category's content, or each would "
+                + "list itself inside the category it opens and draw a chip for an empty bookmark list")
         expect(CommandBarPreferences.isEnabled(.folders, disabledRaw: "folders,emoji") == false
                 && CommandBarPreferences.isEnabled(.apps, disabledRaw: "folders,emoji") == true
                 && CommandBarPreferences.isEnabled(.actions, disabledRaw: "actions") == true,
@@ -16512,8 +16892,8 @@ struct MetricsTests {
                 && GlobalShortcutRole.commandBar.feature == .commandBar,
                "the command bar shortcut role gates on its toggle and feature")
         expect(AppFeature.commandBar.group == .tools && AppFeature.commandBar.enabledKeys.isEmpty
-                && AppFeature.commandBar.permissions == [.accessibility],
-               "the command bar is an on-demand tool that reads and types through accessibility")
+                && AppFeature.commandBar.permissions == [.accessibility, .fullDiskAccess],
+               "the command bar is an on-demand tool that reads and types through accessibility and accesses Safari bookmarks through Full Disk Access")
         expect(AppFeature.commandBar.energyProfile == .idle,
                "the command bar costs nothing while closed")
         expect(pageVisible(.commandBar, available: [.commandBar])
@@ -17418,7 +17798,7 @@ struct MetricsTests {
         for language in AppLanguage.allCases {
             let commandBarValues = Mirror(reflecting: FeatureStrings.commandBar(language)).children
                 .compactMap { $0.value as? String }
-            expect(commandBarValues.count == 151 && commandBarValues.allSatisfy { !$0.isEmpty },
+            expect(commandBarValues.count == 158 && commandBarValues.allSatisfy { !$0.isEmpty },
                    "every command bar string is set for \(language.rawValue)")
             expect(commandBarValues.allSatisfy { !$0.contains("—") },
                    "no em-dash in visible command bar strings (\(language.rawValue))")
@@ -18114,6 +18494,38 @@ struct MetricsTests {
         }
         expect(uninstallScriptSource.contains("Library/Preferences/ByHost"),
                "script uninstall sweeps ByHost preferences")
+
+        // MARK: Firefox bookmark reader against a fixture profile
+        let firefoxFixtureRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-firefox-fixture-\(UUID().uuidString)")
+        let firefoxProfile = firefoxFixtureRoot.appendingPathComponent("abc123.default-release")
+        try? FileManager.default.createDirectory(at: firefoxProfile, withIntermediateDirectories: true)
+        try? """
+        [Install4F96D1932A9F858E]
+        Default=abc123.default-release
+        """.write(to: firefoxFixtureRoot.appendingPathComponent("profiles.ini"),
+                 atomically: true, encoding: .utf8)
+        let dbPath = firefoxProfile.appendingPathComponent("places.sqlite").path
+        let setupSQL = """
+        CREATE TABLE moz_bookmarks (id INTEGER PRIMARY KEY, type INTEGER, fk INTEGER, parent INTEGER, title TEXT, guid TEXT);
+        CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT);
+        INSERT INTO moz_bookmarks VALUES (1, 2, NULL, 0, 'root________', 'root________');
+        INSERT INTO moz_bookmarks VALUES (2, 2, NULL, 1, 'toolbar', 'toolbar_____');
+        INSERT INTO moz_places VALUES (100, 'https://vorssaint.example/');
+        INSERT INTO moz_bookmarks VALUES (10, 1, 100, 2, 'Vorssaint', 'bk1');
+        """
+        let setupProcess = Process()
+        setupProcess.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        setupProcess.arguments = [dbPath, setupSQL]
+        try? setupProcess.run()
+        setupProcess.waitUntilExit()
+        let firefoxReader = CommandBarBookmarksFirefox(rootDirectory: firefoxFixtureRoot,
+                                                        minimumReparseInterval: 0)
+        waitForBookmarkRefresh { firefoxReader.refreshIfNeeded(enabled: true, completion: $0) }
+        expect(firefoxReader.cachedBookmarks.count == 1, "the reader finds the one bookmark in the fixture")
+        expect(firefoxReader.cachedBookmarks.first?.folder == "Bookmarks Toolbar",
+               "its folder resolves to the toolbar's friendly name")
+        try? FileManager.default.removeItem(at: firefoxFixtureRoot)
 
         if failures.isEmpty {
             print("TESTS OK (\(checks) checks)")

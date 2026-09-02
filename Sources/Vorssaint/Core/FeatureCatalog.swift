@@ -231,11 +231,14 @@ extension AppFeature {
         switch self {
         case .scrollInverter, .focusFollowsMouse, .smoothScroll, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .keyboardDebounce, .textSnippets, .superKey, .dockClick, .windowMaximizer, .windowLayout,
-             .autoQuit, .cleaningMode, .pastePlain, .radialMenu,
-             // The bar reads other apps' menus and windows and types at the
-             // caret, all of it through Accessibility.
-             .commandBar:
+             .autoQuit, .cleaningMode, .pastePlain, .radialMenu:
             return [.accessibility]
+        // The bar reads other apps' menus and windows and types at the caret,
+        // all of it through Accessibility. Its Safari bookmarks source
+        // additionally reads a Full Disk Access-gated file when that source
+        // is switched on.
+        case .commandBar:
+            return [.accessibility, .fullDiskAccess]
         case .finderCutPaste: return [.accessibility, .automationFinder]
         case .finderRename: return [.accessibility]
         // Only emptying the Trash asks the Finder; every other quick toggle
@@ -346,6 +349,10 @@ extension AppFeature {
                 return cleanerNotifies || whatsAppNotifies
             case (.screenRecorder, .microphone):
                 return boolFor(DefaultsKey.recorderMicrophone)
+            case (.commandBar, .fullDiskAccess):
+                return CommandBarPreferences.isEnabled(
+                    .safariBookmarks,
+                    disabledRaw: stringFor(DefaultsKey.commandBarDisabledSources) ?? "")
             default:
                 return true
             }

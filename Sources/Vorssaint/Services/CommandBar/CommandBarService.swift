@@ -105,6 +105,9 @@ final class CommandBarService: ObservableObject {
     private var catalog: [CommandBarEntry] = []
     let scriptRunner = CommandBarScriptRunner()
     let fileSearch = CommandBarFileSearch()
+    private let chromeBookmarks = CommandBarBookmarksChrome()
+    private let firefoxBookmarks = CommandBarBookmarksFirefox()
+    private let safariBookmarks = CommandBarBookmarksSafari()
     /// Which row answered which few letters, for as long as the app runs. Not
     /// stored: the bar forgets everything typed into it when it goes.
     private var queryMemory = CommandBarQueryMemory()
@@ -305,6 +308,7 @@ final class CommandBarService: ObservableObject {
         selectionPreview = ""
         selectedText = ""
         killProcessEntries = []
+        refreshBookmarkSources()
         rebuildCatalog(index: false)
         rebuildRunningEntries()
         startBackgroundLoads(for: presentationID)
@@ -581,7 +585,8 @@ final class CommandBarService: ObservableObject {
         case .emoji:
             let hidden = hiddenKeys
             return emojiEntries.contains { !hidden.contains($0.stableKey) }
-        case .actions, .settingsPages, .snippets, .folders, .links:
+        case .actions, .settingsPages, .snippets, .folders, .links, .chromeBookmarks,
+             .firefoxBookmarks, .safariBookmarks:
             // Asked once per chip on every pass with an empty field, so it
             // stops at the first row that qualifies instead of building a copy
             // of the catalog five times over.
@@ -589,6 +594,7 @@ final class CommandBarService: ObservableObject {
             return catalog.contains {
                 CommandBarPreferences.source(ofRowID: $0.id) == source
                     && !hidden.contains($0.stableKey)
+                    && !CommandBarPreferences.bookmarksBrowserRowIDs.contains($0.id)
             }
         case .killProcess:
             return AppFeature.killProcess.isAvailable
@@ -612,8 +618,12 @@ final class CommandBarService: ObservableObject {
         case .windows: rows = windowEntries
         case .menus: rows = menuEntries
         case .emoji: rows = emojiEntries
-        case .settingsPages, .snippets, .folders, .links:
-            rows = catalog.filter { CommandBarPreferences.source(ofRowID: $0.id) == source }
+        case .settingsPages, .snippets, .folders, .links, .chromeBookmarks, .firefoxBookmarks,
+             .safariBookmarks:
+            rows = catalog.filter {
+                CommandBarPreferences.source(ofRowID: $0.id) == source
+                    && !CommandBarPreferences.bookmarksBrowserRowIDs.contains($0.id)
+            }
         case .clipboard:
             rows = CommandBarCatalog.clipboardBrowseEntries(limit: limit, bar: bar) { [weak self] entry in
                 self?.paste(entry)
@@ -654,6 +664,9 @@ final class CommandBarService: ObservableObject {
         case .selection: return bar.sourceSelection
         case .files: return bar.sourceFiles
         case .links: return bar.linksTitle
+        case .chromeBookmarks: return bar.sourceChromeBookmarks
+        case .firefoxBookmarks: return bar.sourceFirefoxBookmarks
+        case .safariBookmarks: return bar.sourceSafariBookmarks
         case .killProcess: return FeatureStrings.killProcess(L10n.shared.language).pageTitle
         }
     }
@@ -686,6 +699,24 @@ final class CommandBarService: ObservableObject {
         compactMode = UserDefaults.standard.bool(forKey: DefaultsKey.commandBarCompactMode)
         hasCustomPosition = positionOffset != .zero
         reloadFileSearchCaches()
+    }
+
+    /// Called once per open, immediately before the catalog rebuild that is
+    /// the only thing reading these caches — not from
+    /// `reloadPreferenceCaches()`, which also runs earlier in `show()` where
+    /// nothing yet reads the result. Each completion rebuilds the catalog
+    /// again, the same way `reloadFileSearchCaches` folds in a late result.
+    private func refreshBookmarkSources() {
+        let onUpdate: () -> Void = { [weak self] in
+            guard let self, self.isVisible else { return }
+            self.rebuildCatalog()
+            self.refreshResults()
+        }
+        chromeBookmarks.refreshIfNeeded(enabled: isEnabled(.chromeBookmarks), completion: onUpdate)
+        firefoxBookmarks.refreshIfNeeded(enabled: isEnabled(.firefoxBookmarks), completion: onUpdate)
+        safariBookmarks.refreshIfNeeded(enabled: isEnabled(.safariBookmarks),
+                                        fullDiskAccess: Permissions.shared.fullDiskAccess,
+                                        completion: onUpdate)
     }
 
     private func reloadFileSearchCaches() {
@@ -824,7 +855,10 @@ final class CommandBarService: ObservableObject {
     }
 
     private func rebuildCatalog(index: Bool = true) {
-        catalog = CommandBarCatalog.build(automationDenied: finderAutomationDenied)
+        catalog = CommandBarCatalog.build(automationDenied: finderAutomationDenied,
+                                          chromeBookmarks: chromeBookmarks.cachedBookmarks,
+                                          firefoxBookmarks: firefoxBookmarks.cachedBookmarks,
+                                          safariBookmarks: safariBookmarks.cachedBookmarks)
         emojiEntries = CommandBarCatalog.emojiEntries(bar: FeatureStrings.commandBar(L10n.shared.language))
         builtLanguage = L10n.shared.language
         if index { indexEntries() }
@@ -1115,6 +1149,7 @@ final class CommandBarService: ObservableObject {
         case .links: return bar.kindLink
         case .snippets: return bar.kindSnippet
         case .folders: return bar.kindFolder
+        case .chromeBookmarks, .firefoxBookmarks, .safariBookmarks: return bar.kindBookmark
         case .actions, .apps, .menus, .windows, .quitApps, .settingsPages, .macSettings,
              .clipboard, .emoji, .calculator, .selection, .files, .killProcess:
             return entry.subtitle.isEmpty ? bar.everythingTitle : entry.subtitle
@@ -1133,6 +1168,9 @@ final class CommandBarService: ObservableObject {
         // Every switch answers to the same verb, so searching that verb would
         // otherwise fill the list with twenty rows that all read alike.
         ("toggle.", 5),
+        ("chromebookmark.", 5),
+        ("firefoxbookmark.", 5),
+        ("safaribookmark.", 5),
     ]
 
     /// The folded text a row is ranked against. Almost every row answers to

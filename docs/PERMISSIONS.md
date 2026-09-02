@@ -12,7 +12,7 @@ You can review or change every grant in System Settings, under Privacy and Secur
 | Microphone | Yes | Your voice in a screen recording, only when you turn it on |
 | Camera | Yes | The camera preview mirror |
 | Notifications | Yes | Keep awake, battery, Monitor and update alerts |
-| Full Disk Access | Yes | A deeper uninstaller scan |
+| Full Disk Access | Yes | A deeper uninstaller scan, Command Bar's Safari bookmarks source |
 | Administrator (one time) | Yes | Password free closed lid toggling |
 | Automation | Yes | Finder cut and paste, moving leftovers to the Trash, emptying the Trash and Homebrew Terminal handoff |
 | App Management | Yes | Replacing or removing apps installed through the package manager |
@@ -100,9 +100,12 @@ You can review or change every grant in System Settings, under Privacy and Secur
 
 **Why it comes up.** The uninstaller hunts down the files an app leaves behind, like caches, preferences and logs. Some of those spots are protected by macOS and only open up with Full Disk Access.
 
-**What uses it.** The uninstaller, for a deeper scan.
+**What uses it.**
 
-**If you say no.** The uninstaller still works and scans the places it can reach. It just might not surface files tucked away in protected folders.
+- **The uninstaller**, for a deeper scan.
+- **Command Bar's Safari bookmarks source**, which reads Safari's bookmarks file so you can search and open them from the bar.
+
+**If you say no.** The uninstaller still works and scans the places it can reach. It just might not surface files tucked away in protected folders. Command Bar's Safari bookmarks source stays off and produces no rows until you grant it.
 
 **Optional.** Yes. There is no pop up for Full Disk Access. You add Vorssaint in System Settings, under Privacy and Security, Full Disk Access, and Vorssaint opens that pane for you when the feature calls for it.
 

@@ -7,9 +7,11 @@ import SwiftUI
 struct CommandBarSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var service = CommandBarService.shared
+    @ObservedObject private var permissions = Permissions.shared
     @AppStorage(DefaultsKey.commandBarShortcutEnabled) private var shortcutEnabled = false
     @AppStorage(DefaultsKey.commandBarCompactMode) private var compactMode = false
-    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources = ""
+    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources =
+        CommandBarSource.safariBookmarks.rawValue
     @AppStorage(DefaultsKey.commandBarAliases) private var aliasesRaw = ""
     @AppStorage(DefaultsKey.commandBarPins) private var pinsRaw = ""
     @AppStorage(DefaultsKey.commandBarHidden) private var hiddenRaw = ""
@@ -108,9 +110,30 @@ struct CommandBarSettings: View {
             } header: {
                 Text(text.sourcesTitle)
             } footer: {
-                Text(text.sourcesCaption)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(text.sourcesCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if CommandBarPreferences.isEnabled(.chromeBookmarks, disabledRaw: disabledSources),
+                       InstalledApps.url(for: "com.google.Chrome") == nil {
+                        Text(text.chromeBookmarksNotInstalled)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if CommandBarPreferences.isEnabled(.firefoxBookmarks, disabledRaw: disabledSources),
+                       InstalledApps.url(for: "org.mozilla.firefox") == nil {
+                        Text(text.firefoxBookmarksNotInstalled)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if CommandBarPreferences.isEnabled(.safariBookmarks, disabledRaw: disabledSources),
+               !permissions.fullDiskAccess {
+                Section {
+                    FullDiskAccessNote(reason: text.safariBookmarksFDAReason)
+                }
             }
 
             Section {
@@ -427,6 +450,9 @@ struct CommandBarSettings: View {
         case .selection: return text.sourceSelection
         case .links: return text.linksTitle
         case .files: return text.sourceFiles
+        case .chromeBookmarks: return text.sourceChromeBookmarks
+        case .firefoxBookmarks: return text.sourceFirefoxBookmarks
+        case .safariBookmarks: return text.sourceSafariBookmarks
         case .killProcess: return FeatureStrings.killProcess(l10n.language).pageTitle
         }
     }

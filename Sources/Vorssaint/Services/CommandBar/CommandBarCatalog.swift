@@ -165,7 +165,10 @@ enum CommandBarCatalog {
         "action.snippetLibrary",
     ]
 
-    static func build(automationDenied: Bool) -> [CommandBarEntry] {
+    static func build(automationDenied: Bool,
+                      chromeBookmarks: [CommandBarBookmarksChromeSupport.ParsedBookmark],
+                      firefoxBookmarks: [CommandBarBookmarksFirefoxSupport.ParsedBookmark],
+                      safariBookmarks: [CommandBarBookmarksSafariSupport.ParsedBookmark]) -> [CommandBarEntry] {
         let s = L10n.shared.s
         let language = L10n.shared.language
         let bar = FeatureStrings.commandBar(language)
@@ -179,6 +182,16 @@ enum CommandBarCatalog {
         entries.append(contentsOf: linkEntries(
             CommandBarLinks.decode(UserDefaults.standard.data(forKey: DefaultsKey.commandBarLinks)),
             bar: bar))
+        entries.append(contentsOf: bookmarkEntries(chromeBookmarks, idPrefix: "chromebookmark.",
+                                                    bundleID: "com.google.Chrome",
+                                                    sourceTitle: bar.sourceChromeBookmarks))
+        entries.append(contentsOf: bookmarkEntries(firefoxBookmarks, idPrefix: "firefoxbookmark.",
+                                                    bundleID: "org.mozilla.firefox",
+                                                    sourceTitle: bar.sourceFirefoxBookmarks))
+        entries.append(contentsOf: bookmarkEntries(safariBookmarks, idPrefix: "safaribookmark.",
+                                                    bundleID: "com.apple.Safari",
+                                                    sourceTitle: bar.sourceSafariBookmarks,
+                                                    allowFileScheme: true))
         return entries
     }
 
@@ -677,6 +690,41 @@ enum CommandBarCatalog {
             icon: .symbol("face.smiling"),
             keepsBarOpen: true,
             run: { _ in CommandBarService.shared.setCategory(.emoji) }))
+        // Leftover query text is cleared on entry, unlike the emoji row
+        // above: a bookmark's title, host and folder never contain the
+        // words "Chrome"/"Firefox"/"Safari" the way every emoji's own
+        // keywords contain "Emoji", so leaving the typed text in place
+        // would filter every bookmark out the moment the category opens.
+        entries.append(CommandBarEntry(
+            id: CommandBarPreferences.chromeBookmarksBrowserRowID,
+            title: bar.sourceChromeBookmarks,
+            subtitle: bar.pageTitle,
+            icon: .symbol("globe"),
+            keepsBarOpen: true,
+            run: { _ in
+                CommandBarService.shared.setCategory(.chromeBookmarks)
+                CommandBarService.shared.query = ""
+            }))
+        entries.append(CommandBarEntry(
+            id: CommandBarPreferences.firefoxBookmarksBrowserRowID,
+            title: bar.sourceFirefoxBookmarks,
+            subtitle: bar.pageTitle,
+            icon: .symbol("globe"),
+            keepsBarOpen: true,
+            run: { _ in
+                CommandBarService.shared.setCategory(.firefoxBookmarks)
+                CommandBarService.shared.query = ""
+            }))
+        entries.append(CommandBarEntry(
+            id: CommandBarPreferences.safariBookmarksBrowserRowID,
+            title: bar.sourceSafariBookmarks,
+            subtitle: bar.pageTitle,
+            icon: .symbol("safari"),
+            keepsBarOpen: true,
+            run: { _ in
+                CommandBarService.shared.setCategory(.safariBookmarks)
+                CommandBarService.shared.query = ""
+            }))
         if AppFeature.killProcess.isAvailable,
            UserDefaults.standard.bool(forKey: DefaultsKey.killProcessCommandBarEnabled) {
             let killStrings = FeatureStrings.killProcess(language)
@@ -1217,6 +1265,44 @@ enum CommandBarCatalog {
                     }
                 })
         }
+    }
+
+    // MARK: - Browser bookmarks
+
+    /// One builder for all three browsers' bookmark rows. Chrome, Firefox
+    /// and Safari differ only in their id prefix, bundle id, and whether a
+    /// local `file://` Reading List entry is offerable — not in row shape —
+    /// so this replaces what were three copies of the same function.
+    static func bookmarkEntries<Row: CommandBarBookmarkRow>(
+        _ bookmarks: [Row],
+        idPrefix: String,
+        bundleID: String,
+        sourceTitle: String,
+        allowFileScheme: Bool = false
+    ) -> [CommandBarEntry] {
+        let iconPath = InstalledApps.url(for: bundleID)?.path
+        return bookmarks
+            .filter { CommandBarBookmarksSupport.isOfferableURL($0.url, allowFileScheme: allowFileScheme) }
+            .map { bookmark in
+                CommandBarEntry(
+                    id: "\(idPrefix)\(bookmark.id)",
+                    title: bookmark.title,
+                    subtitle: bookmark.folder.isEmpty ? sourceTitle : bookmark.folder,
+                    keywords: CommandBarBookmarksSupport.keywords(
+                        title: bookmark.title, url: bookmark.url, folder: bookmark.folder),
+                    icon: iconPath.map { .appIcon(path: $0) } ?? .symbol("globe"),
+                    run: { _ in
+                        guard CommandBarBookmarksSupport.isOfferableURL(bookmark.url,
+                                                                        allowFileScheme: allowFileScheme),
+                              let url = URL(string: bookmark.url) else { return }
+                        guard let appURL = InstalledApps.url(for: bundleID) else {
+                            NSWorkspace.shared.open(url)
+                            return
+                        }
+                        NSWorkspace.shared.open([url], withApplicationAt: appURL,
+                                                configuration: NSWorkspace.OpenConfiguration())
+                    })
+            }
     }
 
     private static func open(_ link: CommandBarLink) {
