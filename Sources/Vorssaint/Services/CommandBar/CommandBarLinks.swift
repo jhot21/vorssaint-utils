@@ -29,6 +29,12 @@ struct CommandBarLink: Codable, Identifiable, Equatable {
         }
     }
 
+    /// Where `defaultArguments` lands relative to whatever the person typed.
+    enum ArgumentPlacement: String, Codable, CaseIterable {
+        case before
+        case after
+    }
+
     var id = UUID()
     var name = ""
     var kind = Kind.link
@@ -42,6 +48,23 @@ struct CommandBarLink: Codable, Identifiable, Equatable {
     /// Only the person who saved it knows whether it has anything to do with
     /// no input at all.
     var runsWithoutArgument = false
+
+    /// Off unless the person says otherwise: whatever follows the name is
+    /// passed to the script as one argument, same as before this existed. On,
+    /// it is shell-word-split first, so a script written to take flags (`-l
+    /// 20 --symbols`) receives them the way a shell would pass them, and
+    /// never has to be wrapped just to re-split its own input.
+    var splitArgument = false
+
+    /// Extra arguments to pass every run, shell-word-split the same way
+    /// `splitArgument` splits what was typed, so a script that always needs a
+    /// flag (`--print`) never has to have it typed alongside a query.
+    var defaultArguments = ""
+
+    /// Where `defaultArguments` goes relative to whatever was typed. Defaults
+    /// to after, since a trailing flag is the common case and it matches how
+    /// a hand-rolled wrapper script for this would normally be written.
+    var defaultArgumentsPlacement = ArgumentPlacement.after
 
     /// True when the destination waits for whatever is typed after the name,
     /// which is what turns a link into a search.
@@ -69,6 +92,10 @@ extension CommandBarLink {
         destination = try container.decodeIfPresent(String.self, forKey: .destination) ?? ""
         runsWithoutArgument = try container.decodeIfPresent(Bool.self,
                                                             forKey: .runsWithoutArgument) ?? false
+        splitArgument = try container.decodeIfPresent(Bool.self, forKey: .splitArgument) ?? false
+        defaultArguments = try container.decodeIfPresent(String.self, forKey: .defaultArguments) ?? ""
+        defaultArgumentsPlacement = try container.decodeIfPresent(ArgumentPlacement.self,
+            forKey: .defaultArgumentsPlacement) ?? .after
     }
 }
 
@@ -193,6 +220,78 @@ enum CommandBarLinks {
         guard !normalizedName.isEmpty,
               CommandBarSearch.normalized(query) == normalizedName else { return nil }
         return ""
+    }
+
+    /// A script argument, shell-word-split the way a shell would split it
+    /// before handing it to a process: single and double quotes group words
+    /// containing spaces, a backslash escapes the character after it, and
+    /// runs of whitespace between words are collapsed. No `eval`, no
+    /// globbing, no variable expansion — this only ever changes how the
+    /// existing text is grouped into an array, never what it contains.
+    ///
+    /// An unterminated quote or a trailing backslash still yields something
+    /// rather than crashing: the open quote's contents run to the end, and
+    /// a trailing backslash is dropped.
+    static func splitArguments(_ argument: String) -> [String] {
+        var result: [String] = []
+        var current = ""
+        var hasCurrent = false
+        var quote: Character?
+        var escaped = false
+        for character in argument {
+            if escaped {
+                current.append(character)
+                hasCurrent = true
+                escaped = false
+                continue
+            }
+            if character == "\\", quote != "'" {
+                escaped = true
+                continue
+            }
+            if let openQuote = quote {
+                if character == openQuote {
+                    quote = nil
+                } else {
+                    current.append(character)
+                }
+                hasCurrent = true
+                continue
+            }
+            if character == "\"" || character == "'" {
+                quote = character
+                hasCurrent = true
+                continue
+            }
+            if character.isWhitespace {
+                if hasCurrent {
+                    result.append(current)
+                    current = ""
+                    hasCurrent = false
+                }
+                continue
+            }
+            current.append(character)
+            hasCurrent = true
+        }
+        if hasCurrent { result.append(current) }
+        return result
+    }
+
+    /// What a script actually runs with: whatever was typed (as one argument,
+    /// or split, per `splitArgument`), combined with the link's default
+    /// arguments on whichever side `defaultArgumentsPlacement` says.
+    ///
+    /// An empty typed argument contributes nothing rather than an empty
+    /// string, so a bare-name run with defaults set gets exactly the
+    /// defaults instead of a leading `""`.
+    static func scriptArguments(for link: CommandBarLink, argument: String) -> [String] {
+        let typed = link.splitArgument
+            ? splitArguments(argument)
+            : (argument.isEmpty ? [] : [argument])
+        guard !link.defaultArguments.isEmpty else { return typed }
+        let defaults = splitArguments(link.defaultArguments)
+        return link.defaultArgumentsPlacement == .before ? defaults + typed : typed + defaults
     }
 
     /// Every script the query names. The answer row stands in for all of them,

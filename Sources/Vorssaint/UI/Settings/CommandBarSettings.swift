@@ -611,6 +611,25 @@ private struct CommandBarLinkEditor: View {
                         .foregroundStyle(.secondary)
                     Toggle(text.scriptRunsWithoutArgument, isOn: $draft.runsWithoutArgument)
                         .font(.caption)
+                    Toggle(text.scriptSplitsArgument, isOn: $draft.splitArgument)
+                        .font(.caption)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(text.scriptDefaultArgumentsLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("", text: $draft.defaultArguments)
+                            .textFieldStyle(.roundedBorder)
+                        if !draft.defaultArguments.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Picker("", selection: $draft.defaultArgumentsPlacement) {
+                                Text(text.scriptDefaultArgumentsBefore)
+                                    .tag(CommandBarLink.ArgumentPlacement.before)
+                                Text(text.scriptDefaultArgumentsAfter)
+                                    .tag(CommandBarLink.ArgumentPlacement.after)
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+                    }
                 }
             }
 

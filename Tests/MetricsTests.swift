@@ -21665,7 +21665,7 @@ struct MetricsTests {
         for language in AppLanguage.allCases {
             let commandBarValues = Mirror(reflecting: FeatureStrings.commandBar(language)).children
                 .compactMap { $0.value as? String }
-            expect(commandBarValues.count == 158 && commandBarValues.allSatisfy { !$0.isEmpty },
+            expect(commandBarValues.count == 162 && commandBarValues.allSatisfy { !$0.isEmpty },
                    "every command bar string is set for \(language.rawValue)")
             expect(commandBarValues.allSatisfy { !$0.contains("—") },
                    "no em-dash in visible command bar strings (\(language.rawValue))")
@@ -22105,6 +22105,46 @@ struct MetricsTests {
         expect(CommandBarLinks.matchingScriptLink(in: bareRunnable, query: "cle") == nil
                 && CommandBarLinks.matchingScriptLink(in: bareRunnable, query: "cleaner") == nil,
                "a script never runs off a prefix of its name, or a longer word starting with it")
+        expect(CommandBarLinks.splitArguments("-l 20 --symbols") == ["-l", "20", "--symbols"],
+               "plain whitespace-separated words split into separate arguments")
+        expect(CommandBarLinks.splitArguments("  a   b  ") == ["a", "b"],
+               "runs of whitespace collapse and do not produce empty arguments")
+        expect(CommandBarLinks.splitArguments("") == [],
+               "nothing typed splits into no arguments")
+        expect(CommandBarLinks.splitArguments("--name \"John Doe\" x") == ["--name", "John Doe", "x"],
+               "double quotes keep a spaced value together as one argument")
+        expect(CommandBarLinks.splitArguments("'a b' c") == ["a b", "c"],
+               "single quotes keep a spaced value together as one argument")
+        expect(CommandBarLinks.splitArguments("a\\ b c") == ["a b", "c"],
+               "a backslash escapes the space after it instead of splitting there")
+        expect(CommandBarLinks.splitArguments("it\\'s fine") == ["it's", "fine"],
+               "a backslash escapes a quote character outside of quotes")
+        expect(CommandBarLinks.splitArguments("'no \\ escapes'") == ["no \\ escapes"],
+               "a backslash inside single quotes is literal, matching POSIX shells")
+        expect(CommandBarLinks.splitArguments("\"unterminated") == ["unterminated"],
+               "an unterminated quote still yields the text it opened rather than crashing")
+        expect(CommandBarLinks.splitArguments("trailing\\") == ["trailing"],
+               "a trailing backslash with nothing after it is dropped rather than crashing")
+        let plainLink = CommandBarLink(name: "passgen", kind: .script, destination: "/tmp/passgen")
+        expect(CommandBarLinks.scriptArguments(for: plainLink, argument: "-l 20") == ["-l 20"],
+               "with splitArgument off, the typed text stays one argument")
+        expect(CommandBarLinks.scriptArguments(for: plainLink, argument: "") == [],
+               "an empty typed argument contributes nothing, not an empty string")
+        let splitLink = CommandBarLink(name: "passgen", kind: .script, destination: "/tmp/passgen",
+                                        splitArgument: true)
+        expect(CommandBarLinks.scriptArguments(for: splitLink, argument: "-l 20 --symbols")
+                == ["-l", "20", "--symbols"],
+               "with splitArgument on, the typed text is shell-word-split")
+        var afterLink = splitLink
+        afterLink.defaultArguments = "--print"
+        expect(CommandBarLinks.scriptArguments(for: afterLink, argument: "-l 20") == ["-l", "20", "--print"],
+               "default arguments trail the typed arguments by default")
+        expect(CommandBarLinks.scriptArguments(for: afterLink, argument: "") == ["--print"],
+               "default arguments still run even when nothing was typed")
+        var beforeLink = afterLink
+        beforeLink.defaultArgumentsPlacement = .before
+        expect(CommandBarLinks.scriptArguments(for: beforeLink, argument: "-l 20") == ["--print", "-l", "20"],
+               "default arguments lead the typed arguments when placement is before")
         // The list drops a script's own row once the answer row stands in for
         // it. That has to use the same rule that decided the script would run,
         // or a bare name shows the script twice: once as an answer and once as
