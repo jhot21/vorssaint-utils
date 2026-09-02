@@ -43,6 +43,13 @@ struct CommandBarLink: Codable, Identifiable, Equatable {
     /// no input at all.
     var runsWithoutArgument = false
 
+    /// Off unless the person says otherwise: whatever follows the name is
+    /// passed to the script as one argument, same as before this existed. On,
+    /// it is shell-word-split first, so a script written to take flags (`-l
+    /// 20 --symbols`) receives them the way a shell would pass them, and
+    /// never has to be wrapped just to re-split its own input.
+    var splitArgument = false
+
     /// True when the destination waits for whatever is typed after the name,
     /// which is what turns a link into a search.
     var takesQuery: Bool {
@@ -69,6 +76,7 @@ extension CommandBarLink {
         destination = try container.decodeIfPresent(String.self, forKey: .destination) ?? ""
         runsWithoutArgument = try container.decodeIfPresent(Bool.self,
                                                             forKey: .runsWithoutArgument) ?? false
+        splitArgument = try container.decodeIfPresent(Bool.self, forKey: .splitArgument) ?? false
     }
 }
 
@@ -193,6 +201,62 @@ enum CommandBarLinks {
         guard !normalizedName.isEmpty,
               CommandBarSearch.normalized(query) == normalizedName else { return nil }
         return ""
+    }
+
+    /// A script argument, shell-word-split the way a shell would split it
+    /// before handing it to a process: single and double quotes group words
+    /// containing spaces, a backslash escapes the character after it, and
+    /// runs of whitespace between words are collapsed. No `eval`, no
+    /// globbing, no variable expansion — this only ever changes how the
+    /// existing text is grouped into an array, never what it contains.
+    ///
+    /// An unterminated quote or a trailing backslash still yields something
+    /// rather than crashing: the open quote's contents run to the end, and
+    /// a trailing backslash is dropped.
+    static func splitArguments(_ argument: String) -> [String] {
+        var result: [String] = []
+        var current = ""
+        var hasCurrent = false
+        var quote: Character?
+        var escaped = false
+        for character in argument {
+            if escaped {
+                current.append(character)
+                hasCurrent = true
+                escaped = false
+                continue
+            }
+            if character == "\\", quote != "'" {
+                escaped = true
+                continue
+            }
+            if let openQuote = quote {
+                if character == openQuote {
+                    quote = nil
+                } else {
+                    current.append(character)
+                }
+                hasCurrent = true
+                continue
+            }
+            if character == "\"" || character == "'" {
+                quote = character
+                hasCurrent = true
+                continue
+            }
+            if character.isWhitespace {
+                if hasCurrent {
+                    result.append(current)
+                    current = ""
+                    hasCurrent = false
+                }
+                continue
+            }
+            current.append(character)
+            hasCurrent = true
+        }
+        if hasCurrent { result.append(current) }
+        return result
     }
 
     /// Every script the query names. The answer row stands in for all of them,

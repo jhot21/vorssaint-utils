@@ -611,6 +611,8 @@ private struct CommandBarLinkEditor: View {
                         .foregroundStyle(.secondary)
                     Toggle(text.scriptRunsWithoutArgument, isOn: $draft.runsWithoutArgument)
                         .font(.caption)
+                    Toggle(text.scriptSplitsArgument, isOn: $draft.splitArgument)
+                        .font(.caption)
                 }
             }
 
