@@ -1,0 +1,29 @@
+version: '3'
+
+vars:
+  APP_NAME: Vorssaint.app
+  BUILD_APP: build/stage/{{.APP_NAME}}
+  INSTALLED_APP: /Applications/{{.APP_NAME}}
+
+tasks:
+  build:
+    desc: Full signed build via build.sh
+    cmds:
+      - ./build.sh
+
+  install:
+    desc: >-
+      Build, then quit the running app if it's up, replace the installed
+      copy in /Applications, and relaunch it. Only runs past the build if
+      the build succeeds.
+    deps:
+      - build
+    cmds:
+      - |
+        if pgrep -f "{{.INSTALLED_APP}}/Contents/MacOS/Vorssaint" >/dev/null; then
+          pkill -f "{{.INSTALLED_APP}}/Contents/MacOS/Vorssaint"
+          sleep 1
+        fi
+      - rm -rf "{{.INSTALLED_APP}}"
+      - ditto "{{.BUILD_APP}}" "{{.INSTALLED_APP}}"
+      - open "{{.INSTALLED_APP}}"

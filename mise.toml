@@ -1,0 +1,3 @@
+[tools]
+swift = "latest"
+task = "latest"
