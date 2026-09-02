@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // Before any window exists, so nothing is ever built with the wrong
         // appearance and then repainted.
         AppAppearanceController.shared.apply()
+        GlobalShortcut.startObservingKeyboardLayout()
         // UNUserNotificationCenter aborts in a process without a bundle;
         // guard keeps ad-hoc runs of the bare binary alive for probing.
         if Bundle.main.bundleIdentifier != nil {
@@ -47,6 +48,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         }
         beginStartupWatch()
         Self.boundAccessibilityWaits()
+        // Resolve the Accessibility Keyboard's pid now. The lookup is async, so
+        // a feature that asks first and has no second chance — the switcher
+        // judges a click only after cancelSession() has already run — would
+        // otherwise be told "not running" once per launch.
+        _ = AssistiveKeyboard.isRunning
 
         // Finish the on-disk rename for installs carried over from a pre-2.5
         // build, or retire a leftover old-named bundle. Returns true when we are
@@ -132,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
                     .dockPreview, .finderCutPaste, .finderRename, .autoQuit, .dockClick,
                     .middleClick, .windowMaximizer, .keyboardDebounce, .windowLayout,
                     .textSnippets, .brightness, .radialMenu, .mouseButtonShortcuts,
-                    .superKey, .mixer,
+                    .mouseClickDebounce, .superKey, .quitWindowProtection, .mixer,
                 ])
             }
             .store(in: &cancellables)
@@ -229,11 +235,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         WindowMaximizer.shared.stop()
         WindowLayoutService.shared.suspend()
         KeyboardDebounceService.shared.suspend()
+        MouseClickDebounceService.shared.suspend()
         TextSnippetService.shared.suspend()
-        // Takes the Caps Lock mapping back out before the process goes away.
+        // Takes the Super key mapping back out before the process goes away.
         SuperKeyService.shared.suspend()
+        // Dock's app and window switcher hotkeys persist after quit.
+        AppSwitcher.shared.suspend()
+        MouseButtonShortcutService.shared.suspend()
         MiddleClickService.shared.suspend()
+        ScrollInverter.shared.suspend()
         SmoothScrollService.shared.suspend()
+        if AppFeature.mouseAcceleration.isAvailable
+            || MouseAccelerationRecovery.hasPendingEntries() {
+            MouseAccelerationService.shared.stop()
+        }
         MouseNavigationService.shared.suspend()
         DockPreviewService.shared.stop()
         SoundOutputSwitcher.shared.stop()
@@ -964,20 +979,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // (Menu bar icon recovery happens on a deliberate reopen, not here: this
         // fires on every activation, so rebuilding here would cause churn/flicker.)
         UpdateService.shared.checkIfStale()
-        restoreAfterAppStoreHandoff()
+        restoreAfterAppUpdateHandoff()
     }
 
-    /// The app update list can only hand a store purchase over to the App
-    /// Store. With no Dock icon there is no way back to the window that sent
-    /// the person there, so returning brings it forward again, on the page
-    /// they left, with the list already reading the truth.
-    private func restoreAfterAppStoreHandoff() {
+    /// Some updates finish in another app. With no Dock icon there is no way
+    /// back to the window that sent the person there, so returning brings it
+    /// forward again, on the same page, while the list reads the truth again.
+    private func restoreAfterAppUpdateHandoff() {
         guard AppFeature.appUpdates.isAvailable else { return }
         let service = AppUpdatesService.shared
         service.applicationBecameActive()
         // Only a window still on screen is brought back. A Settings window the
         // person closed themselves stays closed.
-        guard service.consumeStoreHandoffReturn(),
+        guard service.consumeUpdateHandoffReturn(),
               settingsWindow?.isVisible == true else { return }
         openSettingsWindow()
     }
@@ -1326,6 +1340,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             let window = NSWindow(contentViewController: host)
             // .miniaturizable so the Window menu's Minimize (Cmd+M) actually works.
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            host.view.widthAnchor.constraint(greaterThanOrEqualToConstant: SettingsWindowSupport.minContentWidth).isActive = true
+            host.view.heightAnchor.constraint(greaterThanOrEqualToConstant: SettingsWindowSupport.minContentHeight).isActive = true
+            let minFrame = window.frameRect(forContentRect: NSRect(
+                x: 0, y: 0,
+                width: SettingsWindowSupport.minContentWidth,
+                height: SettingsWindowSupport.minContentHeight
+            )).size
+            window.minSize = minFrame
             window.contentMinSize = NSSize(width: SettingsWindowSupport.minContentWidth,
                                            height: SettingsWindowSupport.minContentHeight)
             let visible = NSScreen.pointerVisibleFrame
@@ -1386,8 +1408,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         let margin: CGFloat = 40
         let availableWidth = max(1, visible.width - margin)
         let availableHeight = max(1, visible.height - margin)
-        let width = min(max(window.frame.width, 360), availableWidth)
-        let height = min(max(window.frame.height, 320), availableHeight)
+        let minFrame = window.frameRect(forContentRect: NSRect(
+            x: 0, y: 0,
+            width: SettingsWindowSupport.minContentWidth,
+            height: SettingsWindowSupport.minContentHeight
+        )).size
+        let width = min(max(window.frame.width, minFrame.width), availableWidth)
+        let height = min(max(window.frame.height, minFrame.height), availableHeight)
         var frame = force
             ? NSRect(x: visible.midX - width / 2,
                      y: visible.midY - height / 2,
@@ -1487,10 +1514,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     /// process, so this is how the uninstaller picks up a just-granted grant.
     func relaunchApp() {
         let path = Bundle.main.bundlePath
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/sh")
-        task.arguments = ["-c", "sleep 0.3; /usr/bin/open \"$1\"", "vorssaint-relaunch", path]
-        try? task.run()
+        // Its own session: the reopen fires after we terminate, so the child
+        // has to outlive the session it was started from.
+        _ = try? DetachedProcess.spawn(
+            "/bin/sh",
+            ["-c", "sleep 0.3; /usr/bin/open \"$1\"", "vorssaint-relaunch", path])
         NSApp.terminate(nil)
     }
 
@@ -1750,6 +1778,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         }
     }
 
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        if sender === settingsWindow {
+            let minFrame = sender.frameRect(forContentRect: NSRect(
+                x: 0, y: 0,
+                width: SettingsWindowSupport.minContentWidth,
+                height: SettingsWindowSupport.minContentHeight
+            )).size
+            return NSSize(
+                width: max(frameSize.width, minFrame.width),
+                height: max(frameSize.height, minFrame.height)
+            )
+        }
+        return frameSize
+    }
+
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, window === settingsWindow else { return }
         saveSettingsWindowSize(window)
@@ -1759,6 +1802,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     /// restore is title bar independent).
     private func saveSettingsWindowSize(_ window: NSWindow) {
         guard let size = window.contentView?.frame.size else { return }
+        guard SettingsWindowSupport.isValidContentSize(width: Double(size.width),
+                                                      height: Double(size.height)) else { return }
         UserDefaults.standard.set(Double(size.width), forKey: DefaultsKey.settingsWindowWidth)
         UserDefaults.standard.set(Double(size.height), forKey: DefaultsKey.settingsWindowHeight)
     }

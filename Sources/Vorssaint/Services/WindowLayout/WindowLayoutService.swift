@@ -71,7 +71,7 @@ final class WindowLayoutService: ObservableObject {
     /// Read on every pointer event, so it is resolved once instead of per
     /// click.
     private static let ownProcessID = Int64(getpid())
-    private let frameTolerance: CGFloat = 8
+    private let frameTolerance = WindowLayoutGeometry.frameTolerance
     private let anchorTolerance: CGFloat = 36
     private let moveGestureUpdateInterval: TimeInterval = 1.0 / 120.0
     // AX frame mutations are not atomic. Complex windows can visibly render
@@ -222,6 +222,26 @@ final class WindowLayoutService: ObservableObject {
             frameHistory.discardLatest(for: target.key)
             return finish(.failure(.failed))
         }
+        if let crossing = WindowLayoutGeometry.displayCrossing(for: action,
+                                                               previousAction: lastActions[target.key]),
+           accepted(actual: target.frame,
+                    targetRect: placement(for: action,
+                                          current: target.frame,
+                                          visibleFrame: screen.visibleFrame).rect,
+                    action: action),
+           let destination = sidewaysScreen(to: screen,
+                                            screens: screens,
+                                            movingRight: crossing.movingRight) {
+            // The window is already parked on that side, so the same shortcut
+            // keeps pushing in the same direction: over to the display beside
+            // it, snapped against the edge it came in through. Without a
+            // display on that side the placement below simply leaves it where
+            // it is.
+            return applyPlacement(crossing.action,
+                                  to: target,
+                                  visibleFrame: destination.visibleFrame,
+                                  cyclesRepeatedAction: false)
+        }
         return applyPlacement(action,
                               to: target,
                               visibleFrame: screen.visibleFrame)
@@ -294,7 +314,7 @@ final class WindowLayoutService: ObservableObject {
             else { continue }
             let axApp = AXUIElementCreateApplication(pid)
             // Bounded AX: a hung app in the MRU list must not stall the main
-            // thread (and every event tap) for the 6 second default timeout.
+            // thread (and every event tap) for the default timeout.
             AXUIElementSetMessagingTimeout(axApp, 0.35)
             for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
                 if let window = windowAttribute(axApp, attribute as String),
@@ -396,7 +416,9 @@ final class WindowLayoutService: ObservableObject {
                            visibleFrame: NSRect) -> WindowLayoutPlacement {
         let rect = WindowLayoutGeometry.rect(for: action,
                                              current: appKitFrame(fromAX: current),
-                                             visibleFrame: visibleFrame)
+                                             visibleFrame: visibleFrame,
+                                             windowGap: WindowLayoutGaps.windowGap,
+                                             screenGap: WindowLayoutGaps.screenGap)
         let integral = rect.integral
         return WindowLayoutPlacement(frame: axFrame(fromAppKit: integral), rect: integral)
     }
@@ -474,6 +496,8 @@ final class WindowLayoutService: ObservableObject {
             return
         }
         if let original = context.original, shouldUseMaximizeFallback(for: context.action) {
+            // An ungapped scratch frame that coaxes a stubborn window into
+            // resizing; the gapped target is re-applied right after.
             let currentRect = appKitFrame(fromAX: original)
             let maxFrame = axFrame(fromAppKit: WindowLayoutGeometry.rect(for: .maximize,
                                                                          current: currentRect,
@@ -1716,7 +1740,8 @@ final class WindowLayoutService: ObservableObject {
     private func gestureTarget(at point: CGPoint,
                                requiresResize: Bool) -> WindowGestureTarget? {
         let system = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(system, 0.25)
+        // No cap here: on the system-wide element a timeout is the default for
+        // every question this process asks, whoever asks it (#938).
         var rawElement: AXUIElement?
         guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &rawElement) == .success,
               let element = rawElement
@@ -1815,6 +1840,19 @@ final class WindowLayoutService: ObservableObject {
                 currentIndex: currentIndex,
                 frames: screens.map(\.frame),
                 movingForward: movingForward
+              )
+        else { return nil }
+        return screens[destinationIndex]
+    }
+
+    private func sidewaysScreen(to current: NSScreen,
+                                screens: [NSScreen],
+                                movingRight: Bool) -> NSScreen? {
+        guard let currentIndex = screens.firstIndex(where: { $0 === current }),
+              let destinationIndex = WindowLayoutGeometry.horizontalNeighbourIndex(
+                currentIndex: currentIndex,
+                frames: screens.map(\.frame),
+                movingRight: movingRight
               )
         else { return nil }
         return screens[destinationIndex]

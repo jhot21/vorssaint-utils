@@ -254,6 +254,19 @@ enum CommandBarCatalog {
                           id: "toggle.scrollInverter.horizontal"),
                 ]
             }
+            if feature == .mouseButtonShortcuts {
+                let buttons = FeatureStrings.mouseButtons(language)
+                return [
+                    entry(for: feature,
+                          key: DefaultsKey.mouseButtonShortcutsEnabled,
+                          name: feature.hubTitle(s, hub: hub),
+                          id: "toggle.mouseButtonShortcuts"),
+                    entry(for: feature,
+                          key: DefaultsKey.mouseSpacesGestureEnabled,
+                          name: buttons.spacesEnableLabel,
+                          id: "toggle.mouseButtonShortcuts.spacesGesture"),
+                ]
+            }
             // Two keys means two different switches; which one a single row
             // would flip is a guess, and a guess here changes the person's Mac.
             guard feature.enabledKeys.count == 1,
@@ -821,21 +834,32 @@ enum CommandBarCatalog {
     private static func settingsEntries(_ s: Strings,
                                         language: AppLanguage,
                                         bar: CommandBarFeatureStrings) -> [CommandBarEntry] {
-        SettingsDirectory.sections(s, language: language)
-            .flatMap(\.items)
-            .filter { item in
-                !pagesCoveredByActions.contains(item.page)
-                    && FeatureVisibilitySupport.isPageVisible(item.page) { $0.isAvailable }
+        SettingsDirectory.searchItems(s, language: language).compactMap { item in
+            let id: String
+            switch item.id {
+            case .page(let page):
+                guard !pagesCoveredByActions.contains(page),
+                      FeatureVisibilitySupport.isPageVisible(page, isAvailable: { $0.isAvailable })
+                else { return nil }
+                id = "settings.\(page)"
+            case .feature(let feature):
+                guard feature.isAvailable,
+                      FeatureVisibilitySupport.isPageVisible(
+                        item.destination.page, isAvailable: { $0.isAvailable })
+                else { return nil }
+                id = "settings.feature.\(feature.rawValue)"
             }
-            .map { item in
-                CommandBarEntry(
-                    id: "settings.\(item.page)",
-                    title: item.title,
-                    subtitle: s.settingsTitle,
-                    keywords: item.keywords.joined(separator: " "),
-                    icon: .symbol(item.icon),
-                    run: { _ in openSettings(at: item.page) })
-            }
+            return CommandBarEntry(
+                id: id,
+                title: item.title,
+                subtitle: s.settingsTitle,
+                keywords: item.keywords.joined(separator: " "),
+                icon: .symbol(item.icon),
+                run: { _ in
+                    let routed = SettingsSearchSupport.route(for: item)
+                    openSettings(at: routed.destination, targetFeature: routed.targetFeature)
+                })
+        }
     }
 
     // MARK: - Files
@@ -1083,7 +1107,7 @@ enum CommandBarCatalog {
                                     bar: CommandBarFeatureStrings) -> [CommandBarEntry] {
         var entries: [CommandBarEntry] = []
 
-        if let battery = SystemInfo.batterySnapshot() {
+        if let battery = cachedBattery {
             let value = "\(battery.percent)%"
             let detail = battery.isCharging
                 ? bar.answerBatteryCharging
@@ -1099,7 +1123,7 @@ enum CommandBarCatalog {
         }
 
         if AppFeature.monitorMemory.isAvailable,
-           let memory = SystemInfo.memoryUsage(), memory.total > 0 {
+           let memory = cachedMemory, memory.total > 0 {
             let metric = Defaults.sanitizedMonitorMemoryMetric(
                 UserDefaults.standard.string(forKey: DefaultsKey.monitorMemoryMetric) ?? "")
             let selected = MetricFormat.selectedMemory(used: memory.used,
@@ -1174,6 +1198,13 @@ enum CommandBarCatalog {
     /// Filled in by the service from a background pass; nil until the first
     /// one lands, which simply means the row is not offered yet.
     static var cachedBootVolumeSpace: (free: UInt64, total: UInt64)?
+
+    /// The battery and the memory pressure are read the same way and for the
+    /// same reason: both cross into the kernel (IOKit power sources, the mach
+    /// VM statistics), and the bar opens on a keystroke.
+    static var cachedBattery: BatteryInfo?
+    static var cachedMemory: (used: UInt64, appUsed: UInt64, total: UInt64,
+                              compressed: UInt64, cached: UInt64, swapUsed: UInt64?)?
 
     static func readBootVolumeSpace() -> (free: UInt64, total: UInt64)? {
         let url = URL(fileURLWithPath: "/")
@@ -1634,7 +1665,12 @@ enum CommandBarCatalog {
     }
 
     private static func openSettings(at page: SettingsPage) {
-        SettingsRouter.shared.page = page
+        openSettings(at: FeatureSettingsDestination(page))
+    }
+
+    private static func openSettings(at destination: FeatureSettingsDestination,
+                                     targetFeature: AppFeature? = nil) {
+        SettingsRouter.shared.request(destination, targetFeature: targetFeature)
         appDelegate()?.openSettingsWindow()
     }
 

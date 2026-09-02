@@ -318,6 +318,7 @@ final class CommandBarService: ObservableObject {
         refreshAutomationStatus(for: id)
         refreshStorageAnswer(for: id)
         refreshWiFiState(for: id)
+        refreshSystemAnswers(for: id)
         loadAppsIfNeeded(for: id)
         loadMacSettingsIfNeeded(for: id)
         loadWindowsIfNeeded(for: id)
@@ -408,16 +409,18 @@ final class CommandBarService: ObservableObject {
 
     // MARK: - What the person decided
 
-    private var disabledSourcesRaw: String {
-        UserDefaults.standard.string(forKey: DefaultsKey.commandBarDisabledSources) ?? ""
-    }
-
-    private var aliases: [String: String] {
+    /// Straight from disk, and named so. Only the helpers that change one of
+    /// these lists may read them: a read-modify-write has to start from what
+    /// is stored, or it would write back a copy taken before Settings edited
+    /// it. Everything that only reads - the ranking, the chips, the browse
+    /// list - uses the caches below, which is what keeps one keystroke from
+    /// decoding the same handful of strings over and over.
+    private var storedAliases: [String: String] {
         CommandBarPreferences.decodeAliases(
             UserDefaults.standard.string(forKey: DefaultsKey.commandBarAliases))
     }
 
-    private var pins: [String] {
+    private var storedPins: [String] {
         CommandBarPreferences.decodePins(
             UserDefaults.standard.string(forKey: DefaultsKey.commandBarPins) ?? "")
     }
@@ -485,7 +488,7 @@ final class CommandBarService: ObservableObject {
         finish(entry, value: nil)
     }
 
-    private var hiddenKeys: Set<String> {
+    private var storedHiddenKeys: Set<String> {
         CommandBarPreferences.decodeHidden(
             UserDefaults.standard.string(forKey: DefaultsKey.commandBarHidden) ?? "")
     }
@@ -583,14 +586,14 @@ final class CommandBarService: ObservableObject {
         case .clipboard:
             return !categoryContent(source, bar: bar, limit: 1).isEmpty
         case .emoji:
-            let hidden = hiddenKeys
+            let hidden = hiddenCache
             return emojiEntries.contains { !hidden.contains($0.stableKey) }
         case .actions, .settingsPages, .snippets, .folders, .links, .chromeBookmarks,
              .firefoxBookmarks, .safariBookmarks:
             // Asked once per chip on every pass with an empty field, so it
             // stops at the first row that qualifies instead of building a copy
             // of the catalog five times over.
-            let hidden = hiddenKeys
+            let hidden = hiddenCache
             return catalog.contains {
                 CommandBarPreferences.source(ofRowID: $0.id) == source
                     && !hidden.contains($0.stableKey)
@@ -608,7 +611,7 @@ final class CommandBarService: ObservableObject {
     private func categoryContent(_ source: CommandBarSource,
                                  bar: CommandBarFeatureStrings,
                                  limit: Int = 60) -> [CommandBarEntry] {
-        let hidden = hiddenKeys
+        let hidden = hiddenCache
         let rows: [CommandBarEntry]
         switch source {
         case .actions:
@@ -672,14 +675,22 @@ final class CommandBarService: ObservableObject {
     }
 
     func isEnabled(_ source: CommandBarSource) -> Bool {
-        CommandBarPreferences.isEnabled(source, disabledRaw: disabledSourcesRaw)
+        source.isAlwaysOn || !disabledCache.contains(source)
     }
 
     /// What the person pinned and what they bound, kept in memory. Both are
     /// asked once per row on every single render of the list, and reading them
     /// from disk there means parsing the same JSON ninety times for one frame.
     private var pinCache: Set<String> = []
+    private var pinOrderCache: [String] = []
     private var shortcutCache: [String: GlobalShortcut] = [:]
+    /// The rest of what the person decided, cached for the same reason and
+    /// with the same lifetime: read once when the bar opens, asked for by
+    /// every row on every keystroke after that.
+    private var aliasCache: [String: String] = [:]
+    private var hiddenCache: Set<String> = []
+    private var disabledCache: Set<CommandBarSource> = []
+    private var usageCache: [String: CommandBarUse] = [:]
     /// Cached like the pins: read once per open, checked on every keystroke.
     private var compactMode = false
     /// The list was asked for anyway, through `peekHome()`. Cleared on the
@@ -694,7 +705,16 @@ final class CommandBarService: ObservableObject {
     private var fileScopeLoadGeneration = 0
 
     private func reloadPreferenceCaches() {
-        pinCache = Set(pins)
+        pinOrderCache = storedPins
+        pinCache = Set(pinOrderCache)
+        aliasCache = storedAliases
+        hiddenCache = storedHiddenKeys
+        // Before `reloadFileSearchCaches()`, which asks whether the Files
+        // source is on.
+        disabledCache = CommandBarPreferences.disabledSources(
+            from: UserDefaults.standard.string(forKey: DefaultsKey.commandBarDisabledSources) ?? "")
+        usageCache = CommandBarUsage.decode(
+            UserDefaults.standard.string(forKey: DefaultsKey.commandBarUsage))
         shortcutCache = rowShortcuts
         compactMode = UserDefaults.standard.bool(forKey: DefaultsKey.commandBarCompactMode)
         hasCustomPosition = positionOffset != .zero
@@ -792,19 +812,19 @@ final class CommandBarService: ObservableObject {
     }
 
     func alias(for entry: CommandBarEntry) -> String? {
-        aliases[entry.stableKey]
+        aliasCache[entry.stableKey]
     }
 
     /// Pinning, naming, hiding and forgetting all write through here so the
     /// list refreshes the instant the person changes their mind.
     func togglePin(_ entry: CommandBarEntry) {
-        let next = CommandBarPreferences.togglingPin(entry.stableKey, in: pins)
+        let next = CommandBarPreferences.togglingPin(entry.stableKey, in: storedPins)
         UserDefaults.standard.set(CommandBarPreferences.encodePins(next), forKey: DefaultsKey.commandBarPins)
         refreshAfterPreferenceChange()
     }
 
     func setAlias(_ alias: String, for entry: CommandBarEntry) {
-        let next = CommandBarPreferences.settingAlias(alias, for: entry.stableKey, in: aliases)
+        let next = CommandBarPreferences.settingAlias(alias, for: entry.stableKey, in: storedAliases)
         UserDefaults.standard.set(CommandBarPreferences.encodeAliases(next),
                                   forKey: DefaultsKey.commandBarAliases)
         refreshAfterPreferenceChange()
@@ -813,14 +833,14 @@ final class CommandBarService: ObservableObject {
     /// The row that already answers to this name, so the bar can say so
     /// instead of quietly taking the name away from it.
     func rowAlreadyNamed(_ alias: String, excluding entry: CommandBarEntry) -> String? {
-        guard let key = CommandBarPreferences.rowUsingAlias(alias, in: aliases,
+        guard let key = CommandBarPreferences.rowUsingAlias(alias, in: aliasCache,
                                                             excluding: entry.stableKey)
         else { return nil }
         return entriesByStableKey[key]?.title
     }
 
     func toggleHidden(_ entry: CommandBarEntry) {
-        let next = CommandBarPreferences.togglingHidden(entry.stableKey, in: hiddenKeys)
+        let next = CommandBarPreferences.togglingHidden(entry.stableKey, in: storedHiddenKeys)
         UserDefaults.standard.set(CommandBarPreferences.encodeHidden(next),
                                   forKey: DefaultsKey.commandBarHidden)
         refreshAfterPreferenceChange()
@@ -899,7 +919,7 @@ final class CommandBarService: ObservableObject {
         // rebuild.
         normalizedByID = [:]
         entriesByStableKey = [:]
-        let names = aliases
+        let names = aliasCache
         for entry in entries {
             entriesByStableKey[entry.stableKey] = entry
             // A name the person gave is searchable text like any other, so the
@@ -952,9 +972,8 @@ final class CommandBarService: ObservableObject {
                     hasCategory: activeCategory != nil,
                     isPeeking: isPeekingHome)
                 if showsBrowse {
-                    let disabled = CommandBarPreferences.disabledSources(from: disabledSourcesRaw)
                     categoryChips = Self.chipOrder.filter {
-                        !disabled.contains($0) && categoryHasContent($0)
+                        !disabledCache.contains($0) && categoryHasContent($0)
                     }
                 } else {
                     // Skipped, not just hidden: this is the walk of the whole
@@ -1048,13 +1067,9 @@ final class CommandBarService: ObservableObject {
 
     private func suggestionRows() -> (rows: [CommandBarEntry], titles: [Int: String]) {
         let bar = FeatureStrings.commandBar(L10n.shared.language)
-        let hidden = hiddenKeys
-        // Read once. The browse list walks the whole catalog, and asking the
-        // preferences for every row would parse the same string ninety times.
-        let disabled = CommandBarPreferences.disabledSources(from: disabledSourcesRaw)
+        let hidden = hiddenCache
         func allowed(_ entry: CommandBarEntry) -> Bool {
-            let source = CommandBarPreferences.source(ofRowID: entry.id)
-            return source.isAlwaysOn || !disabled.contains(source)
+            isEnabled(CommandBarPreferences.source(ofRowID: entry.id))
         }
         var rows: [CommandBarEntry] = []
         var titles: [Int: String] = [:]
@@ -1076,15 +1091,14 @@ final class CommandBarService: ObservableObject {
         // pinned leads, in the order they pinned it.
         let byKey = Dictionary(offerable.map { ($0.stableKey, $0) },
                                uniquingKeysWith: { first, _ in first })
-        let pinnedRows = CommandBarPreferences.leadingPins(pins, available: Set(byKey.keys))
+        let pinnedRows = CommandBarPreferences.leadingPins(pinOrderCache, available: Set(byKey.keys))
             .compactMap { byKey[$0] }
         if !pinnedRows.isEmpty {
             titles[rows.count] = bar.pinnedTitle
             rows.append(contentsOf: pinnedRows)
         }
 
-        let usage = CommandBarUsage.decode(
-            UserDefaults.standard.string(forKey: DefaultsKey.commandBarUsage))
+        let usage = usageCache
         let pinnedIDs = Set(pinnedRows.map(\.id))
         let ids = CommandBarUsage.suggestionIDs(usage: usage,
                                                 available: offerable.map(\.id).filter { !pinnedIDs.contains($0) },
@@ -1126,7 +1140,7 @@ final class CommandBarService: ObservableObject {
         // What was copied comes last, behind a scroll: it belongs in the bar,
         // but not on screen over whatever the person is doing every time it
         // opens.
-        if !disabled.contains(.clipboard) {
+        if isEnabled(.clipboard) {
             let copied = CommandBarCatalog.clipboardBrowseEntries(limit: 6, bar: bar) {
                 [weak self] entry in
                 self?.paste(entry)
@@ -1199,7 +1213,7 @@ final class CommandBarService: ObservableObject {
             // pending one goes: it would land on a list that has no room for
             // it and refresh the bar for nothing.
             fileSearch.cancelPending()
-            let hidden = hiddenKeys
+            let hidden = hiddenCache
             let pool = category == .clipboard
                 ? CommandBarCatalog.clipboardEntries(matching: trimmed, bar: bar, limit: 40) {
                     [weak self] entry in self?.paste(entry)
@@ -1241,7 +1255,7 @@ final class CommandBarService: ObservableObject {
             ? CommandBarLinks.matchingScriptLink(in: savedLinks, query: trimmed)
             : nil
         var scriptAnswer: CommandBarEntry?
-        if let scriptMatch, !hiddenKeys.contains("link.\(scriptMatch.link.id.uuidString)") {
+        if let scriptMatch, !hiddenCache.contains("link.\(scriptMatch.link.id.uuidString)") {
             if let result = scriptRunner.cachedResult(linkID: scriptMatch.link.id,
                                                        argument: scriptMatch.argument) {
                 scriptRunner.cancelPending()
@@ -1279,8 +1293,7 @@ final class CommandBarService: ObservableObject {
             ? split.text
             : trimmed
 
-        let usage = CommandBarUsage.decode(
-            UserDefaults.standard.string(forKey: DefaultsKey.commandBarUsage))
+        let usage = usageCache
         let now = Date().timeIntervalSince1970
 
         // The clipboard is searched with everything that was typed: digits
@@ -1290,9 +1303,9 @@ final class CommandBarService: ObservableObject {
             self?.paste(entry)
         }
 
-        let names = aliases
-        let pinnedKeys = Set(pins)
-        let hidden = hiddenKeys
+        let names = aliasCache
+        let pinnedKeys = pinCache
+        let hidden = hiddenCache
 
         // What is selected comes first, so a tie goes to the thing the person
         // is already looking at.
@@ -1326,28 +1339,31 @@ final class CommandBarService: ObservableObject {
         pool.append(contentsOf: clipboard)
         pool.append(contentsOf: fileRows)
 
-        // The kind of each surviving row, worked out once: the switches are
-        // read from disk here instead of once per row per keystroke, and the
-        // ranking below needs the same answer.
-        let disabled = CommandBarPreferences.disabledSources(from: disabledSourcesRaw)
+        // The kind of each surviving row, worked out once: the ranking below
+        // needs the same answer and working it out twice would double a walk
+        // of the whole pool.
         var sources: [CommandBarSource] = []
         var kept: [CommandBarEntry] = []
         kept.reserveCapacity(pool.count)
         sources.reserveCapacity(pool.count)
         for entry in pool where !hidden.contains(entry.stableKey) {
             let source = CommandBarPreferences.source(ofRowID: entry.id)
-            guard source.isAlwaysOn || !disabled.contains(source) else { continue }
+            guard isEnabled(source) else { continue }
             kept.append(entry)
             sources.append(source)
         }
         pool = kept
 
+        // Folded once for the whole pass. Every named row and every row this
+        // session remembers asks the same question of the same few letters,
+        // and folding is four allocations a time.
+        let foldedQuery = CommandBarSearch.normalized(effectiveQuery)
         let candidates = pool.enumerated().map { index, entry in
             let folded = normalizedByID[entry.id]
             // A name the person gave outranks every title in the catalog:
             // that is the whole point of giving it.
             let aliasBoost = names[entry.stableKey]
-                .flatMap { CommandBarPreferences.aliasHit($0, query: effectiveQuery)?.rawValue } ?? 0
+                .flatMap { CommandBarPreferences.aliasHit($0, normalizedQuery: foldedQuery)?.rawValue } ?? 0
             return CommandBarCandidate(index: index,
                                 normalizedTitle: rankingTitle(for: entry, folded: folded,
                                                               query: effectiveQuery),
@@ -1364,7 +1380,7 @@ final class CommandBarService: ObservableObject {
                                     // What this session already answered with
                                     // for exactly these letters.
                                     + (entry.countsUsage
-                                        ? queryMemory.boost(query: effectiveQuery, id: entry.id)
+                                        ? queryMemory.boost(normalizedQuery: foldedQuery, id: entry.id)
                                         : 0)
                                     // What the Mac itself holds leads what is
                                     // borrowed from the app in front.
@@ -1379,8 +1395,7 @@ final class CommandBarService: ObservableObject {
 
         // A fact about the Mac only shows when it was asked for by name:
         // "st" must not answer "Storage" over what the person meant.
-        let firstToken = CommandBarSearch.normalized(effectiveQuery)
-            .split(separator: " ").first.map(String.init) ?? ""
+        let firstToken = foldedQuery.split(separator: " ").first.map(String.init) ?? ""
 
         var counts: [String: Int] = [:]
         var result: [CommandBarEntry] = []
@@ -1791,12 +1806,56 @@ final class CommandBarService: ObservableObject {
     /// fields in Settings use, and it gives every key back, not only ours.
     private func beginCapturingShortcut(_ entry: CommandBarEntry) {
         ShortcutCapture.begin()
+        // The tap sits ahead of the app's own menu. Without it, Command Q
+        // never reaches the local monitor. It quits Vorssaint instead of
+        // landing on the card (issue #1193). When Accessibility cannot
+        // create the tap, the monitor below still records as before.
+        ShortcutRecordingTap.begin { [weak self] keyCode, modifiers in
+            self?.handleCaptureKey(keyCode: keyCode, modifiers: modifiers)
+        }
         mode = .capturingShortcut(entryID: entry.id)
         refreshPanelLayout()
     }
 
     private func endCapturingShortcut() {
+        ShortcutRecordingTap.end()
         ShortcutCapture.end()
+    }
+
+    /// One press while the capture card is up. Shared by the recording tap
+    /// and the local monitor fallback.
+    private func handleCaptureKey(keyCode: Int64, modifiers: GlobalShortcutModifiers) {
+        guard case .capturingShortcut(let entryID) = mode else { return }
+        switch Int(keyCode) {
+        case kVK_Escape:
+            stepBack()
+        case kVK_Delete, kVK_ForwardDelete:
+            if let entry = entry(withID: entryID) {
+                setRowShortcut(nil, for: entry)
+            }
+            stepBack()
+        default:
+            let shortcut = GlobalShortcut(keyCode: keyCode, modifiers: modifiers)
+            // A bare letter would take that letter away from every app
+            // on the Mac, so the bar waits for a real combination.
+            guard CommandBarRowShortcuts.isUsable(shortcut) else {
+                NSSound.beep()
+                return
+            }
+            guard let entry = entry(withID: entryID) else {
+                stepBack()
+                return
+            }
+            // Full means full: the card stays up rather than closing on
+            // a combination that was never stored.
+            guard CommandBarRowShortcuts.hasRoom(for: entry.stableKey,
+                                                 in: rowShortcuts) else {
+                NSSound.beep()
+                return
+            }
+            setRowShortcut(shortcut, for: entry)
+            stepBack()
+        }
     }
 
     private func beginNaming(_ entry: CommandBarEntry) {
@@ -1971,6 +2030,7 @@ final class CommandBarService: ObservableObject {
                                                  id: entry.id,
                                                  now: Date().timeIntervalSince1970)
             UserDefaults.standard.set(CommandBarUsage.encode(next), forKey: DefaultsKey.commandBarUsage)
+            usageCache = next
         }
         // Handed over before hiding, which wipes the field and the selection.
         queryWhenRun = query
@@ -2280,8 +2340,9 @@ final class CommandBarService: ObservableObject {
         if let loadedAt = windowsLoadedAt, Date().timeIntervalSince(loadedAt) < 4 { return }
         guard !windowsLoading else { return }
         windowsLoading = true
+        let enumerationSnapshot = WindowEnumerator.snapshot()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let windows = WindowEnumerator.listWindowsForCommandBar()
+            let windows = WindowEnumerator.listWindowsForCommandBar(snapshot: enumerationSnapshot)
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.windowsLoading = false
@@ -2310,9 +2371,44 @@ final class CommandBarService: ObservableObject {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let space = CommandBarCatalog.readBootVolumeSpace()
             DispatchQueue.main.async {
-                guard let self, CommandBarCatalog.cachedBootVolumeSpace?.free != space?.free
-                else { return }
+                guard let self else { return }
+                // The whole sample is stored before the comparison decides
+                // whether anything has to be redrawn, or the fields the guard
+                // does not compare would keep a reading from an older sample.
+                let changed = CommandBarCatalog.cachedBootVolumeSpace?.free != space?.free
                 CommandBarCatalog.cachedBootVolumeSpace = space
+                guard changed else { return }
+                if self.presentationLifecycle.acceptsSharedCacheCompletion(
+                    startedBy: id, currentID: self.presentationID,
+                    isVisible: self.isVisible) {
+                    self.rebuildCatalog()
+                    self.refreshResults()
+                }
+            }
+        }
+    }
+
+    /// The battery and the memory pressure both cross into the kernel, and
+    /// they are read together so one background pass answers both rows. Same
+    /// reason as the storage and Wi-Fi passes: none of it belongs on the
+    /// keystroke that opens the bar.
+    private func refreshSystemAnswers(for id: UUID) {
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let battery = SystemInfo.batterySnapshot()
+            let memory = AppFeature.monitorMemory.isAvailable ? SystemInfo.memoryUsage() : nil
+            DispatchQueue.main.async {
+                guard let self else { return }
+                // Stored first, compared after, for the reason the storage
+                // pass above gives: the guard names the three fields the row
+                // shows, and the rest of the sample would otherwise be left
+                // behind at whatever it was when those three last moved.
+                let changed = CommandBarCatalog.cachedBattery != battery
+                    || CommandBarCatalog.cachedMemory?.used != memory?.used
+                    || CommandBarCatalog.cachedMemory?.appUsed != memory?.appUsed
+                    || CommandBarCatalog.cachedMemory?.total != memory?.total
+                CommandBarCatalog.cachedBattery = battery
+                CommandBarCatalog.cachedMemory = memory
+                guard changed else { return }
                 if self.presentationLifecycle.acceptsSharedCacheCompletion(
                     startedBy: id, currentID: self.presentationID,
                     isVisible: self.isVisible) {
@@ -2467,40 +2563,13 @@ final class CommandBarService: ObservableObject {
             if self.fieldIsComposing(in: panel) { return event }
 
             // Listening for a combination: every key belongs to the person,
-            // except the two that mean "never mind" and "take it off".
-            if case .capturingShortcut(let entryID) = self.mode {
-                switch Int(event.keyCode) {
-                case kVK_Escape:
-                    self.stepBack()
-                case kVK_Delete, kVK_ForwardDelete:
-                    if let entry = self.entry(withID: entryID) {
-                        self.setRowShortcut(nil, for: entry)
-                    }
-                    self.stepBack()
-                default:
-                    let modifiers = GlobalShortcutModifiers(eventFlags: event.modifierFlags)
-                    let shortcut = GlobalShortcut(keyCode: Int64(event.keyCode),
-                                                  modifiers: modifiers)
-                    // A bare letter would take that letter away from every app
-                    // on the Mac, so the bar waits for a real combination.
-                    guard CommandBarRowShortcuts.isUsable(shortcut) else {
-                        NSSound.beep()
-                        return nil
-                    }
-                    guard let entry = self.entry(withID: entryID) else {
-                        self.stepBack()
-                        return nil
-                    }
-                    // Full means full: the card stays up rather than closing on
-                    // a combination that was never stored.
-                    guard CommandBarRowShortcuts.hasRoom(for: entry.stableKey,
-                                                         in: self.rowShortcuts) else {
-                        NSSound.beep()
-                        return nil
-                    }
-                    self.setRowShortcut(shortcut, for: entry)
-                    self.stepBack()
-                }
+            // except the two that mean "never mind" and "take it off". The
+            // recording tap is the primary path; this is the fallback when
+            // that tap cannot exist.
+            if case .capturingShortcut = self.mode {
+                self.handleCaptureKey(
+                    keyCode: Int64(event.keyCode),
+                    modifiers: GlobalShortcutModifiers(eventFlags: event.modifierFlags))
                 return nil
             }
 
