@@ -243,17 +243,9 @@ extension AppFeature {
         case .mouseAcceleration:
             return []
         case .scrollInverter, .focusFollowsMouse, .smoothScroll, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
-<<<<<<< HEAD
-             .keyboardDebounce, .textSnippets, .superKey, .dockClick, .windowMaximizer, .windowLayout,
-             .autoQuit, .cleaningMode, .pastePlain, .radialMenu:
-=======
              .keyboardDebounce, .textSnippets, .superKey, .mouseClickDebounce,
              .dockClick, .windowMaximizer, .windowLayout,
-             .autoQuit, .quitWindowProtection, .cleaningMode, .pastePlain, .radialMenu,
-             // The bar reads other apps' menus and windows and types at the
-             // caret, all of it through Accessibility.
-             .commandBar:
->>>>>>> 5c537230dba64869c4a737c96128498621a5cc7a
+             .autoQuit, .quitWindowProtection, .cleaningMode, .pastePlain, .radialMenu:
             return [.accessibility]
         // The bar reads other apps' menus and windows and types at the caret,
         // all of it through Accessibility. Its Safari bookmarks source
