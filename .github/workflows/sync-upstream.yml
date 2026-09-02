@@ -17,7 +17,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # The default GITHUB_TOKEN can never push a change to
+          # .github/workflows/* (a hard GitHub restriction, not something
+          # the permissions: block above can lift) — a PAT with the
+          # `workflow` scope (or a fine-grained token with Workflows: write)
+          # is required whenever a sync touches this repo's own workflow
+          # files, which a conflicted merge can do.
+          token: ${{ secrets.SYNC_TOKEN }}
 
       - name: Configure git identity
         run: |
