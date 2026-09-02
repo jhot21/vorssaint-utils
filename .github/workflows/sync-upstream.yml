@@ -1,0 +1,75 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run sync script
+        id: sync
+        run: ./scripts/sync-upstream.sh
+        continue-on-error: true
+
+      - name: Open PR (clean merge)
+        if: steps.sync.outcome == 'success' && steps.sync.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SYNC_BRANCH: ${{ steps.sync.outputs.sync_branch }}
+        run: |
+          existing=$(gh pr list --head "$SYNC_BRANCH" --json number --jq 'length')
+          if [ "$existing" -eq 0 ]; then
+            gh pr create \
+              --base main \
+              --head "$SYNC_BRANCH" \
+              --title "Sync with upstream vorssaint-utils ($(date +%Y-%m-%d))" \
+              --body "Automated merge of vorssaintapp/vorssaint-utils@main. Merged cleanly, no conflicts."
+          else
+            echo "PR already exists for branch $SYNC_BRANCH, skipping."
+          fi
+
+      - name: Nothing to sync
+        if: steps.sync.outcome == 'success' && steps.sync.outputs.has_changes == 'false'
+        run: echo "Upstream has no new commits since the last sync — nothing to do."
+
+      - name: Open draft PR (conflicted merge)
+        if: steps.sync.outcome == 'failure' && steps.sync.outputs.merge_conflict == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SYNC_BRANCH: ${{ steps.sync.outputs.sync_branch }}
+        run: |
+          existing=$(gh pr list --head "$SYNC_BRANCH" --json number --jq 'length')
+          if [ "$existing" -eq 0 ]; then
+            gh pr create \
+              --draft \
+              --base main \
+              --head "$SYNC_BRANCH" \
+              --title "[CONFLICTS] Sync with upstream vorssaint-utils ($(date +%Y-%m-%d))" \
+              --body "Automated merge of vorssaintapp/vorssaint-utils@main hit conflicts. Conflict markers are committed as-is on this branch — resolve manually, then mark this PR ready for review."
+          else
+            echo "PR already exists for branch $SYNC_BRANCH, skipping."
+          fi
+
+      - name: Fail on non-conflict sync error
+        if: steps.sync.outcome == 'failure' && steps.sync.outputs.merge_conflict != 'true'
+        run: |
+          echo "sync-upstream.sh failed for a reason other than a merge conflict (e.g. a git push failure). Failing this job so the failure is visible instead of being silently swallowed by continue-on-error."
+          exit 1
