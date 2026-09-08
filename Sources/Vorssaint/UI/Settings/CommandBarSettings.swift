@@ -22,6 +22,7 @@ struct CommandBarSettings: View {
     @State private var editing: CommandBarLink?
     @State private var ignoreDraft = ""
     @State private var showsFileOptions = false
+    @State private var showsAppShortcuts = false
 
     private var text: CommandBarFeatureStrings { FeatureStrings.commandBar(l10n.language) }
     /// The snippet library already says "save", "delete" and "name" in every
@@ -98,6 +99,17 @@ struct CommandBarSettings: View {
                 }
             } header: {
                 Text(text.pageTitle)
+            }
+
+            Section {
+                Button {
+                    showsAppShortcuts = true
+                } label: {
+                    Label(text.appCenterTitle, systemImage: "app.badge")
+                }
+                Text(text.appCenterCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -346,6 +358,9 @@ struct CommandBarSettings: View {
             }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showsAppShortcuts) {
+            CommandBarAppShortcutsView()
+        }
         .sheet(item: $editing) { link in
             CommandBarLinkEditor(draft: link, text: text, common: common) { saved in
                 save(saved)
