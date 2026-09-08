@@ -1390,11 +1390,8 @@ enum Defaults {
         migrateFanControlVisibility(in: defaults)
         migrateScrollInverterAxes(in: defaults)
         migrateWhatsAppDownloadsEnabled(in: defaults)
-<<<<<<< HEAD
         migrateSafariBookmarksDefaultDisabled(in: defaults)
-=======
         migrateBatteryTemperatureVisibility(in: defaults)
->>>>>>> 4b12b976c3cf77e84800d1358a6011268da1e48c
         defaults.register(defaults: registeredDefaults)
         defaults.register(defaults: AppFeature.availabilityDefaults)
         activateBetaChannelIfRunningBeta(in: defaults)

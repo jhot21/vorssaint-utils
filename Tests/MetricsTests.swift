@@ -24430,11 +24430,7 @@ struct MetricsTests {
         for language in AppLanguage.allCases {
             let commandBarValues = Mirror(reflecting: FeatureStrings.commandBar(language)).children
                 .compactMap { $0.value as? String }
-<<<<<<< HEAD
-            expect(commandBarValues.count == 162 && commandBarValues.allSatisfy { !$0.isEmpty },
-=======
-            expect(commandBarValues.count == 158 && commandBarValues.allSatisfy { !$0.isEmpty },
->>>>>>> 4b12b976c3cf77e84800d1358a6011268da1e48c
+            expect(commandBarValues.count == 169 && commandBarValues.allSatisfy { !$0.isEmpty },
                    "every command bar string is set for \(language.rawValue)")
             expect(commandBarValues.allSatisfy { !$0.contains("—") },
                    "no em-dash in visible command bar strings (\(language.rawValue))")
@@ -26442,7 +26438,6 @@ struct MetricsTests {
                 && diskExclusionsListCode.contains("QuickTogglesSupport.isExcluded("),
                "the exclusions picker asks the shared exclusion test, UUID included, not a name-only one")
 
-<<<<<<< HEAD
         // MARK: Firefox bookmark reader against a fixture profile
         let firefoxFixtureRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("vorssaint-firefox-fixture-\(UUID().uuidString)")
@@ -26474,9 +26469,7 @@ struct MetricsTests {
         expect(firefoxReader.cachedBookmarks.first?.folder == "Bookmarks Toolbar",
                "its folder resolves to the toolbar's friendly name")
         try? FileManager.default.removeItem(at: firefoxFixtureRoot)
-=======
         scratchPaths.forEach { try? FileManager.default.removeItem(at: $0) }
->>>>>>> 4b12b976c3cf77e84800d1358a6011268da1e48c
 
         if failures.isEmpty {
             print("TESTS OK (\(checks) checks)")

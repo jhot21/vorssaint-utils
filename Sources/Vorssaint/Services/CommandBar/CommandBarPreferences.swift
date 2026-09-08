@@ -162,17 +162,11 @@ enum CommandBarPreferences {
         // A file is the deepest and most numerous thing the bar can find, and
         // a bar is for running things first. So a file has to be a plainly
         // better match than a command to lead the list, never merely as good.
-<<<<<<< HEAD
-        case .files: return -40
-        case .actions, .apps, .windows, .quitApps, .settingsPages, .macSettings, .snippets,
-             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links,
-             .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .killProcess:
-=======
         case .files, .settingsPages: return -40
         case .apps: return 80
         case .actions, .windows, .quitApps, .macSettings, .snippets,
-             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links, .killProcess:
->>>>>>> 4b12b976c3cf77e84800d1358a6011268da1e48c
+             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links,
+             .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .killProcess:
             return 0
         }
     }
