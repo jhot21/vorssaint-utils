@@ -26,6 +26,7 @@ final class ClipboardHistoryService: ObservableObject {
     @Published private(set) var entries: [ClipboardHistoryEntry] = [] {
         didSet { entriesStamp &+= 1 }
     }
+    let capturedEntry = PassthroughSubject<ClipboardHistoryEntry, Never>()
     @Published private(set) var isRunning = false
     @Published private(set) var shortcutRegistrationFailed = false
     @Published private(set) var quickBatchEntryIDs: Set<UUID> = []
@@ -793,6 +794,7 @@ final class ClipboardHistoryService: ObservableObject {
         } else {
             entries.insert(entry, at: firstRecentIndex)
         }
+        capturedEntry.send(entry)
     }
 
     private func normalizeEntryOrder() {
@@ -1016,6 +1018,7 @@ final class ClipboardHistoryService: ObservableObject {
     }
 
     func toggleHistoryWindow() {
+        if NotchSupport.routesClipboardWindow(), NotchService.shared.showClipboard(toggle: true) { return }
         if panel?.isVisible == true {
             hideHistoryWindow()
         } else {
@@ -1023,7 +1026,8 @@ final class ClipboardHistoryService: ObservableObject {
         }
     }
 
-    func showHistoryWindow() {
+    func showHistoryWindow(preferNotch: Bool = true) {
+        if preferNotch, NotchSupport.routesClipboardWindow(), NotchService.shared.showClipboard() { return }
         let panel = ensurePanel()
         rememberPasteTarget()
         quickWindowPresentationID = UUID()
@@ -1045,7 +1049,7 @@ final class ClipboardHistoryService: ObservableObject {
         clearQuickBatchSelection()
     }
 
-    private func rememberPasteTarget() {
+    func rememberPasteTarget() {
         let ownBundleID = Bundle.main.bundleIdentifier
         guard let app = NSWorkspace.shared.frontmostApplication,
               app.bundleIdentifier != ownBundleID,
@@ -1245,7 +1249,10 @@ final class ClipboardHistoryService: ObservableObject {
         }
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { [weak self, weak panel] event in
             guard let self, let panel, panel.isVisible else { return }
-            if event.windowNumber != panel.windowNumber, !Self.mouseIsInside(panel) {
+            if event.windowNumber != panel.windowNumber, !Self.mouseIsInside(panel),
+               // Every key on the Accessibility Keyboard is a click outside this
+               // panel. Dismissing on those makes the panel impossible to type into.
+               !AssistiveKeyboard.ownsCocoaPoint(NSEvent.mouseLocation) {
                 self.hideHistoryWindow()
             }
         }
@@ -1256,7 +1263,8 @@ final class ClipboardHistoryService: ObservableObject {
         ) { [weak self] notification in
             guard let self,
                   let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                  app.bundleIdentifier != Bundle.main.bundleIdentifier
+                  app.bundleIdentifier != Bundle.main.bundleIdentifier,
+                  app.bundleIdentifier != AssistiveKeyboard.bundleID
             else { return }
             self.hideHistoryWindow()
         }
