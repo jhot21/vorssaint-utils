@@ -1,6 +1,6 @@
 # Privacy
 
-Vorssaint is built to be local-first. Core features run on your Mac, and the app has no Vorssaint account or cloud dashboard. Its Vorssaint-operated services are limited to temporary screenshot links and feedback you explicitly choose to send.
+Vorssaint is built to be local-first. Core features run on your Mac, and the app has no Vorssaint account or cloud dashboard. Its Vorssaint-operated services are limited to temporary screenshot and recording links and feedback you explicitly choose to send.
 
 ## The short version
 
@@ -13,7 +13,7 @@ Vorssaint is built to be local-first. Core features run on your Mac, and the app
 
 ## What it reads, and where that stays
 
-Everything Vorssaint shows you, from the CPU and memory load to the temperatures, the battery details, the network rates, the window list, per app volume and the files on the Shelf, is read locally through native macOS APIs and shown to you right there. None of it is sent anywhere, logged remotely or shared.
+Everything Vorssaint shows you, from the CPU and memory load to the temperatures, the battery details, the network rates, the window list, per app volume and the files on the Shelf, is read locally through native macOS APIs and shown to you right there. Those readings are not uploaded automatically. Optional online lyric lookup sends only the song metadata described below.
 
 Clipboard history, including the images and files you copy, lives in the app's local storage on your Mac and never leaves it. Copy text from screen recognizes the text entirely on device with Apple's Vision framework, and the temporary capture is deleted as soon as the text is read. Automatic clearing, when you switch it on, only empties the system clipboard on this Mac: nothing is sent anywhere, and items already saved to your history are left as they are.
 
@@ -26,6 +26,18 @@ When the Command Bar's Chrome Bookmarks source is on, it reads Chrome's own loca
 When the Command Bar's Firefox Bookmarks source is on, it reads Firefox's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
 
 When the Command Bar's Safari Bookmarks source is on, it reads Safari's own local bookmarks file to make them searchable; nothing about them is sent anywhere, turning the source off in Settings stops it from reading that file at all, and it only reads it once Full Disk Access is granted.
+
+## Optional notch features
+
+Calendar access is requested only from the permission button. The notch reads upcoming events through the system calendar service; it does not create, change or delete events. Event text stays in memory and is cleared when the notch stops or the Mac locks.
+
+Notification mirroring uses Accessibility to read new visible system banners. It does not read the notification database or message stores and does not open notification history. The session inbox shows up to 50 notices; its temporary state is kept in memory and cleared on lock or disable. Clicking a notice invokes its original native action while valid. If that action is no longer available, the user’s click can instead open the previously identified source application. A separate, disabled-by-default option dismisses the original system banner after the notch accepts the notice for display; it revalidates that specific notice and never clears a notification group. Notices hidden by the system are not imported.
+
+The camera mirror starts only after an explicit action. Its frames go to the local preview and are not saved or uploaded by that feature. Closing the preview, hiding its section, disabling it or locking the Mac stops capture. Visible notch content, including the camera, appointments and notifications, can appear in screenshots or recordings when you leave notch capture visibility on.
+
+Timers and focus sessions are kept only for the current app session. Accessory alerts use local system readings. Download monitoring is limited to a folder you choose; its access bookmark stays on this Mac and is excluded from settings exports. File compression and conversion run locally, preserve originals, and save only to the destination you choose.
+
+Imported lyrics and timing adjustments are kept for only the current song in memory. Opening a different section cancels lookup work without losing that song's imported text. Observing a different song or disabling the feature clears it. The upcoming music queue comes from the local player and is not uploaded.
 
 ## Network connections
 
@@ -56,6 +68,8 @@ The service validates and rebuilds the MP4 without its original metadata. The vi
 7. **Feedback, only when you press Send.** A submission sends the category you choose and the text you type. The optional technical details switch adds only the app version and build, macOS version, Mac model and app language shown in the form. It never includes your name, account, email address, device identifier, logs, screenshots, files or clipboard content. Your public IP address is processed temporarily in memory for rate limiting and is not attached to the feedback.
 
 Feedback is delivered to private support channels visible to the service owner. After delivery, the text and any technical details you selected remain there until the service owner deletes them. The temporary delivery copy is then deleted; if delivery never succeeds, that copy is permanently deleted after 7 days. No contact information is sent, so feedback cannot receive a direct reply.
+
+8. **Online lyrics, only after you enable the separate lookup option.** While the lyrics view is open, a lookup sends the current song's title, artist, album and duration over HTTPS to `lrclib.net`. Audio, artwork, local paths, accounts and listening history are not included. The provider receives ordinary request data, including your public IP address, under its own policies. Requests use an ephemeral session without stored cookies, reject redirects and stop when you hide the view or disable lookup. Lyrics are kept only in memory for the current song. Local lyric import works without this connection.
 
 That is the entire list. There are no hidden beacons or background uploads.
 
