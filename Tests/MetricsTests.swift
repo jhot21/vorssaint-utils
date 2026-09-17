@@ -24968,8 +24968,34 @@ struct MetricsTests {
         expect(RecorderSupport.takeID(fromFolderName: "Downloads") == nil,
                "an unrelated folder is never mistaken for a recording")
 
+        // A translated format string whose placeholders drifted from the
+        // English one does not misprint: String(format:) reads the argument
+        // list by the specifiers, so a "%@" where a "%d" belongs walks off the
+        // stack and takes the app with it. This is the one translation mistake
+        // that is a crash rather than a typo, so it is pinned here.
+        func specifiers(of format: String) -> [String] {
+            var found: [String] = []
+            let characters = Array(format)
+            var index = 0
+            while index < characters.count {
+                guard characters[index] == "%" else {
+                    index += 1
+                    continue
+                }
+                var cursor = index + 1
+                // Positional and width flags sit between the % and the letter.
+                while cursor < characters.count,
+                      "0123456789$.-+ #'lhqLzjt".contains(characters[cursor]) {
+                    cursor += 1
+                }
+                guard cursor < characters.count else { break }
+                found.append(String(characters[index...cursor]))
+                index = cursor + 1
+            }
+            return found
+        }
+        var englishFormats: [String: [String]] = [:]
         for language in AppLanguage.allCases {
-<<<<<<< HEAD
             for child in Mirror(reflecting: FeatureStrings.commandBar(language)).children {
                 guard let label = child.label, let value = child.value as? String else { continue }
                 let found = specifiers(of: value)
@@ -24989,8 +25015,6 @@ struct MetricsTests {
                    "every command bar string is set for \(language.rawValue)")
             expect(commandBarValues.allSatisfy { !$0.contains("—") },
                    "no em-dash in visible command bar strings (\(language.rawValue))")
-=======
->>>>>>> 7550e2d56f807fd8f28bb54811138aa3dcf73c94
             // The battery example chip types this word into the bar, and the
             // answer it must reach is titled with it. Two words would not be
             // one typable example, and an empty one would be no example.

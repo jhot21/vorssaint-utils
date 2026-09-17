@@ -21,13 +21,12 @@ Recent Captures keeps up to 12 screenshots, within a 256 MB limit, in the app's 
 
 When a feature needs a macOS permission such as Accessibility, Screen Recording or Microphone, that access is used only for the feature it belongs to. Captured content leaves the Mac only when you explicitly create a temporary link. The [permissions guide](PERMISSIONS.md) breaks down each permission.
 
-<<<<<<< HEAD
 When the Command Bar's Chrome Bookmarks source is on, it reads Chrome's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
 
 When the Command Bar's Firefox Bookmarks source is on, it reads Firefox's own local bookmark and profile files to make them searchable; nothing about them is sent anywhere, and turning the source off in Settings stops it from reading those files at all.
 
 When the Command Bar's Safari Bookmarks source is on, it reads Safari's own local bookmarks file to make them searchable; nothing about them is sent anywhere, turning the source off in Settings stops it from reading that file at all, and it only reads it once Full Disk Access is granted.
-=======
+
 ## Optional notch features
 
 Calendar access is requested only from the permission button. The notch reads upcoming events through the system calendar service; it does not create, change or delete events. Event text stays in memory and is cleared when the notch stops or the Mac locks.
@@ -39,7 +38,6 @@ The camera mirror starts only after an explicit action. Its frames go to the loc
 Timers and focus sessions are kept only for the current app session. Accessory alerts use local system readings. Download monitoring is limited to a folder you choose; its access bookmark stays on this Mac and is excluded from settings exports. File compression and conversion run locally, preserve originals, and save only to the destination you choose.
 
 Imported lyrics and timing adjustments are kept for only the current song in memory. Opening a different section cancels lookup work without losing that song's imported text. Observing a different song or disabling the feature clears it. The upcoming music queue comes from the local player and is not uploaded.
->>>>>>> 7550e2d56f807fd8f28bb54811138aa3dcf73c94
 
 ## Network connections
 
