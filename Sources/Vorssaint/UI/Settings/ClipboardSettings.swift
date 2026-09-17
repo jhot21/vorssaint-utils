@@ -15,6 +15,7 @@ struct ClipboardSettings: View {
     @AppStorage(DefaultsKey.clipboardHistorySkipSensitive) private var skipSensitive = true
     @AppStorage(DefaultsKey.clipboardHistoryIncludeImagesFiles) private var includeImagesFiles = true
     @AppStorage(DefaultsKey.clipboardHistoryShortcutEnabled) private var shortcutEnabled = true
+    @AppStorage(DefaultsKey.clipboardHistoryPasteAfterSelect) private var pasteAfterSelect = true
     @AppStorage(DefaultsKey.panelUtilityClipboard) private var showInPanel = true
     @AppStorage(DefaultsKey.finderPasteImageAsFile) private var pasteImageAsFile = false
     @AppStorage(DefaultsKey.clipboardAutoClearOnDelay) private var autoClearOnDelay = false
@@ -51,6 +52,14 @@ struct ClipboardSettings: View {
                 .settingsSectionAnchor(.clipboardHistory)
 
                 clipboardShortcutSection
+
+                Section {
+                    Toggle(text.pasteAfterSelect, isOn: $pasteAfterSelect)
+                        .disabled(!enabled)
+                    Text(text.pasteAfterSelectCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Section {
                     Toggle(text.includeImagesFiles, isOn: $includeImagesFiles)

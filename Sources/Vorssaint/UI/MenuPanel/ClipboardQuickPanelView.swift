@@ -6,6 +6,7 @@ import SwiftUI
 struct ClipboardQuickPanelView: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var history = ClipboardHistoryService.shared
+    @AppStorage(DefaultsKey.clipboardHistoryPasteAfterSelect) private var pasteAfterSelect = true
     @FocusState private var searchFocused: Bool
     @State private var hoveredEntryID: UUID?
     @State private var previewEntryID: UUID?
@@ -221,12 +222,15 @@ struct ClipboardQuickPanelView: View {
     private var footer: some View {
         HStack(spacing: 8) {
             if history.quickBatchCount > 0 {
-                Button(String(format: text.pasteSelectedFormat, history.quickBatchCount)) {
+                Button(String(format: pasteAfterSelect ? text.pasteSelectedFormat : text.copySelectedFormat,
+                              history.quickBatchCount)) {
                     history.copySelectedQuickEntry()
                 }
                 .buttonStyle(.borderedProminent)
-                Button(String(format: text.copySelectedFormat, history.quickBatchCount)) {
-                    history.copySelectedQuickEntryOnly()
+                if pasteAfterSelect {
+                    Button(String(format: text.copySelectedFormat, history.quickBatchCount)) {
+                        history.copySelectedQuickEntryOnly()
+                    }
                 }
                 Button(String(format: text.deleteSelectedFormat, history.quickBatchCount), role: .destructive) {
                     history.removeSelectedQuickEntries()
@@ -290,6 +294,7 @@ private struct QuickEntryRow: View, Equatable {
     /// each time.
     @State private var previewFollowTask: Task<Void, Never>?
     private static let previewFollowDelay: Duration = .milliseconds(120)
+    @AppStorage(DefaultsKey.clipboardHistoryPasteAfterSelect) private var pasteAfterSelect = true
 
     private var history: ClipboardHistoryService { .shared }
     private var l10n: L10n { .shared }
@@ -322,7 +327,7 @@ private struct QuickEntryRow: View, Equatable {
 
             entryContent(entry)
             Spacer(minLength: 8)
-            entryTrailing(entry, shortcutIndex: shortcutIndex, isHovered: isHovered)
+            entryTrailing(entry, shortcutIndex: shortcutIndex, isHovered: isHovered, isSelected: isSelected)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -341,6 +346,12 @@ private struct QuickEntryRow: View, Equatable {
         )
         .contentShape(Rectangle())
         .contextMenu { entryActions(entry) }
+        // A real NSView the key monitor can anchor Control+Return's menu to:
+        // a SwiftUI Menu's own .keyboardShortcut never got a look at that
+        // combo, since the still-focused search field's own key bindings
+        // claimed it first (unlike every other shortcut here, nothing in the
+        // monitor consumed it to stop that).
+        .background(SelectedRowMenuAnchor(isSelected: isSelected))
         .onHover { hovering in
             // A row arriving under a pointer that has not moved since the
             // arrow keys took over is not a hover.
@@ -433,7 +444,8 @@ private struct QuickEntryRow: View, Equatable {
     @ViewBuilder
     private func entryTrailing(_ entry: ClipboardHistoryEntry,
                                shortcutIndex: Int?,
-                               isHovered: Bool) -> some View {
+                               isHovered: Bool,
+                               isSelected: Bool) -> some View {
         if isHovered {
             HStack(spacing: 4) {
                 Button {
@@ -463,7 +475,14 @@ private struct QuickEntryRow: View, Equatable {
                 Text(entry.copiedAt, style: .time)
                     .font(.system(size: 9.5))
                     .foregroundStyle(.tertiary)
-                if let shortcutIndex {
+                // The selected row's own jump shortcut (⌘N) is redundant —
+                // it's already selected — so this is where its menu shortcut
+                // is worth advertising instead.
+                if isSelected {
+                    Text("⌃⏎")
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                } else if let shortcutIndex {
                     Text("⌘\(shortcutIndex + 1)")
                         .font(.system(size: 9.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(.secondary)
@@ -474,28 +493,46 @@ private struct QuickEntryRow: View, Equatable {
 
     @ViewBuilder
     private func entryActions(_ entry: ClipboardHistoryEntry) -> some View {
-        Button(l10n.s.menuPaste) {
-            history.copyQuickEntry(entry)
-        }
-        Button(text.copy) {
-            history.copyOnlyQuickEntry(entry)
+        // These shortcuts only bind while this menu is open (SwiftUI scopes
+        // a keyboardShortcut on a menu-item Button to its presentation), so
+        // they're free to reuse plain Return/Delete without touching the
+        // search field's own keys the rest of the time. Mirrored on the
+        // Control+Return NSMenu in ClipboardHistoryService so both agree.
+        if pasteAfterSelect {
+            Button(l10n.s.menuPaste) {
+                history.copyQuickEntry(entry)
+            }
+            .keyboardShortcut(.return, modifiers: [])
+            Button(text.copy) {
+                history.copyOnlyQuickEntry(entry)
+            }
+            .keyboardShortcut("c", modifiers: [.command])
+        } else {
+            Button(text.copy) {
+                history.copyQuickEntry(entry)
+            }
+            .keyboardShortcut(.return, modifiers: [])
         }
         Divider()
         Button(entry.isPinned ? text.unpin : text.pin) {
             history.togglePin(entry)
         }
+        .keyboardShortcut("p", modifiers: [.option])
         Button(text.moveUp) {
             history.move(entry, .up)
         }
+        .keyboardShortcut(.upArrow, modifiers: [.command])
         .disabled(!canReorderEntries || !history.canMove(entry, .up))
         Button(text.moveDown) {
             history.move(entry, .down)
         }
+        .keyboardShortcut(.downArrow, modifiers: [.command])
         .disabled(!canReorderEntries || !history.canMove(entry, .down))
         Divider()
         Button(text.delete, role: .destructive) {
             history.remove(entry)
         }
+        .keyboardShortcut(.delete, modifiers: [])
     }
 
     private func activate(_ entry: ClipboardHistoryEntry) {
@@ -575,6 +612,21 @@ private struct QuickEntryRow: View, Equatable {
         if isSelected { return Color.accentColor.opacity(isHovered ? 0.13 : 0.09) }
         if isHovered { return Color.primary.opacity(0.055) }
         return .clear
+    }
+}
+
+/// A transparent NSView sized to the row, published to the service only while
+/// its row is the keyboard selection. The key monitor pops Control+Return's
+/// menu from it, since anchoring an NSMenu needs a real view, not a point.
+private struct SelectedRowMenuAnchor: NSViewRepresentable {
+    let isSelected: Bool
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        if isSelected {
+            ClipboardHistoryService.shared.selectedQuickRowAnchor = view
+        }
     }
 }
 

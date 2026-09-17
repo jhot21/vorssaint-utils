@@ -183,7 +183,9 @@ extension ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "디스플레이가 꺼질 때 클립보드 지우기",
         autoClearOnScreenLock: "화면이 잠길 때 클립보드 지우기",
         autoClearCaption: "시스템 클립보드만 지웁니다. 이미 저장된 항목은 기록에 남습니다.",
-        deleteSelectedFormat: "%d개 삭제"
+        deleteSelectedFormat: "%d개 삭제",
+        pasteAfterSelect: "선택 후 붙여넣기",
+        pasteAfterSelectCaption: "항목을 선택하면 이전 앱에도 붙여넣습니다. 클립보드에만 복사하려면 이 옵션을 끄세요."
     )
 }
 
@@ -469,6 +471,8 @@ struct ClipboardFeatureStrings {
     let autoClearOnScreenLock: String
     let autoClearCaption: String
     let deleteSelectedFormat: String
+    let pasteAfterSelect: String
+    let pasteAfterSelectCaption: String
 
     static let enUS = ClipboardFeatureStrings(
         title: "Clipboard",
@@ -524,7 +528,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Clear clipboard on display sleep",
         autoClearOnScreenLock: "Clear clipboard on screen lock",
         autoClearCaption: "Clears the system clipboard only. Items already saved stay in the history.",
-        deleteSelectedFormat: "Delete %d"
+        deleteSelectedFormat: "Delete %d",
+        pasteAfterSelect: "Paste after selecting",
+        pasteAfterSelectCaption: "Selecting an entry also pastes it into the previous app. Turn this off to only copy it to the clipboard."
     )
 
     static let ptBR = ClipboardFeatureStrings(
@@ -581,7 +587,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Limpar o clipboard quando a tela apagar",
         autoClearOnScreenLock: "Limpar o clipboard ao bloquear a tela",
         autoClearCaption: "Limpa apenas o clipboard do sistema. Os itens já guardados continuam no histórico.",
-        deleteSelectedFormat: "Apagar %d"
+        deleteSelectedFormat: "Apagar %d",
+        pasteAfterSelect: "Colar após selecionar",
+        pasteAfterSelectCaption: "Selecionar um item também o cola no aplicativo anterior. Desative para apenas copiá-lo para a área de transferência."
     )
 
     static let tr = ClipboardFeatureStrings(
@@ -638,7 +646,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Ekran uykuya geçince panoyu temizle",
         autoClearOnScreenLock: "Ekran kilitlenince panoyu temizle",
         autoClearCaption: "Yalnızca sistem panosunu temizler. Kaydedilmiş ögeler geçmişte kalır.",
-        deleteSelectedFormat: "%d öğeyi sil"
+        deleteSelectedFormat: "%d öğeyi sil",
+        pasteAfterSelect: "Seçtikten sonra yapıştır",
+        pasteAfterSelectCaption: "Bir öğeyi seçmek onu önceki uygulamaya da yapıştırır. Yalnızca panoya kopyalamak için bunu kapatın."
     )
 
     static let ru = ClipboardFeatureStrings(
@@ -695,7 +705,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Очищать буфер обмена при выключении экрана",
         autoClearOnScreenLock: "Очищать буфер обмена при блокировке экрана",
         autoClearCaption: "Очищается только системный буфер обмена. Сохранённые элементы остаются в истории.",
-        deleteSelectedFormat: "Удалить: %d"
+        deleteSelectedFormat: "Удалить: %d",
+        pasteAfterSelect: "Вставлять после выбора",
+        pasteAfterSelectCaption: "Выбор записи также вставляет её в предыдущее приложение. Отключите, чтобы только копировать в буфер обмена."
     )
 
     static let es = ClipboardFeatureStrings(
@@ -752,7 +764,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Vaciar el portapapeles al apagarse la pantalla",
         autoClearOnScreenLock: "Vaciar el portapapeles al bloquear la pantalla",
         autoClearCaption: "Solo se vacía el portapapeles del sistema. Los elementos guardados siguen en el historial.",
-        deleteSelectedFormat: "Eliminar %d"
+        deleteSelectedFormat: "Eliminar %d",
+        pasteAfterSelect: "Pegar después de seleccionar",
+        pasteAfterSelectCaption: "Seleccionar un elemento también lo pega en la aplicación anterior. Desactívalo para solo copiarlo al portapapeles."
     )
 
     static let de = ClipboardFeatureStrings(
@@ -809,7 +823,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Zwischenablage beim Ausschalten des Bildschirms leeren",
         autoClearOnScreenLock: "Zwischenablage beim Sperren des Bildschirms leeren",
         autoClearCaption: "Leert nur die Zwischenablage des Systems. Bereits gesicherte Einträge bleiben im Verlauf.",
-        deleteSelectedFormat: "%d löschen"
+        deleteSelectedFormat: "%d löschen",
+        pasteAfterSelect: "Nach der Auswahl einfügen",
+        pasteAfterSelectCaption: "Das Auswählen eines Eintrags fügt ihn auch in die vorherige App ein. Deaktiviere dies, um ihn nur in die Zwischenablage zu kopieren."
     )
 
     static let fr = ClipboardFeatureStrings(
@@ -866,7 +882,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Vider le presse-papiers à l’extinction de l’écran",
         autoClearOnScreenLock: "Vider le presse-papiers au verrouillage de l’écran",
         autoClearCaption: "Seul le presse-papiers du système est vidé. Les éléments enregistrés restent dans l’historique.",
-        deleteSelectedFormat: "Supprimer %d"
+        deleteSelectedFormat: "Supprimer %d",
+        pasteAfterSelect: "Coller après sélection",
+        pasteAfterSelectCaption: "Sélectionner une entrée la colle aussi dans l'application précédente. Désactivez pour seulement la copier dans le presse-papiers."
     )
 
     static let it = ClipboardFeatureStrings(
@@ -923,7 +941,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "Svuota gli appunti quando lo schermo si spegne",
         autoClearOnScreenLock: "Svuota gli appunti al blocco dello schermo",
         autoClearCaption: "Svuota solo gli appunti di sistema. Gli elementi salvati restano nella cronologia.",
-        deleteSelectedFormat: "Elimina %d"
+        deleteSelectedFormat: "Elimina %d",
+        pasteAfterSelect: "Incolla dopo la selezione",
+        pasteAfterSelectCaption: "Selezionare una voce la incolla anche nell'app precedente. Disattiva per copiarla solo negli appunti."
     )
 
     static let ja = ClipboardFeatureStrings(
@@ -980,7 +1000,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "ディスプレイスリープ時にクリップボードを消去",
         autoClearOnScreenLock: "画面ロック時にクリップボードを消去",
         autoClearCaption: "システムのクリップボードのみを消去します。保存済みの項目は履歴に残ります。",
-        deleteSelectedFormat: "%d件を削除"
+        deleteSelectedFormat: "%d件を削除",
+        pasteAfterSelect: "選択後に貼り付け",
+        pasteAfterSelectCaption: "項目を選択すると、直前のアプリにも貼り付けられます。クリップボードにコピーするだけにするには、これをオフにしてください。"
     )
 
     static let zhHans = ClipboardFeatureStrings(
@@ -1037,7 +1059,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "显示器睡眠时清空剪贴板",
         autoClearOnScreenLock: "锁定屏幕时清空剪贴板",
         autoClearCaption: "仅清空系统剪贴板，已保存的条目仍保留在历史记录中。",
-        deleteSelectedFormat: "删除 %d 项"
+        deleteSelectedFormat: "删除 %d 项",
+        pasteAfterSelect: "选择后粘贴",
+        pasteAfterSelectCaption: "选择条目还会将其粘贴到之前的应用中。关闭此选项可仅将其复制到剪贴板。"
     )
 
     static let zhTW = ClipboardFeatureStrings(
@@ -1094,7 +1118,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "顯示器睡眠時清除剪貼簿",
         autoClearOnScreenLock: "鎖定螢幕時清除剪貼簿",
         autoClearCaption: "僅清除系統剪貼簿，已儲存的項目仍保留在記錄中。",
-        deleteSelectedFormat: "刪除 %d 個"
+        deleteSelectedFormat: "刪除 %d 個",
+        pasteAfterSelect: "選取後貼上",
+        pasteAfterSelectCaption: "選取項目也會將其貼到先前的應用程式中。關閉此選項可僅複製到剪貼簿。"
     )
 
     static let zhHK = ClipboardFeatureStrings(
@@ -1151,7 +1177,9 @@ struct ClipboardFeatureStrings {
         autoClearOnDisplaySleep: "顯示器睡眠時清除剪貼簿",
         autoClearOnScreenLock: "鎖定螢幕時清除剪貼簿",
         autoClearCaption: "只會清除系統剪貼簿，已儲存的項目仍會保留在記錄中。",
-        deleteSelectedFormat: "刪除 %d 個"
+        deleteSelectedFormat: "刪除 %d 個",
+        pasteAfterSelect: "選取後貼上",
+        pasteAfterSelectCaption: "選取項目也會將其貼到先前的應用程式中。關閉此選項只會複製到剪貼簿。"
     )
 }
 

@@ -457,6 +457,12 @@ final class ClipboardHistoryService: ObservableObject {
     /// take the preview back from the row the arrow keys chose.
     private(set) var keyboardSelectionPointer: NSPoint?
 
+    /// The NSView backing whichever row currently shows the keyboard
+    /// selection, published by that row while it holds the selection.
+    /// Control+Return's menu anchors to it; an NSMenu needs a real view, not
+    /// just a point.
+    weak var selectedQuickRowAnchor: NSView?
+
     func moveQuickSelection(_ delta: Int) {
         // Out of the way while the keys drive, back at the first real move.
         NSCursor.setHiddenUntilMouseMoves(true)
@@ -475,26 +481,34 @@ final class ClipboardHistoryService: ObservableObject {
         quickSelectionIndex = min(max(quickSelectionIndex + delta, 0), count - 1)
     }
 
+    /// Read fresh each call, not cached, since Settings can flip it while the
+    /// panel is open.
+    var pasteAfterSelectEnabled: Bool {
+        UserDefaults.standard.bool(forKey: DefaultsKey.clipboardHistoryPasteAfterSelect)
+    }
+
     /// The window leaves the screen at once; the paste waits for the write,
     /// because pasting before it lands would paste whatever the user had
     /// copied before. A stale entry leaves the clipboard untouched and pastes
     /// nothing at all.
     func copyQuickEntry(_ entry: ClipboardHistoryEntry) {
         let target = pasteTargetApp
+        let shouldPaste = pasteAfterSelectEnabled
         hideHistoryWindow()
         pasteTargetApp = nil
         copy(entry) { [weak self] copied in
-            guard copied else { return }
+            guard copied, shouldPaste else { return }
             self?.pasteIntoPreviousApp(target)
         }
     }
 
     func copyQuickEntries(_ selectedEntries: [ClipboardHistoryEntry]) {
         let target = pasteTargetApp
+        let shouldPaste = pasteAfterSelectEnabled
         hideHistoryWindow()
         pasteTargetApp = nil
         copy(selectedEntries) { [weak self] copied in
-            guard copied else { return }
+            guard copied, shouldPaste else { return }
             self?.pasteIntoPreviousApp(target)
         }
     }
@@ -1183,6 +1197,10 @@ final class ClipboardHistoryService: ObservableObject {
                     self.copySelectedQuickEntryOnly()
                     return nil
                 }
+                if modifiers == [.control] {
+                    self.presentSelectedEntryMenu()
+                    return nil
+                }
                 if modifiers.isEmpty {
                     self.copySelectedQuickEntry()
                     return nil
@@ -1330,6 +1348,74 @@ final class ClipboardHistoryService: ObservableObject {
     private func clampedQuickSelectionIndex(for count: Int) -> Int {
         min(max(quickSelectionIndex, 0), max(count - 1, 0))
     }
+
+    /// Control+Return's menu, built directly in AppKit rather than via a
+    /// SwiftUI `Menu`: the search field keeps first-responder status while
+    /// the panel is open, and only the key monitor — which runs ahead of the
+    /// responder chain, like every other shortcut here — can reliably claim
+    /// a non-⌘ combo away from it.
+    func presentSelectedEntryMenu() {
+        guard quickSelectionIsVisible,
+              let entry = selectedQuickEntry,
+              let anchor = selectedQuickRowAnchor
+        else { return }
+        let text = FeatureStrings.clipboard(L10n.shared.language)
+        let controller = QuickEntryMenuController(entry: entry, service: self)
+        let menu = NSMenu()
+
+        // Mirrors the shortcuts on ClipboardQuickPanelView's entryActions
+        // buttons, so the two menus agree regardless of which one opened.
+        func item(_ title: String, _ action: Selector, key: String = "",
+                  modifiers: NSEvent.ModifierFlags = [], enabled: Bool = true) -> NSMenuItem {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            item.keyEquivalentModifierMask = modifiers
+            item.target = controller
+            item.isEnabled = enabled
+            return item
+        }
+
+        if pasteAfterSelectEnabled {
+            menu.addItem(item(L10n.shared.s.menuPaste, #selector(QuickEntryMenuController.pasteOrCopy), key: "\r"))
+            menu.addItem(item(text.copy, #selector(QuickEntryMenuController.copyOnly), key: "c", modifiers: [.command]))
+        } else {
+            menu.addItem(item(text.copy, #selector(QuickEntryMenuController.pasteOrCopy), key: "\r"))
+        }
+        menu.addItem(.separator())
+        menu.addItem(item(entry.isPinned ? text.unpin : text.pin, #selector(QuickEntryMenuController.togglePin),
+                          key: "p", modifiers: [.option]))
+        let canReorder = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        menu.addItem(item(text.moveUp, #selector(QuickEntryMenuController.moveUp),
+                          key: String(UnicodeScalar(NSUpArrowFunctionKey)!), modifiers: [.command],
+                          enabled: canReorder && canMove(entry, .up)))
+        menu.addItem(item(text.moveDown, #selector(QuickEntryMenuController.moveDown),
+                          key: String(UnicodeScalar(NSDownArrowFunctionKey)!), modifiers: [.command],
+                          enabled: canReorder && canMove(entry, .down)))
+        menu.addItem(.separator())
+        menu.addItem(item(text.delete, #selector(QuickEntryMenuController.delete), key: "\u{8}"))
+
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor)
+    }
+}
+
+/// NSMenuItem needs an NSObject target/action, and ClipboardHistoryService
+/// isn't one; this just forwards to it for the lifetime of one popped menu
+/// (menu.popUp is synchronous, so the local reference in
+/// presentSelectedEntryMenu keeps it alive throughout).
+private final class QuickEntryMenuController: NSObject {
+    private let entry: ClipboardHistoryEntry
+    private weak var service: ClipboardHistoryService?
+
+    init(entry: ClipboardHistoryEntry, service: ClipboardHistoryService) {
+        self.entry = entry
+        self.service = service
+    }
+
+    @objc func pasteOrCopy() { service?.copyQuickEntry(entry) }
+    @objc func copyOnly() { service?.copyOnlyQuickEntry(entry) }
+    @objc func togglePin() { service?.togglePin(entry) }
+    @objc func moveUp() { service?.move(entry, .up) }
+    @objc func moveDown() { service?.move(entry, .down) }
+    @objc func delete() { service?.remove(entry) }
 }
 
 /// File-backed storage for copied images: PNGs live in Application Support
