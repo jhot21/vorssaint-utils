@@ -53,6 +53,13 @@
   <img src="docs/assets/readme/panel-utilities.png" width="196" alt="Utilities with cleaner, Homebrew, media tools and clipboard">
 </p>
 
+> **This is my personal fork of [vorssaint/vorssaint-utils](https://github.com/vorssaintapp/vorssaint-utils)**, synced with upstream periodically and carrying a few additions of my own on top:
+>
+> - **Command Bar: browser bookmarks** — search and open bookmarks from Chrome, Firefox, and Safari directly from the Command Bar, with mtime-based caching and Full Disk Access handling for Safari.
+> - **Command Bar: script shortcuts** — default arguments for script shortcuts, plus an option to shell-split a typed argument before running.
+> - **Clipboard quick panel** — a paste-after-select toggle and keyboard-driven access to the panel's menu.
+> - **Automated upstream sync** — a scheduled workflow that pulls `vorssaintapp/vorssaint-utils@main` into this fork and opens a PR (or flags conflicts for manual resolution).
+
 Per app volume, a real system monitor, a better app switcher, window snapping, Dock previews, clipboard history, text snippets, a file shelf, an uninstaller. The utilities Mac users usually buy one by one, together behind a single menu bar icon, with no account, no telemetry and no subscription.
 
 ## Install only what you use
