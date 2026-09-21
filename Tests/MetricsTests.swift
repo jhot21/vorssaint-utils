@@ -1,15 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Vorssaint
 
-import AppKit
-import Carbon.HIToolbox
-import Combine
-import CoreAudio
-import CoreGraphics
-import Darwin
 import Foundation
-import ImageIO
-import VMStatisticsCompat
 
 // The runner lists every independently selectable suite. A filtered run says
 // exactly which suites ran; an unknown or empty selection is an error.
@@ -18,26 +10,102 @@ struct MetricsTests {
     static func main() {
         let suite = TestSuite()
         let groups: [(String, () -> Void)] = [
-            ("harness", { TestHarnessTests.run(suite) }),
-            ("core", { coreChecks(suite) }),
+            ("harness", {
+                TestHarnessTests.run(suite)
+                PreferenceNamespaceTests.run(suite)
+            }),
+            ("metrics", { MetricsFeatureTests.run(suite) }),
+            ("clipboard", { ClipboardFeatureTests.run(suite) }),
+            ("pointer-input", { PointerInputFeatureTests.run(suite) }),
+            ("scroll-modifier", { ScrollHorizontalModifierTests.run(suite) }),
+            ("preferences", { PreferencesFeatureTests.run(suite) }),
+            ("app-management", { AppManagementFeatureTests.run(suite) }),
+            ("window-layout", { WindowLayoutFeatureTests.run(suite) }),
+            ("media", { MediaFeatureTests.run(suite) }),
+            ("mixer", {
+                MixerNativeDragTests.run(suite)
+                MixerOutputAdjustmentContract.run(suite)
+                MixerInputVolumeContract.run(suite)
+                MixerFeatureTests.run(suite)
+            }),
+            ("shelf", { ShelfFeatureTests.run(suite) }),
+            ("updates", {
+                UpdateFeatureTests.run(suite)
+                PostUpdateStatusItemRecoveryTests.run(suite)
+            }),
+            ("repository", { RepositoryFeatureTests.run(suite) }),
+            ("screenshots", {
+                ScreenshotWatermarkTests.run(suite)
+                ScreenshotFeatureTests.run(suite)
+            }),
+            ("recorder", {
+                RecorderFeatureTests.run(suite)
+                RecorderExportSpeedTests.run(suite)
+                RecorderExportRenderingTests.run(suite)
+            }),
+            ("command-bar", { CommandBarFeatureTests.run(suite) }),
+            ("notch", {
+                NotchTests.run(suite)
+                NotchCompactTests.run(suite)
+                NotchVolumeKeyTests.run(suite)
+            }),
+            ("switcher-model", { SwitcherModelFeatureTests.run(suite) }),
+            ("features", { FeatureCatalogTests.run(suite) }),
+            ("utilities", {
+                UtilitiesFeatureTests.run(suite)
+                PortManagerRefreshTests.run(suite)
+            }),
+            ("settings", {
+                SettingsFeatureTests.run(suite)
+                SettingsWindowTests.run { suite.expect($0, $1) }
+            }),
+            ("display-restoration", { DisplayRestorationTests.run(suite) }),
+            ("software-dimming", { SoftwareDimmingRouteTests.run { suite.expect($0, $1) } }),
+            ("capture", { ScreenshotSelectionRefreshContract.run(suite) }),
             ("keyboard", {
-                assistiveKeyboardChecks { suite.expect($0, $1) }
-                screenshotToolShortcutChecks { suite.expect($0, $1) }
+                KeyboardFeatureTests.run(suite)
+                AssistiveKeyboardTests.run(suite)
+                ScreenshotToolShortcutTests.run(suite)
             }),
             ("storage", {
-                RecentCaptureStoreTests.run { suite.expect($0, $1) }
-                RecorderPresetImageStoreTests.run { suite.expect($0, $1) }
-                scratchpadStoreChecks { suite.expect($0, $1) }
+                RecentCaptureStoreTests.run(suite)
+                RecorderPresetImageStoreTests.run(suite)
+                StorageFeatureTests.run(suite)
+                ScratchpadStoreContractTests.run(suite)
             }),
+            ("quit-protection", { QuitProtectionHUD.progressChecks(suite) }),
             ("recording", {
-                RecorderSampleTimingTests.run { suite.expect($0, $1) }
-                RecorderWriterTests.run { suite.expect($0, $1) }
+                RecorderSampleTimingTests.run(suite)
+                RecorderWriterTests.run(suite)
+                RecorderExportChipTests.run { suite.expect($0, $1) }
             }),
-            ("network", { SpeedTestTests.run { suite.expect($0, $1) } }),
+            ("network", {
+                NetworkFeatureTests.run(suite)
+                SpeedTestTests.run(suite)
+                NetworkAddressTests.run { suite.expect($0, $1) }
+            }),
             ("app-updates", { AppUpdatesContract.run(suite) }),
-            ("localization", { LocalizationTests.run(suite) }),
+            ("localization", {
+                LocalizationTests.run(suite)
+                LocalizationFeatureContractTests.run(suite)
+            }),
+            ("cleaner", { CleanerEligibilityTests.run(suite) }),
+            ("uninstaller", { UninstallerFlowTests.run(suite) }),
             ("launcher", { QuickLauncherContract.run(suite) }),
-            ("switcher", { SwitcherScrollContract.run(suite) }),
+            ("dock-autohide", {
+                DockAutohideHoldTests.run(suite)
+                DockPreviewFrameRestorationTests.run(suite)
+            }),
+            ("switcher", {
+                SwitcherScrollContract.run(suite)
+                SwitcherActivationTests.run(suite)
+            }),
+            ("keep-awake", {
+                KeepAwakeCatalogContract.run(suite)
+                KeepAwakeLidSleepTests.run { suite.expect($0, $1) }
+                KeepAwakeTimerHandoffTests.run { suite.expect($0, $1) }
+            }),
+            ("emoji", { CommandBarEmojiContract.run(suite) }),
         ]
         var selected = Set<String>()
         var listOnly = false
@@ -62,6 +130,7 @@ struct MetricsTests {
         }
         suite.finish()
     }
+<<<<<<< HEAD
 
     private static func coreChecks(_ suite: TestSuite) {
         func expect(_ condition: Bool, _ message: @autoclosure () -> String,
@@ -27329,4 +27398,6 @@ struct MetricsTests {
     private static func formatSpecifiers(in format: String) -> [String] {
         TestFormat.parse(format)?.conversions ?? ["invalid format"]
     }
+=======
+>>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
 }

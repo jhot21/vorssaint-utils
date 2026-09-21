@@ -68,13 +68,24 @@ final class ScreenshotSelectionController {
     /// Bumped whenever the source is re-photographed, so a capture that a
     /// later tool change already replaced never reaches the panels.
     private var sourceGeneration = 0
+    private var sourceRefreshPending = false
+    /// Old pixels and window choices remain visible during refresh, but cannot
+    /// be used by either pointer actions or keyboard confirmations.
+    fileprivate var acceptsCaptureInput: Bool {
+        !finished && !sourceRefreshPending
+    }
     fileprivate let requiresDraggedRegion: Bool
     private var finished = false
     /// Read by the overlays so a late event finds a session that is over.
     fileprivate var isOver: Bool { finished }
     fileprivate var spaceIsDown = false
     fileprivate var selectionInProgress = false {
-        didSet { panels.forEach { $0.overlayView.refreshGuideVisibility() } }
+        didSet {
+            panels.forEach { $0.overlayView.refreshGuideVisibility() }
+            if selectionInProgress != oldValue {
+                screenCaptureOptions?.onSelectionProgressChange?(selectionInProgress)
+            }
+        }
     }
     fileprivate var scrollingCaptureEnabled = false {
         didSet {
@@ -88,9 +99,21 @@ final class ScreenshotSelectionController {
         supportsScrollingCapture && activeTool == .screenshot && activeMode == .image
     }
     fileprivate var acceptsWindowClick: Bool {
-        activeMode != .color && !requiresDraggedRegion && !scrollingCaptureEnabled
+        acceptsCaptureInput && activeMode != .color && !requiresDraggedRegion && !scrollingCaptureEnabled
     }
     fileprivate var isPickingColor: Bool { activeMode == .color }
+    /// The panel `repeatLastRegion()` would act on, or nil when there is
+    /// nothing to repeat: the guide hint and the action read the same
+    /// property so the bar cannot promise a key that does nothing.
+    private var repeatTargetPanel: ScreenshotOverlayPanel? {
+        guard let last = Self.lastRegion else { return nil }
+        return panels.first { $0.displayID == last.displayID }
+    }
+    fileprivate var offersRepeatLastRegion: Bool {
+        ScreenshotSupport.offersRepeatLastRegion(
+            isPickingColor: isPickingColor,
+            storedRegionDisplayIsAvailable: repeatTargetPanel != nil)
+    }
     fileprivate var loupeEnabled = false {
         didSet {
             panels.forEach {
@@ -162,6 +185,8 @@ final class ScreenshotSelectionController {
             freeze: freeze,
             includePointer: includePointer,
             hideVorssaintWindows: hideVorssaintWindows,
+            keepsContentWindowsOut: hideVorssaintWindows
+                || screenCaptureOptions?.selectedTool == .recording,
             usesGeometry: mode == .geometry)
         defaults.set(Double(loupeZoom), forKey: DefaultsKey.screenshotLoupeLastZoom)
     }
@@ -236,6 +261,11 @@ final class ScreenshotSelectionController {
             finish(.failed)
             return
         }
+        // Each guide was built inside its panel's initializer, before that
+        // panel joined `panels`, so the repeat hint could not see the display
+        // holding the stored region yet.
+        panels.forEach { $0.overlayView.refreshCaptureGuide() }
+        screenCaptureOptions?.offersRepeatLastRegion = offersRepeatLastRegion
         installKeyMonitor()
         // Give key ownership to only one destination. Opening and immediately
         // resigning a full-screen key panel can flash the surrounding chrome.
@@ -267,6 +297,7 @@ final class ScreenshotSelectionController {
         }
         scrollingCaptureEnabled = false
         loupeEnabled = isPickingColor
+        screenCaptureOptions?.offersRepeatLastRegion = offersRepeatLastRegion
         if isPickingColor, !freeze { loadLiveLoupeImages() }
         panels.forEach { $0.overlayView.captureToolDidChange() }
         if selectionInProgress { selectionInProgress = false }
@@ -280,6 +311,7 @@ final class ScreenshotSelectionController {
         freeze = policy.freeze
         includePointer = policy.includePointer
         hideVorssaintWindows = policy.hideVorssaintWindows
+        sourceRefreshPending = true
         sourceGeneration += 1
         let generation = sourceGeneration
         guard policy.freeze else {
@@ -297,20 +329,26 @@ final class ScreenshotSelectionController {
         }
     }
 
-    /// A display whose new photograph is missing keeps the one it has, so a
-    /// failed capture leaves the surface intact instead of see-through.
+    /// All visible displays must belong to the current tool before selection
+    /// resumes. A missing frame cannot safely fall back to the previous tool.
     private func applySource(frozenImages: [CGDirectDisplayID: CGImage]) {
+        guard !freeze || panels.allSatisfy({ frozenImages[$0.displayID] != nil }) else {
+            finish(.failed)
+            return
+        }
         let pickable = ScreenshotCaptureEngine.pickableWindows(
             hideVorssaintWindows: hideVorssaintWindows,
             protectedWindowIDs: captureExcludedWindowIDs)
         let mainHeight = NSScreen.screens.first?.frame.height ?? 0
         for panel in panels {
-            let image = freeze ? (frozenImages[panel.displayID] ?? panel.frozenImage) : nil
+            let image = freeze ? frozenImages[panel.displayID] : nil
             panel.update(frozenImage: image,
                          windows: Self.pickableWindows(pickable,
                                                        on: panel.screenFrame,
                                                        mainScreenHeight: mainHeight))
         }
+        sourceRefreshPending = false
+        panels.forEach { $0.overlayView.refreshPointerState() }
     }
 
     private static func pickableWindows(_ entries: [(id: CGWindowID, bounds: CGRect)],
@@ -330,6 +368,7 @@ final class ScreenshotSelectionController {
     /// pixels. Capture them once after the overlays exist; ScreenCaptureKit
     /// excludes this app's own panels, so the screen itself remains live.
     private func loadLiveLoupeImages() {
+        let generation = sourceGeneration
         let hideWindows = hideVorssaintWindows
         let excludedIDs = captureExcludedWindowIDs
         Task { @MainActor [weak self] in
@@ -337,7 +376,7 @@ final class ScreenshotSelectionController {
                 includePointer: false,
                 hideVorssaintWindows: hideWindows,
                 protectedWindowIDs: excludedIDs)
-            guard let self, !self.finished else { return }
+            guard let self, !self.finished, self.sourceGeneration == generation else { return }
             for panel in self.panels {
                 panel.overlayView.updateLoupeImage(images[panel.displayID])
             }
@@ -377,7 +416,7 @@ final class ScreenshotSelectionController {
                     // Holding Space moves the in-progress selection.
                     self.spaceIsDown = true
                 } else { return event }
-            case kVK_ANSI_R:
+            case _ where Self.isRepeatRegionKey(event):
                 self.repeatLastRegion()
             case _ where self.selectCaptureTool(for: event):
                 break
@@ -422,6 +461,10 @@ final class ScreenshotSelectionController {
 
     private static func isScrollingCaptureKey(_ event: NSEvent) -> Bool {
         matchesShortcutKey(event, character: "s", physicalKeyCode: kVK_ANSI_S)
+    }
+
+    private static func isRepeatRegionKey(_ event: NSEvent) -> Bool {
+        matchesShortcutKey(event, character: "r", physicalKeyCode: kVK_ANSI_R)
     }
 
     private func toggleScrollingCapture() {
@@ -474,7 +517,7 @@ final class ScreenshotSelectionController {
     }
 
     private var loupeAcceptsKeyboardActions: Bool {
-        loupeEnabled && !panels.contains(where: { $0.overlayView.isDragging })
+        acceptsCaptureInput && loupeEnabled && !panels.contains(where: { $0.overlayView.isDragging })
     }
 
     private func copyLoupeColor() {
@@ -569,8 +612,8 @@ final class ScreenshotSelectionController {
     }
 
     fileprivate func confirmRegion(_ viewRect: CGRect, on panel: ScreenshotOverlayPanel) {
-        guard viewRect.width >= 1, viewRect.height >= 1 else { return }
-        guard activeMode != .color else { return }
+        guard acceptsCaptureInput, activeMode != .color,
+              viewRect.width >= 1, viewRect.height >= 1 else { return }
         markCapturePending()
         Self.lastRegion = (panel.displayID, viewRect)
         if activeMode == .geometry {
@@ -609,7 +652,7 @@ final class ScreenshotSelectionController {
     fileprivate func confirmWindow(_ windowID: CGWindowID,
                                    frame: CGRect,
                                    on panel: ScreenshotOverlayPanel) {
-        guard activeMode != .color else { return }
+        guard acceptsCaptureInput, activeMode != .color else { return }
         markCapturePending()
         if activeMode == .geometry {
             finish(.region(region(fromView: frame, on: panel, windowID: windowID)))
@@ -636,7 +679,7 @@ final class ScreenshotSelectionController {
     }
 
     private func captureFullDisplayUnderMouse() {
-        guard activeMode != .color else { return }
+        guard acceptsCaptureInput, activeMode != .color else { return }
         guard let panel = panelUnderMouse() else { return }
         markCapturePending()
         if activeMode == .geometry {
@@ -657,15 +700,15 @@ final class ScreenshotSelectionController {
     }
 
     private func repeatLastRegion() {
-        guard activeMode != .color else { return }
-        guard let last = Self.lastRegion,
-              let panel = panels.first(where: { $0.displayID == last.displayID })
+        guard offersRepeatLastRegion,
+              let last = Self.lastRegion,
+              let panel = repeatTargetPanel
         else { return }
         confirmRegion(last.viewRect, on: panel)
     }
 
     fileprivate func confirmColor(at viewPoint: CGPoint, on panel: ScreenshotOverlayPanel) {
-        guard activeMode == .color,
+        guard acceptsCaptureInput, activeMode == .color,
               let image = panel.frozenImage ?? panel.overlayView.loupeImage else { return }
         let point = ScreenshotSupport.imagePixelPoint(
             fromView: viewPoint,
@@ -889,7 +932,7 @@ private final class ScreenshotOverlayView: NSView {
     /// gesture can neither reach a controller that is gone nor start a second
     /// capture behind the one already running.
     private var acceptsPointerInput: Bool {
-        ScreenshotSupport.selectionAcceptsPointerInput(
+        controller?.acceptsCaptureInput == true && ScreenshotSupport.selectionAcceptsPointerInput(
             sessionIsOver: controller?.isOver ?? true,
             capturePending: isCapturePending)
     }
@@ -903,6 +946,11 @@ private final class ScreenshotOverlayView: NSView {
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
+    /// With the controls in Dynamic Island, the island's panel holds key
+    /// focus for its shortcuts and this surface never becomes key on its own.
+    /// AppKit would then spend the first click making the window key and
+    /// swallow it, so the first drag drew nothing. Claim it instead.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     init(frame: CGRect,
          frozenImage: CGImage?,
@@ -925,6 +973,7 @@ private final class ScreenshotOverlayView: NSView {
             strings: strings,
             purpose: purpose,
             offersScrollingCapture: controller.offersScrollingCapture,
+            offersRepeatLastRegion: controller.offersRepeatLastRegion,
             requiresDraggedRegion: controller.requiresDraggedRegion,
             scrollingCaptureEnabled: controller.scrollingCaptureEnabled,
             loupeEnabled: controller.loupeEnabled,
@@ -1012,6 +1061,7 @@ private final class ScreenshotOverlayView: NSView {
             strings: strings,
             purpose: purpose,
             offersScrollingCapture: controller?.offersScrollingCapture ?? false,
+            offersRepeatLastRegion: controller?.offersRepeatLastRegion ?? false,
             requiresDraggedRegion: controller?.requiresDraggedRegion ?? false,
             scrollingCaptureEnabled: controller?.scrollingCaptureEnabled ?? false,
             loupeEnabled: controller?.loupeEnabled ?? false,
@@ -1547,6 +1597,7 @@ private struct CaptureGuideView: View {
     let strings: ScreenshotFeatureStrings
     let purpose: String?
     let offersScrollingCapture: Bool
+    let offersRepeatLastRegion: Bool
     let requiresDraggedRegion: Bool
     let scrollingCaptureEnabled: Bool
     let loupeEnabled: Bool
@@ -1557,6 +1608,7 @@ private struct CaptureGuideView: View {
             UnifiedCaptureGuideContent(strings: strings,
                                        options: screenCaptureOptions,
                                        offersScrollingCapture: offersScrollingCapture,
+                                       offersRepeatLastRegion: offersRepeatLastRegion,
                                        scrollingCaptureEnabled: scrollingCaptureEnabled,
                                        loupeEnabled: loupeEnabled)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1596,6 +1648,9 @@ private struct CaptureGuideView: View {
                                icon: "plus.magnifyingglass")
                 if loupeEnabled {
                     CaptureKeyHint(key: "C", icon: "doc.on.doc")
+                }
+                if offersRepeatLastRegion {
+                    CaptureKeyHint(key: "R", icon: "rectangle.dashed")
                 }
                 CaptureKeyHint(key: "esc", icon: "xmark")
             }
@@ -1638,6 +1693,7 @@ private struct UnifiedCaptureGuideContent: View {
     @ObservedObject var options: ScreenCaptureSelectionOptions
     @ObservedObject private var l10n = L10n.shared
     let offersScrollingCapture: Bool
+    let offersRepeatLastRegion: Bool
     let scrollingCaptureEnabled: Bool
     let loupeEnabled: Bool
     @State private var hoveredTool: ScreenCaptureTool?
@@ -1681,6 +1737,9 @@ private struct UnifiedCaptureGuideContent: View {
                                icon: "plus.magnifyingglass")
                 if loupeEnabled {
                     CaptureKeyHint(key: "C", icon: "doc.on.doc")
+                }
+                if offersRepeatLastRegion {
+                    CaptureKeyHint(key: "R", icon: "rectangle.dashed")
                 }
             }
         }
