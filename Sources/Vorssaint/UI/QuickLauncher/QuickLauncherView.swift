@@ -8,6 +8,7 @@ struct QuickLauncherView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var launcher = QuickLauncherService.shared
+    @ObservedObject private var features = FeatureRuntime.shared
     @ObservedObject private var keepAwake = KeepAwakeManager.shared
     @ObservedObject private var micMute = MicMuteService.shared
     @ObservedObject private var recorder = ScreenRecorderService.shared
@@ -37,7 +38,7 @@ struct QuickLauncherView: View {
             if notchSize != nil, launcher.activeUtility == nil, launcher.isEditing {
                 editHint
             }
-            if let utility = launcher.activeUtility {
+            if let utility = launcher.activeUtility, utility.feature.isAvailable {
                 hostedUtility(utility)
             } else if launcher.visibleItems.isEmpty && !launcher.isEditing {
                 emptyState
@@ -57,6 +58,7 @@ struct QuickLauncherView: View {
         .frame(width: notchSize?.width ?? 420)
         .background { if notchSize == nil { HUDBackdrop(cornerRadius: 22, contrast: .high) } }
         .clipShape(RoundedRectangle(cornerRadius: notchSize == nil ? 22 : 0, style: .continuous))
+        .onChange(of: features.revision, initial: true) { launcher.refreshAvailability() }
         .onChange(of: launcher.presentationID) { _, _ in
             hoveredItem = nil
             draggingItem = nil
@@ -109,7 +111,7 @@ struct QuickLauncherView: View {
                 }
             }
         }
-        .frame(height: notchSize.map { max(160, $0.height - 64) } ?? 470)
+        .frame(height: notchSize.map { max(0, $0.height - 64) } ?? 470)
     }
 
     private var header: some View {
@@ -189,14 +191,31 @@ struct QuickLauncherView: View {
         .accessibilityLabel(l10n.s.obBack)
     }
 
-    private var grid: some View {
-        LazyVGrid(columns: columns, spacing: notchSize == nil ? 10 : 6) {
-            ForEach(launcher.visibleItems) { item in
-                PanelReorderableItem(item: item,
-                                     isEnabled: launcher.isEditing,
-                                     order: launcher.itemOrderBinding,
-                                     dragging: $draggingItem) {
-                    cell(item)
+    /// Inside the island the tiles fill the rows its height allows and run
+    /// sideways; editing keeps the grid, whose reorder targets need every
+    /// tile in view.
+    @ViewBuilder private var grid: some View {
+        if let notchSize, !launcher.isEditing {
+            let rows = NotchLayout.railRows(count: launcher.visibleItems.count,
+                                            perRow: NotchLayout.railCapacity(width: notchSize.width, itemWidth: NotchLayout.toolWidth,
+                                                                             spacing: NotchLayout.toolSpacing),
+                                            rowHeight: NotchLayout.toolHeight, spacing: NotchLayout.toolSpacing, height: notchSize.height)
+            NotchRail(items: launcher.visibleItems, rows: rows, itemWidth: NotchLayout.toolWidth, width: notchSize.width,
+                      spacing: NotchLayout.toolSpacing, rowSpacing: NotchLayout.toolSpacing,
+                      scrollTarget: launcher.selectedIndex.flatMap { index in
+                          launcher.visibleItems.indices.contains(index) ? launcher.visibleItems[index].id : nil
+                      }) { item in
+                cell(item).frame(height: NotchLayout.toolHeight)
+            }
+        } else {
+            LazyVGrid(columns: columns, spacing: notchSize == nil ? 10 : 6) {
+                ForEach(launcher.visibleItems) { item in
+                    PanelReorderableItem(item: item,
+                                         isEnabled: launcher.isEditing,
+                                         order: launcher.itemOrderBinding,
+                                         dragging: $draggingItem) {
+                        cell(item)
+                    }
                 }
             }
         }

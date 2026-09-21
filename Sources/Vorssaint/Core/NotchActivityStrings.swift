@@ -7,6 +7,7 @@ struct NotchActivityStrings {
     let timer: String
     let timerDescription: String
     let pomodoro: String
+    let stopwatch: String
     let focus: String
     let shortBreak: String
     let longBreak: String
@@ -19,6 +20,7 @@ struct NotchActivityStrings {
     let start: String
     let resume: String
     let finished: String
+    let soundEnabled: String
     let camera: String
     let cameraUnavailable: String
     let cameraHint: String
@@ -32,6 +34,7 @@ struct NotchActivityStrings {
     func phase(_ phase: NotchTimerPhase) -> String {
         switch phase {
         case .timer: return timer
+        case .stopwatch: return stopwatch
         case .focus: return focus
         case .shortBreak: return shortBreak
         case .longBreak: return longBreak
@@ -44,8 +47,9 @@ extension FeatureStrings {
         switch language {
         case .enUS: return NotchActivityStrings(
             timer: "Timer",
-            timerDescription: "Timers and focused work sessions in the Dynamic Island.",
+            timerDescription: "Timers, a stopwatch and focused work sessions in the Dynamic Island.",
             pomodoro: "Pomodoro",
+            stopwatch: "Stopwatch",
             focus: "Focus",
             shortBreak: "Short break",
             longBreak: "Long break",
@@ -58,6 +62,7 @@ extension FeatureStrings {
             start: "Start",
             resume: "Resume",
             finished: "Time is up",
+            soundEnabled: "Play sound when time is up",
             camera: "Camera mirror",
             cameraUnavailable: "The camera could not start. Try opening it again.",
             cameraHint: "Open a live mirror here. The camera stops when you leave this view.",
@@ -69,8 +74,9 @@ extension FeatureStrings {
             lowBattery: "Low battery")
         case .ptBR: return NotchActivityStrings(
             timer: "Temporizador",
-            timerDescription: "Temporizadores e sessões de foco no Dynamic Island.",
+            timerDescription: "Temporizadores, cronômetro e sessões de foco no Dynamic Island.",
             pomodoro: "Pomodoro",
+            stopwatch: "Cronômetro",
             focus: "Foco",
             shortBreak: "Pausa curta",
             longBreak: "Pausa longa",
@@ -83,6 +89,7 @@ extension FeatureStrings {
             start: "Iniciar",
             resume: "Continuar",
             finished: "Tempo esgotado",
+            soundEnabled: "Tocar som ao terminar",
             camera: "Espelho da câmera",
             cameraUnavailable: "Não foi possível iniciar a câmera. Tente abri-la novamente.",
             cameraHint: "Abra um espelho ao vivo aqui. A câmera para ao sair desta tela.",
@@ -94,8 +101,9 @@ extension FeatureStrings {
             lowBattery: "Bateria baixa")
         case .es: return NotchActivityStrings(
             timer: "Temporizador",
-            timerDescription: "Temporizadores y sesiones de concentración en el Dynamic Island.",
+            timerDescription: "Temporizadores, cronómetro y sesiones de concentración en el Dynamic Island.",
             pomodoro: "Pomodoro",
+            stopwatch: "Cronómetro",
             focus: "Concentración",
             shortBreak: "Descanso corto",
             longBreak: "Descanso largo",
@@ -108,6 +116,7 @@ extension FeatureStrings {
             start: "Iniciar",
             resume: "Continuar",
             finished: "Se acabó el tiempo",
+            soundEnabled: "Reproducir sonido al terminar",
             camera: "Espejo de cámara",
             cameraUnavailable: "No se pudo iniciar la cámara. Intenta abrirla de nuevo.",
             cameraHint: "Abre un espejo en directo aquí. La cámara se detiene al salir de esta vista.",
@@ -119,8 +128,9 @@ extension FeatureStrings {
             lowBattery: "Batería baja")
         case .de: return NotchActivityStrings(
             timer: "Timer",
-            timerDescription: "Timer und konzentrierte Arbeitsphasen im Dynamic Island.",
+            timerDescription: "Timer, Stoppuhr und konzentrierte Arbeitsphasen im Dynamic Island.",
             pomodoro: "Pomodoro",
+            stopwatch: "Stoppuhr",
             focus: "Fokus",
             shortBreak: "Kurze Pause",
             longBreak: "Lange Pause",
@@ -133,6 +143,7 @@ extension FeatureStrings {
             start: "Starten",
             resume: "Fortsetzen",
             finished: "Zeit abgelaufen",
+            soundEnabled: "Ton nach Ablauf abspielen",
             camera: "Kameraspiegel",
             cameraUnavailable: "Die Kamera konnte nicht starten. Versuche, sie erneut zu öffnen.",
             cameraHint: "Öffne hier ein Live-Spiegelbild. Die Kamera stoppt beim Verlassen dieser Ansicht.",
@@ -144,8 +155,9 @@ extension FeatureStrings {
             lowBattery: "Batterie schwach")
         case .fr: return NotchActivityStrings(
             timer: "Minuteur",
-            timerDescription: "Des minuteurs et des séances de concentration dans le Dynamic Island.",
+            timerDescription: "Des minuteurs, un chronomètre et des séances de concentration dans le Dynamic Island.",
             pomodoro: "Pomodoro",
+            stopwatch: "Chronomètre",
             focus: "Concentration",
             shortBreak: "Pause courte",
             longBreak: "Pause longue",
@@ -158,6 +170,7 @@ extension FeatureStrings {
             start: "Démarrer",
             resume: "Reprendre",
             finished: "Temps écoulé",
+            soundEnabled: "Jouer un son à la fin",
             camera: "Miroir de la caméra",
             cameraUnavailable: "La caméra n’a pas pu démarrer. Essayez de l’ouvrir à nouveau.",
             cameraHint: "Ouvrez un miroir en direct ici. La caméra s’arrête lorsque vous quittez cette vue.",
@@ -169,8 +182,9 @@ extension FeatureStrings {
             lowBattery: "Batterie faible")
         case .it: return NotchActivityStrings(
             timer: "Timer",
-            timerDescription: "Timer e sessioni di concentrazione nel Dynamic Island.",
+            timerDescription: "Timer, cronometro e sessioni di concentrazione nel Dynamic Island.",
             pomodoro: "Pomodoro",
+            stopwatch: "Cronometro",
             focus: "Concentrazione",
             shortBreak: "Pausa breve",
             longBreak: "Pausa lunga",
@@ -183,6 +197,7 @@ extension FeatureStrings {
             start: "Avvia",
             resume: "Riprendi",
             finished: "Tempo scaduto",
+            soundEnabled: "Riproduci un suono al termine",
             camera: "Specchio della fotocamera",
             cameraUnavailable: "Impossibile avviare la fotocamera. Prova ad aprirla di nuovo.",
             cameraHint: "Apri uno specchio dal vivo qui. La fotocamera si ferma quando esci da questa vista.",
@@ -194,8 +209,9 @@ extension FeatureStrings {
             lowBattery: "Batteria scarica")
         case .ru: return NotchActivityStrings(
             timer: "Таймер",
-            timerDescription: "Таймеры и сеансы сосредоточенной работы в вырезе экрана.",
+            timerDescription: "Таймеры, секундомер и сеансы сосредоточенной работы в вырезе экрана.",
             pomodoro: "Помодоро",
+            stopwatch: "Секундомер",
             focus: "Работа",
             shortBreak: "Короткий перерыв",
             longBreak: "Длинный перерыв",
@@ -208,6 +224,7 @@ extension FeatureStrings {
             start: "Начать",
             resume: "Продолжить",
             finished: "Время вышло",
+            soundEnabled: "Звук по окончании",
             camera: "Зеркало камеры",
             cameraUnavailable: "Не удалось запустить камеру. Попробуйте открыть её снова.",
             cameraHint: "Откройте зеркало здесь. Камера остановится, когда вы покинете этот экран.",
@@ -219,8 +236,9 @@ extension FeatureStrings {
             lowBattery: "Низкий заряд")
         case .tr: return NotchActivityStrings(
             timer: "Zamanlayıcı",
-            timerDescription: "Çentikte zamanlayıcılar ve odaklanma oturumları.",
+            timerDescription: "Çentikte zamanlayıcılar, kronometre ve odaklanma oturumları.",
             pomodoro: "Pomodoro",
+            stopwatch: "Kronometre",
             focus: "Odaklanma",
             shortBreak: "Kısa mola",
             longBreak: "Uzun mola",
@@ -233,6 +251,7 @@ extension FeatureStrings {
             start: "Başlat",
             resume: "Sürdür",
             finished: "Süre doldu",
+            soundEnabled: "Süre dolunca ses çal",
             camera: "Kamera aynası",
             cameraUnavailable: "Kamera başlatılamadı. Yeniden açmayı deneyin.",
             cameraHint: "Burada canlı bir ayna açın. Bu görünümden çıkınca kamera durur.",
@@ -244,8 +263,9 @@ extension FeatureStrings {
             lowBattery: "Pil zayıf")
         case .ja: return NotchActivityStrings(
             timer: "タイマー",
-            timerDescription: "Dynamic Islandでタイマーと集中セッションを使えます。",
+            timerDescription: "Dynamic Islandでタイマー、ストップウォッチ、集中セッションを使えます。",
             pomodoro: "ポモドーロ",
+            stopwatch: "ストップウォッチ",
             focus: "集中",
             shortBreak: "短い休憩",
             longBreak: "長い休憩",
@@ -258,6 +278,7 @@ extension FeatureStrings {
             start: "開始",
             resume: "再開",
             finished: "時間になりました",
+            soundEnabled: "終了時にサウンドを再生",
             camera: "カメラミラー",
             cameraUnavailable: "カメラを開始できませんでした。もう一度開いてください。",
             cameraHint: "ここでライブミラーを開きます。この画面を離れるとカメラは停止します。",
@@ -269,8 +290,9 @@ extension FeatureStrings {
             lowBattery: "バッテリー残量低下")
         case .ko: return NotchActivityStrings(
             timer: "타이머",
-            timerDescription: "Dynamic Island에서 타이머와 집중 세션을 사용하세요.",
+            timerDescription: "Dynamic Island에서 타이머, 스톱워치, 집중 세션을 사용하세요.",
             pomodoro: "뽀모도로",
+            stopwatch: "스톱워치",
             focus: "집중",
             shortBreak: "짧은 휴식",
             longBreak: "긴 휴식",
@@ -283,6 +305,7 @@ extension FeatureStrings {
             start: "시작",
             resume: "계속",
             finished: "시간 종료",
+            soundEnabled: "종료 시 소리 재생",
             camera: "카메라 거울",
             cameraUnavailable: "카메라를 시작할 수 없습니다. 다시 열어 보세요.",
             cameraHint: "여기서 실시간 거울을 여세요. 이 화면을 나가면 카메라가 멈춥니다.",
@@ -294,8 +317,9 @@ extension FeatureStrings {
             lowBattery: "배터리 부족")
         case .zhHans: return NotchActivityStrings(
             timer: "计时器",
-            timerDescription: "在Dynamic Island中使用计时器和专注时段。",
+            timerDescription: "在Dynamic Island中使用计时器、秒表和专注时段。",
             pomodoro: "番茄钟",
+            stopwatch: "秒表",
             focus: "专注",
             shortBreak: "短休息",
             longBreak: "长休息",
@@ -308,6 +332,7 @@ extension FeatureStrings {
             start: "开始",
             resume: "继续",
             finished: "时间到",
+            soundEnabled: "结束时播放声音",
             camera: "摄像头镜像",
             cameraUnavailable: "无法启动摄像头，请尝试重新打开。",
             cameraHint: "在此打开实时镜像。离开此视图时摄像头会停止。",
@@ -319,8 +344,9 @@ extension FeatureStrings {
             lowBattery: "电量低")
         case .zhTW: return NotchActivityStrings(
             timer: "計時器",
-            timerDescription: "在Dynamic Island中使用計時器與專注時段。",
+            timerDescription: "在Dynamic Island中使用計時器、碼錶與專注時段。",
             pomodoro: "番茄鐘",
+            stopwatch: "碼錶",
             focus: "專注",
             shortBreak: "短休息",
             longBreak: "長休息",
@@ -333,6 +359,7 @@ extension FeatureStrings {
             start: "開始",
             resume: "繼續",
             finished: "時間到",
+            soundEnabled: "結束時播放聲音",
             camera: "相機鏡像",
             cameraUnavailable: "無法啟動相機，請嘗試重新打開。",
             cameraHint: "在此打開即時鏡像。離開此畫面時相機會停止。",
@@ -344,8 +371,9 @@ extension FeatureStrings {
             lowBattery: "電量不足")
         case .zhHK: return NotchActivityStrings(
             timer: "計時器",
-            timerDescription: "在Dynamic Island中使用計時器和專注時段。",
+            timerDescription: "在Dynamic Island中使用計時器、秒錶和專注時段。",
             pomodoro: "番茄鐘",
+            stopwatch: "秒錶",
             focus: "專注",
             shortBreak: "短休息",
             longBreak: "長休息",
@@ -358,6 +386,7 @@ extension FeatureStrings {
             start: "開始",
             resume: "繼續",
             finished: "時間到",
+            soundEnabled: "結束時播放聲音",
             camera: "相機鏡像",
             cameraUnavailable: "無法啟動相機，請嘗試重新開啟。",
             cameraHint: "在此開啟即時鏡像。離開此畫面時相機會停止。",
