@@ -488,12 +488,9 @@ enum DefaultsKey {
     static let clipboardHistoryIncludeImagesFiles = "clipboardHistoryIncludeImagesFiles" // capture copied images and files too
     static let clipboardHistoryIgnoredApps = "clipboardHistoryIgnoredApps" // apps whose copies are never saved
     static let clipboardHistoryQuickPreview = "clipboardHistoryQuickPreview"
-<<<<<<< HEAD
     static let clipboardHistoryPasteAfterSelect = "clipboardHistoryPasteAfterSelect" // false: selecting an entry only copies it
-=======
     static let clipboardHistoryMenuBarPreview = "clipboardHistoryMenuBarPreview" // show latest copy next to the menu bar icon
     static let clipboardHistoryMenuBarPreviewLength = "clipboardHistoryMenuBarPreviewLength" // characters shown before truncating
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
 
     // Auto clear: wipes the system pasteboard on a delay or on sleep and lock.
     // Deliberately outside the clipboardHistory family, since it clears the
@@ -1426,12 +1423,9 @@ enum Defaults {
         DefaultsKey.clipboardHistoryIncludeImagesFiles: true,
         DefaultsKey.clipboardHistoryIgnoredApps: [String](),
         DefaultsKey.clipboardHistoryQuickPreview: false,
-<<<<<<< HEAD
         DefaultsKey.clipboardHistoryPasteAfterSelect: true,
-=======
         DefaultsKey.clipboardHistoryMenuBarPreview: false,
         DefaultsKey.clipboardHistoryMenuBarPreviewLength: Defaults.defaultClipboardMenuBarPreviewLength,
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
         DefaultsKey.clipboardAutoClearOnDelay: false,
         DefaultsKey.clipboardAutoClearDelay: Defaults.defaultClipboardAutoClearDelay,
         DefaultsKey.clipboardAutoClearOnSleep: false,
@@ -1464,12 +1458,8 @@ enum Defaults {
         DefaultsKey.scratchpadShortcut: GlobalShortcut.scratchpadDefault.storageValue,
         DefaultsKey.commandBarShortcutEnabled: false,
         DefaultsKey.commandBarCompactMode: false,
-<<<<<<< HEAD
-        DefaultsKey.commandBarDisabledSources: CommandBarSource.safariBookmarks.rawValue,
-=======
         DefaultsKey.commandBarASCIILayoutEnabled: false,
-        DefaultsKey.commandBarDisabledSources: "",
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
+        DefaultsKey.commandBarDisabledSources: CommandBarSource.safariBookmarks.rawValue,
         DefaultsKey.commandBarAliases: "",
         DefaultsKey.commandBarPins: "",
         DefaultsKey.commandBarHidden: "",

@@ -161,7 +161,8 @@ enum CommandBarFeatureTests {
         suite.expect(CommandBarSource.allCases.map(\.rawValue) == [
             "actions", "apps", "menus", "windows", "quitApps", "uninstallApps", "settingsPages",
             "macSettings", "snippets", "clipboard", "emoji", "folders", "answers", "calculator",
-            "selection", "links", "files", "killProcess",
+            "selection", "links", "files", "chromeBookmarks", "firefoxBookmarks", "safariBookmarks",
+            "killProcess",
         ], "source ids are stable (they persist inside the disabled list)")
         suite.expect(CommandBarSource.actions.isAlwaysOn
                 && CommandBarSource.allCases.filter(\.isAlwaysOn).count == 1,
@@ -845,8 +846,8 @@ enum CommandBarFeatureTests {
                 && GlobalShortcutRole.commandBar.feature == .commandBar,
                "the command bar shortcut role gates on its toggle and feature")
         suite.expect(AppFeature.commandBar.group == .tools && AppFeature.commandBar.enabledKeys.isEmpty
-                && AppFeature.commandBar.permissions == [.accessibility],
-               "the command bar is an on-demand tool that reads and types through accessibility")
+                && AppFeature.commandBar.permissions == [.accessibility, .fullDiskAccess],
+               "the command bar is an on-demand tool that reads and types through accessibility, and reads Safari bookmarks through full disk access")
         suite.expect(AppFeature.commandBar.energyProfile == .idle,
                "the command bar costs nothing while closed")
         suite.expect(pageVisible(.commandBar, available: [.commandBar])

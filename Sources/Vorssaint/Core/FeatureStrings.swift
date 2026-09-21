@@ -194,15 +194,12 @@ extension ClipboardFeatureStrings {
         autoClearOnScreenLock: "화면이 잠길 때 클립보드 지우기",
         autoClearCaption: "시스템 클립보드만 지웁니다. 이미 저장된 항목은 기록에 남습니다.",
         deleteSelectedFormat: "%d개 삭제",
-<<<<<<< HEAD
         pasteAfterSelect: "선택 후 붙여넣기",
-        pasteAfterSelectCaption: "항목을 선택하면 이전 앱에도 붙여넣습니다. 클립보드에만 복사하려면 이 옵션을 끄세요."
-=======
+        pasteAfterSelectCaption: "항목을 선택하면 이전 앱에도 붙여넣습니다. 클립보드에만 복사하려면 이 옵션을 끄세요.",
         menuBarPreview: "메뉴 막대에 최근 복사 항목 표시",
         menuBarPreviewCaption: "아이콘 옆에 최근 복사한 내용의 축약된 미리보기를 표시합니다. 클릭하면 기록이 열립니다.",
         menuBarPreviewLength: "미리보기 길이",
         menuBarPreviewLengthSuffix: "자"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 }
 
@@ -489,15 +486,12 @@ struct ClipboardFeatureStrings {
     let autoClearOnScreenLock: String
     let autoClearCaption: String
     let deleteSelectedFormat: String
-<<<<<<< HEAD
     let pasteAfterSelect: String
     let pasteAfterSelectCaption: String
-=======
     let menuBarPreview: String
     let menuBarPreviewCaption: String
     let menuBarPreviewLength: String
     let menuBarPreviewLengthSuffix: String
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
 
     static let enUS = ClipboardFeatureStrings(
         title: "Clipboard",
@@ -554,15 +548,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Clear clipboard on screen lock",
         autoClearCaption: "Clears the system clipboard only. Items already saved stay in the history.",
         deleteSelectedFormat: "Delete %d",
-<<<<<<< HEAD
         pasteAfterSelect: "Paste after selecting",
-        pasteAfterSelectCaption: "Selecting an entry also pastes it into the previous app. Turn this off to only copy it to the clipboard."
-=======
+        pasteAfterSelectCaption: "Selecting an entry also pastes it into the previous app. Turn this off to only copy it to the clipboard.",
         menuBarPreview: "Show latest copy in the menu bar",
         menuBarPreviewCaption: "Shows a shortened preview of your last copy next to the icon. Click it to open the history.",
         menuBarPreviewLength: "Preview length",
         menuBarPreviewLengthSuffix: "characters"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let ptBR = ClipboardFeatureStrings(
@@ -620,15 +611,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Limpar o clipboard ao bloquear a tela",
         autoClearCaption: "Limpa apenas o clipboard do sistema. Os itens já guardados continuam no histórico.",
         deleteSelectedFormat: "Apagar %d",
-<<<<<<< HEAD
         pasteAfterSelect: "Colar após selecionar",
-        pasteAfterSelectCaption: "Selecionar um item também o cola no aplicativo anterior. Desative para apenas copiá-lo para a área de transferência."
-=======
+        pasteAfterSelectCaption: "Selecionar um item também o cola no aplicativo anterior. Desative para apenas copiá-lo para a área de transferência.",
         menuBarPreview: "Mostrar a última cópia na barra de menus",
         menuBarPreviewCaption: "Mostra uma prévia resumida da sua última cópia ao lado do ícone. Clique nela para abrir o histórico.",
         menuBarPreviewLength: "Tamanho da prévia",
         menuBarPreviewLengthSuffix: "caracteres"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let tr = ClipboardFeatureStrings(
@@ -686,15 +674,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Ekran kilitlenince panoyu temizle",
         autoClearCaption: "Yalnızca sistem panosunu temizler. Kaydedilmiş ögeler geçmişte kalır.",
         deleteSelectedFormat: "%d öğeyi sil",
-<<<<<<< HEAD
         pasteAfterSelect: "Seçtikten sonra yapıştır",
-        pasteAfterSelectCaption: "Bir öğeyi seçmek onu önceki uygulamaya da yapıştırır. Yalnızca panoya kopyalamak için bunu kapatın."
-=======
+        pasteAfterSelectCaption: "Bir öğeyi seçmek onu önceki uygulamaya da yapıştırır. Yalnızca panoya kopyalamak için bunu kapatın.",
         menuBarPreview: "Menü çubuğunda son kopyalananı göster",
         menuBarPreviewCaption: "Simgenin yanında son kopyalananın kısaltılmış bir önizlemesini gösterir. Geçmişi açmak için üzerine tıkla.",
         menuBarPreviewLength: "Önizleme uzunluğu",
         menuBarPreviewLengthSuffix: "karakter"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let ru = ClipboardFeatureStrings(
@@ -752,15 +737,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Очищать буфер обмена при блокировке экрана",
         autoClearCaption: "Очищается только системный буфер обмена. Сохранённые элементы остаются в истории.",
         deleteSelectedFormat: "Удалить: %d",
-<<<<<<< HEAD
         pasteAfterSelect: "Вставлять после выбора",
-        pasteAfterSelectCaption: "Выбор записи также вставляет её в предыдущее приложение. Отключите, чтобы только копировать в буфер обмена."
-=======
+        pasteAfterSelectCaption: "Выбор записи также вставляет её в предыдущее приложение. Отключите, чтобы только копировать в буфер обмена.",
         menuBarPreview: "Показывать последнюю скопированную запись в строке меню",
         menuBarPreviewCaption: "Показывает сокращённый предпросмотр последней скопированной записи рядом со значком. Нажмите на него, чтобы открыть историю.",
         menuBarPreviewLength: "Длина предпросмотра",
         menuBarPreviewLengthSuffix: "символов"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let es = ClipboardFeatureStrings(
@@ -818,15 +800,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Vaciar el portapapeles al bloquear la pantalla",
         autoClearCaption: "Solo se vacía el portapapeles del sistema. Los elementos guardados siguen en el historial.",
         deleteSelectedFormat: "Eliminar %d",
-<<<<<<< HEAD
         pasteAfterSelect: "Pegar después de seleccionar",
-        pasteAfterSelectCaption: "Seleccionar un elemento también lo pega en la aplicación anterior. Desactívalo para solo copiarlo al portapapeles."
-=======
+        pasteAfterSelectCaption: "Seleccionar un elemento también lo pega en la aplicación anterior. Desactívalo para solo copiarlo al portapapeles.",
         menuBarPreview: "Mostrar la última copia en la barra de menús",
         menuBarPreviewCaption: "Muestra una vista previa abreviada de tu última copia junto al icono. Haz clic para abrir el historial.",
         menuBarPreviewLength: "Longitud de la vista previa",
         menuBarPreviewLengthSuffix: "caracteres"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let de = ClipboardFeatureStrings(
@@ -884,15 +863,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Zwischenablage beim Sperren des Bildschirms leeren",
         autoClearCaption: "Leert nur die Zwischenablage des Systems. Bereits gesicherte Einträge bleiben im Verlauf.",
         deleteSelectedFormat: "%d löschen",
-<<<<<<< HEAD
         pasteAfterSelect: "Nach der Auswahl einfügen",
-        pasteAfterSelectCaption: "Das Auswählen eines Eintrags fügt ihn auch in die vorherige App ein. Deaktiviere dies, um ihn nur in die Zwischenablage zu kopieren."
-=======
+        pasteAfterSelectCaption: "Das Auswählen eines Eintrags fügt ihn auch in die vorherige App ein. Deaktiviere dies, um ihn nur in die Zwischenablage zu kopieren.",
         menuBarPreview: "Letzte Kopie in der Menüleiste anzeigen",
         menuBarPreviewCaption: "Zeigt eine gekürzte Vorschau deiner letzten Kopie neben dem Symbol. Klicke darauf, um den Verlauf zu öffnen.",
         menuBarPreviewLength: "Vorschaulänge",
         menuBarPreviewLengthSuffix: "Zeichen"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let fr = ClipboardFeatureStrings(
@@ -950,15 +926,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Vider le presse-papiers au verrouillage de l’écran",
         autoClearCaption: "Seul le presse-papiers du système est vidé. Les éléments enregistrés restent dans l’historique.",
         deleteSelectedFormat: "Supprimer %d",
-<<<<<<< HEAD
         pasteAfterSelect: "Coller après sélection",
-        pasteAfterSelectCaption: "Sélectionner une entrée la colle aussi dans l'application précédente. Désactivez pour seulement la copier dans le presse-papiers."
-=======
+        pasteAfterSelectCaption: "Sélectionner une entrée la colle aussi dans l’application précédente. Désactivez pour seulement la copier dans le presse-papiers.",
         menuBarPreview: "Afficher la dernière copie dans la barre des menus",
         menuBarPreviewCaption: "Affiche un aperçu raccourci de votre dernière copie à côté de l’icône. Cliquez dessus pour ouvrir l’historique.",
         menuBarPreviewLength: "Longueur de l’aperçu",
         menuBarPreviewLengthSuffix: "caractères"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let it = ClipboardFeatureStrings(
@@ -1016,15 +989,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "Svuota gli appunti al blocco dello schermo",
         autoClearCaption: "Svuota solo gli appunti di sistema. Gli elementi salvati restano nella cronologia.",
         deleteSelectedFormat: "Elimina %d",
-<<<<<<< HEAD
         pasteAfterSelect: "Incolla dopo la selezione",
-        pasteAfterSelectCaption: "Selezionare una voce la incolla anche nell'app precedente. Disattiva per copiarla solo negli appunti."
-=======
+        pasteAfterSelectCaption: "Selezionare una voce la incolla anche nell’app precedente. Disattiva per copiarla solo negli appunti.",
         menuBarPreview: "Mostra l’ultima copia nella barra dei menu",
         menuBarPreviewCaption: "Mostra un’anteprima abbreviata dell’ultima copia accanto all’icona. Fai clic per aprire la cronologia.",
         menuBarPreviewLength: "Lunghezza dell’anteprima",
         menuBarPreviewLengthSuffix: "caratteri"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let ja = ClipboardFeatureStrings(
@@ -1082,15 +1052,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "画面ロック時にクリップボードを消去",
         autoClearCaption: "システムのクリップボードのみを消去します。保存済みの項目は履歴に残ります。",
         deleteSelectedFormat: "%d件を削除",
-<<<<<<< HEAD
         pasteAfterSelect: "選択後に貼り付け",
-        pasteAfterSelectCaption: "項目を選択すると、直前のアプリにも貼り付けられます。クリップボードにコピーするだけにするには、これをオフにしてください。"
-=======
+        pasteAfterSelectCaption: "項目を選択すると、直前のアプリにも貼り付けられます。クリップボードにコピーするだけにするには、これをオフにしてください。",
         menuBarPreview: "メニューバーに直前のコピーを表示",
         menuBarPreviewCaption: "アイコンの横に直前のコピーの短縮プレビューを表示します。クリックすると履歴が開きます。",
         menuBarPreviewLength: "プレビューの長さ",
         menuBarPreviewLengthSuffix: "文字"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let zhHans = ClipboardFeatureStrings(
@@ -1148,15 +1115,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "锁定屏幕时清空剪贴板",
         autoClearCaption: "仅清空系统剪贴板，已保存的条目仍保留在历史记录中。",
         deleteSelectedFormat: "删除 %d 项",
-<<<<<<< HEAD
         pasteAfterSelect: "选择后粘贴",
-        pasteAfterSelectCaption: "选择条目还会将其粘贴到之前的应用中。关闭此选项可仅将其复制到剪贴板。"
-=======
+        pasteAfterSelectCaption: "选择条目还会将其粘贴到之前的应用中。关闭此选项可仅将其复制到剪贴板。",
         menuBarPreview: "在菜单栏显示最近拷贝的内容",
         menuBarPreviewCaption: "在图标旁显示最近拷贝内容的简短预览，点击即可打开历史记录。",
         menuBarPreviewLength: "预览长度",
         menuBarPreviewLengthSuffix: "个字符"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let zhTW = ClipboardFeatureStrings(
@@ -1214,15 +1178,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "鎖定螢幕時清除剪貼簿",
         autoClearCaption: "僅清除系統剪貼簿，已儲存的項目仍保留在記錄中。",
         deleteSelectedFormat: "刪除 %d 個",
-<<<<<<< HEAD
         pasteAfterSelect: "選取後貼上",
-        pasteAfterSelectCaption: "選取項目也會將其貼到先前的應用程式中。關閉此選項可僅複製到剪貼簿。"
-=======
+        pasteAfterSelectCaption: "選取項目也會將其貼到先前的應用程式中。關閉此選項可僅複製到剪貼簿。",
         menuBarPreview: "在選單列顯示最近複製的內容",
         menuBarPreviewCaption: "在圖示旁顯示最近複製內容的簡短預覽，點選即可開啟紀錄。",
         menuBarPreviewLength: "預覽長度",
         menuBarPreviewLengthSuffix: "個字元"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 
     static let zhHK = ClipboardFeatureStrings(
@@ -1280,15 +1241,12 @@ struct ClipboardFeatureStrings {
         autoClearOnScreenLock: "鎖定螢幕時清除剪貼簿",
         autoClearCaption: "只會清除系統剪貼簿，已儲存的項目仍會保留在記錄中。",
         deleteSelectedFormat: "刪除 %d 個",
-<<<<<<< HEAD
         pasteAfterSelect: "選取後貼上",
-        pasteAfterSelectCaption: "選取項目也會將其貼到先前的應用程式中。關閉此選項只會複製到剪貼簿。"
-=======
+        pasteAfterSelectCaption: "選取項目也會將其貼到先前的應用程式中。關閉此選項只會複製到剪貼簿。",
         menuBarPreview: "在選單列顯示最近複製的內容",
         menuBarPreviewCaption: "在圖示旁顯示最近複製內容的簡短預覽，按一下即可開啟記錄。",
         menuBarPreviewLength: "預覽長度",
         menuBarPreviewLengthSuffix: "個字元"
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
     )
 }
 

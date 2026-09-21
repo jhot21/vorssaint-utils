@@ -370,12 +370,9 @@ final class CommandBarService: ObservableObject {
         selectionPreview = ""
         selectedText = ""
         killProcessEntries = []
-<<<<<<< HEAD
         refreshBookmarkSources()
-=======
         uninstallSelectionEntries = []
         uninstallWarning = nil
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
         rebuildCatalog(index: false)
         rebuildRunningEntries()
         startBackgroundLoads(for: presentationID)
@@ -819,18 +816,13 @@ final class CommandBarService: ObservableObject {
         case .windows: rows = windowEntries
         case .menus: rows = menuEntries
         case .emoji: rows = emojiEntries
-<<<<<<< HEAD
+        case .uninstallApps: rows = uninstallEntries
         case .settingsPages, .snippets, .folders, .links, .chromeBookmarks, .firefoxBookmarks,
              .safariBookmarks:
             rows = catalog.filter {
                 CommandBarPreferences.source(ofRowID: $0.id) == source
                     && !CommandBarPreferences.bookmarksBrowserRowIDs.contains($0.id)
             }
-=======
-        case .uninstallApps: rows = uninstallEntries
-        case .settingsPages, .snippets, .folders, .links:
-            rows = catalog.filter { CommandBarPreferences.source(ofRowID: $0.id) == source }
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
         case .clipboard:
             rows = CommandBarCatalog.clipboardBrowseEntries(limit: limit, bar: bar) { [weak self] entry in
                 self?.paste(entry)
@@ -1413,14 +1405,9 @@ final class CommandBarService: ObservableObject {
         case .links: return bar.kindLink
         case .snippets: return bar.kindSnippet
         case .folders: return bar.kindFolder
-<<<<<<< HEAD
         case .chromeBookmarks, .firefoxBookmarks, .safariBookmarks: return bar.kindBookmark
-        case .actions, .apps, .menus, .windows, .quitApps, .settingsPages, .macSettings,
-             .clipboard, .emoji, .calculator, .selection, .files, .killProcess:
-=======
         case .actions, .apps, .menus, .windows, .quitApps, .uninstallApps, .settingsPages,
              .macSettings, .clipboard, .emoji, .calculator, .selection, .files, .killProcess:
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
             return entry.subtitle.isEmpty ? bar.everythingTitle : entry.subtitle
         }
     }

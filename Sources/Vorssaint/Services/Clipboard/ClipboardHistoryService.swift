@@ -544,14 +544,11 @@ final class ClipboardHistoryService: ObservableObject {
         hideHistoryWindow()
         pasteTargetApp = nil
         copy(entry) { [weak self] copied in
-<<<<<<< HEAD
-            guard copied, shouldPaste else { return }
-=======
             guard copied else {
                 NSSound.beep()
                 return
             }
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
+            guard shouldPaste else { return }
             self?.pasteIntoPreviousApp(target)
         }
     }
@@ -562,14 +559,11 @@ final class ClipboardHistoryService: ObservableObject {
         hideHistoryWindow()
         pasteTargetApp = nil
         copy(selectedEntries) { [weak self] copied in
-<<<<<<< HEAD
-            guard copied, shouldPaste else { return }
-=======
             guard copied else {
                 NSSound.beep()
                 return
             }
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
+            guard shouldPaste else { return }
             self?.pasteIntoPreviousApp(target)
         }
     }

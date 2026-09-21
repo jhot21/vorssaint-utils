@@ -7,20 +7,14 @@ import SwiftUI
 struct CommandBarSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var service = CommandBarService.shared
-<<<<<<< HEAD
     @ObservedObject private var permissions = Permissions.shared
-    @AppStorage(DefaultsKey.commandBarShortcutEnabled) private var shortcutEnabled = false
-    @AppStorage(DefaultsKey.commandBarCompactMode) private var compactMode = false
-    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources =
-        CommandBarSource.safariBookmarks.rawValue
-=======
     @ObservedObject private var secureInput = SecureInputMonitor.shared
     @AppStorage(DefaultsKey.commandBarShortcutEnabled) private var shortcutEnabled = false
     @AppStorage(DefaultsKey.commandBarCompactMode) private var compactMode = false
     @AppStorage(DefaultsKey.commandBarEmojiSkinTone) private var emojiSkinTone = ""
     @AppStorage(DefaultsKey.commandBarASCIILayoutEnabled) private var asciiLayoutEnabled = false
-    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources = ""
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
+    @AppStorage(DefaultsKey.commandBarDisabledSources) private var disabledSources =
+        CommandBarSource.safariBookmarks.rawValue
     @AppStorage(DefaultsKey.commandBarAliases) private var aliasesRaw = ""
     @AppStorage(DefaultsKey.commandBarPins) private var pinsRaw = ""
     @AppStorage(DefaultsKey.commandBarHidden) private var hiddenRaw = ""

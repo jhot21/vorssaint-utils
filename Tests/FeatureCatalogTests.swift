@@ -1111,8 +1111,8 @@ enum FeatureCatalogTests {
         suite.expect(activeSet(.filesAndFolders, on: [DefaultsKey.whatsAppDownloadsEnabled]) == [.cleaner],
                "the cleaner owns WhatsApp Downloads folder access")
 
-        suite.expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller],
-               "cleaner and uninstaller are on-demand full disk users")
+        suite.expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller, .commandBar],
+               "cleaner and uninstaller are on-demand full disk users, and the command bar reads Safari bookmarks by default")
         suite.expect(activeSet(.automationFinder, on: [DefaultsKey.finderCutPasteEnabled])
                 == [.finderCutPaste, .uninstaller, .quickToggles],
                "finder automation is used by cut and paste, the uninstaller and the quick toggles")

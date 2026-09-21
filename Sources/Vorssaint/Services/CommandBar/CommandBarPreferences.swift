@@ -185,14 +185,9 @@ enum CommandBarPreferences {
         // better match than a command to lead the list, never merely as good.
         case .files, .settingsPages: return -40
         case .apps: return 80
-<<<<<<< HEAD
-        case .actions, .windows, .quitApps, .macSettings, .snippets,
+        case .actions, .windows, .quitApps, .uninstallApps, .macSettings, .snippets,
              .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links,
              .chromeBookmarks, .firefoxBookmarks, .safariBookmarks, .killProcess:
-=======
-        case .actions, .windows, .quitApps, .uninstallApps, .macSettings, .snippets,
-             .clipboard, .emoji, .folders, .answers, .calculator, .selection, .links, .killProcess:
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
             return 0
         }
     }
@@ -350,14 +345,9 @@ enum CommandBarPreferences {
     private static func isHubOwned(_ rowID: String) -> Bool {
         switch source(ofRowID: rowID) {
         case .actions, .settingsPages, .snippets: return true
-<<<<<<< HEAD
-        case .apps, .menus, .windows, .quitApps, .macSettings, .clipboard, .emoji,
+        case .apps, .uninstallApps, .menus, .windows, .quitApps, .macSettings, .clipboard, .emoji,
              .folders, .answers, .calculator, .selection, .links, .files, .chromeBookmarks,
              .firefoxBookmarks, .safariBookmarks, .killProcess:
-=======
-        case .apps, .uninstallApps, .menus, .windows, .quitApps, .macSettings, .clipboard, .emoji,
-             .folders, .answers, .calculator, .selection, .links, .files, .killProcess:
->>>>>>> ffe8b383d1ec5dd6cd96b7389d8c22b6af1da071
             return false
         }
     }
