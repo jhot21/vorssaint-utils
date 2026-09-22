@@ -26,7 +26,8 @@ private actor CalendarReader {
                                  calendarTitle: event.calendar.title, color: tint,
                                  start: start, end: end, allDay: event.isAllDay,
                                  location: event.location ?? "",
-                                 recurring: event.hasRecurrenceRules || event.isDetached)
+                                 recurring: event.hasRecurrenceRules || event.isDetached,
+                                 url: event.url, notes: event.notes)
         }
     }
 }

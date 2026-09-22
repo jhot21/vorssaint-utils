@@ -108,6 +108,22 @@ enum CalendarFeatureTests {
         suite.expect(CalendarSupport.eventURL(noIdentifier) == nil,
                "an event with no calendar item identifier has no deep link")
 
+        // MARK: url/notes carry through unrelated to display logic
+
+        let withLink = CalendarEvent(id: "link1", calendarItemIdentifier: "link1", title: "Standup",
+                                     calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                     start: day, end: day.addingTimeInterval(1800),
+                                     allDay: false, location: "", recurring: false,
+                                     url: URL(string: "https://zoom.us/j/123"), notes: "join here")
+        suite.expect(withLink.url?.absoluteString == "https://zoom.us/j/123" && withLink.notes == "join here",
+               "CalendarEvent carries url and notes through unchanged")
+        let withoutLink = CalendarEvent(id: "nolink", calendarItemIdentifier: "nolink", title: "Lunch",
+                                        calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                        start: day, end: day.addingTimeInterval(1800),
+                                        allDay: false, location: "", recurring: false)
+        suite.expect(withoutLink.url == nil && withoutLink.notes == nil,
+               "an event built without url/notes defaults both to nil")
+
         // MARK: Next refresh
 
         suite.expect(CalendarSupport.nextRefresh([timedEvent], now: day) <= timedEvent.start,

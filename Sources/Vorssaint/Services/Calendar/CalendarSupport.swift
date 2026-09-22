@@ -23,6 +23,12 @@ struct CalendarEvent: Identifiable, Equatable, Sendable {
     let allDay: Bool
     let location: String
     let recurring: Bool
+    /// Meeting-join detection (Phase 2) reads these three fields, in this
+    /// priority order, via `MeetingLinkSupport.detect(for:)`. Defaulted so
+    /// every existing call site that only names `location`/`recurring`
+    /// keeps compiling unchanged.
+    var url: URL? = nil
+    var notes: String? = nil
 }
 
 enum CalendarSupport {
