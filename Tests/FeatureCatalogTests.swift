@@ -1557,6 +1557,10 @@ enum FeatureCatalogTests {
                 && pageVisible(.cutPaste, available: [.finderCutPaste])
                 && !pageVisible(.cutPaste, available: []),
                "either Finder shortcut keeps their shared page visible")
+        suite.expect(pageVisible(.calendar, available: [.calendar])
+                && pageVisible(.calendar, available: [.meetingJoin])
+                && !pageVisible(.calendar, available: []),
+               "either the Calendar tab or meeting notifications keeps the Calendar page")
         suite.expect(!pageVisible(.cleaner,
                             available: allFeatures.subtracting([.cleaner])),
                "cleaner settings, including WhatsApp downloads, follow the cleaner module")

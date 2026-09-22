@@ -128,5 +128,23 @@ enum CalendarFeatureTests {
 
         suite.expect(CalendarSupport.nextRefresh([timedEvent], now: day) <= timedEvent.start,
                "the next refresh fires no later than the next event's own start")
+
+        // MARK: Meeting notifications keep CalendarService alive
+
+        let availabilityDomain = "com.vorssaint.tests.calendar-availability"
+        let availabilityDefaults = UserDefaults(suiteName: availabilityDomain)!
+        availabilityDefaults.removePersistentDomain(forName: availabilityDomain)
+        defer { availabilityDefaults.removePersistentDomain(forName: availabilityDomain) }
+        availabilityDefaults.set(true, forKey: AppFeature.calendar.availabilityKey)
+        availabilityDefaults.set(false, forKey: AppFeature.meetingJoin.availabilityKey)
+        suite.expect(CalendarSupport.isEnabled(in: availabilityDefaults),
+               "an available Calendar tab keeps CalendarService running")
+        availabilityDefaults.set(false, forKey: AppFeature.calendar.availabilityKey)
+        availabilityDefaults.set(true, forKey: AppFeature.meetingJoin.availabilityKey)
+        suite.expect(CalendarSupport.isEnabled(in: availabilityDefaults),
+               "meeting notifications alone keep CalendarService running without the Calendar tab")
+        availabilityDefaults.set(false, forKey: AppFeature.meetingJoin.availabilityKey)
+        suite.expect(!CalendarSupport.isEnabled(in: availabilityDefaults),
+               "CalendarService stays off when neither the Calendar tab nor meeting notifications are installed")
     }
 }
