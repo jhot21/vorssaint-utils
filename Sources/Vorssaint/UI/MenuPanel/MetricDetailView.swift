@@ -90,7 +90,13 @@ enum MetricDetailKind: String, Equatable, Identifiable {
 }
 
 extension MenuBarMetric {
-    var detailKind: MetricDetailKind {
+    /// nil for metrics with no per-metric drill-down page — currently only
+    /// `.date`, which routes its click straight to the Calendar panel tab
+    /// instead (see AppDelegate.showMetricPanel). A real optional, not a
+    /// placeholder value: `NotchService.swift` also reads this to decide
+    /// whether a MetricDetailKind is still backed by an available metric,
+    /// and a bogus non-nil mapping here would corrupt that check.
+    var detailKind: MetricDetailKind? {
         switch self {
         case .cpu, .cpuTemperature:
             return .cpu
@@ -108,6 +114,8 @@ extension MenuBarMetric {
             return .power
         case .fanSpeed:
             return .fan
+        case .date:
+            return nil
         }
     }
 }

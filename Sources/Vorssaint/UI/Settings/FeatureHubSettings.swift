@@ -888,6 +888,7 @@ extension AppFeature {
         case .monitorDisk: return s.diskSection
         case .monitorPower: return s.powerSection
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
+        case .menuBarDate: return FeatureStrings.calendar(L10n.shared.language).menuBarTitle
         }
     }
 
@@ -971,6 +972,7 @@ extension AppFeature {
         case .monitorDisk: return hub.descMonitorDisk
         case .monitorPower: return hub.descMonitorPower
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).hubDescription
+        case .menuBarDate: return FeatureStrings.calendar(L10n.shared.language).menuBarHubDescription
         }
     }
 }

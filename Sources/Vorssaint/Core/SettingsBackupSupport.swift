@@ -46,6 +46,7 @@ enum SettingsBackupSupport {
         DefaultsKey.menuBarNetwork,
         DefaultsKey.menuBarBattery,
         DefaultsKey.menuBarPower,
+        DefaultsKey.menuBarDate,
         DefaultsKey.panelSectionOrder,
         DefaultsKey.panelUtilityOrder,
         DefaultsKey.panelControlOrder,

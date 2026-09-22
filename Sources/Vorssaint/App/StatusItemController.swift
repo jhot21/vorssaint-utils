@@ -23,6 +23,9 @@ final class StatusItemController {
     private var cancellables = Set<AnyCancellable>()
     private var titleTimer: Timer?
     private var defaultsObserver: NSObjectProtocol?
+    /// Refreshes the date metric at midnight even when no other metric's
+    /// sampling happens to trigger a redraw first.
+    private var dayChangeObserver: NSObjectProtocol?
     /// Last combination applied by updateIconAppearance, so refresh ticks
     /// don't re-render an unchanged icon every 2 seconds.
     private var lastIconStateKey = ""
@@ -190,6 +193,11 @@ final class StatusItemController {
             }
             .store(in: &cancellables)
 
+        dayChangeObserver = NotificationCenter.default.addObserver(forName: .NSCalendarDayChanged, object: nil,
+                                                                    queue: .main) { [weak self] _ in
+            self?.refresh()
+        }
+
         bindClipboardPreviewIfAvailable()
 
         defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification,
@@ -245,6 +253,7 @@ final class StatusItemController {
         // a block observer that outlives this instance.
         titleTimer?.invalidate()
         if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        if let dayChangeObserver { NotificationCenter.default.removeObserver(dayChangeObserver) }
         for item in metricStatusItems.values {
             NSStatusBar.system.removeStatusItem(item)
         }
@@ -633,7 +642,7 @@ final class StatusItemController {
                                      temperature: .batteryTemperature,
                                      primaryTitle: strings.batteryLabel)
             case .memory, .network, .diskUsage, .diskActivity, .batteryTime, .peripheralBattery, .power,
-                 .fanSpeed:
+                 .fanSpeed, .date:
                 let id = metric.rawValue
                 guard emittedIDs.insert(id).inserted else { continue }
                 groups.append(MetricStatusGroup(id: id,

@@ -34,7 +34,8 @@ enum AppFeature: String, CaseIterable {
          notchQueue, notchLiveEqualizer, notchDownloads
     // System monitor, one entry per metric family (temperatures live with
     // their parent metric: CPU temp with CPU, battery temp with power).
-    case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, fanControl
+    case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, fanControl,
+         menuBarDate
 }
 
 /// Hub sections, in display order.
@@ -118,7 +119,7 @@ extension AppFeature {
              .notchLyrics, .notchQueue, .notchLiveEqualizer, .notchDownloads:
             return .dynamicIsland
         case .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-             .fanControl:
+             .fanControl, .menuBarDate:
             return .monitor
         }
     }
@@ -198,6 +199,7 @@ extension AppFeature {
         case .monitorDisk: return "internaldrive"
         case .monitorPower: return "bolt.fill"
         case .fanControl: return "fanblades.fill"
+        case .menuBarDate: return "calendar"
         }
     }
 
@@ -274,6 +276,7 @@ extension AppFeature {
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
              .fanControl:
             return []
+        case .menuBarDate: return [DefaultsKey.menuBarDate]
         }
     }
 
@@ -334,7 +337,8 @@ extension AppFeature {
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher,
              .extraBrightness, .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
-             .scratchpad, .monitorGPU, .monitorNetwork, .fanControl, .killProcess, .portManager:
+             .scratchpad, .monitorGPU, .monitorNetwork, .fanControl, .killProcess, .portManager,
+             .menuBarDate:
             return []
         }
     }
@@ -371,7 +375,7 @@ extension AppFeature {
             ($0.availabilityKey,
              $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
                 && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager
-                && $0 != .calendar)
+                && $0 != .calendar && $0 != .menuBarDate)
         })
     }
 

@@ -449,7 +449,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     }
 
     private func showMetricPanel(for metric: MenuBarMetric, anchoredTo button: NSStatusBarButton) {
-        let detailKind = metric.detailKind
+        // A metric with no per-metric drill-down page (currently only
+        // .date) routes straight to its own panel section instead — there's
+        // nothing to show beyond the calendar itself.
+        guard let detailKind = metric.detailKind else {
+            MenuPanelFocus.shared.focus(.calendar)
+            if !popover.isShown { showPopover(anchor: button) }
+            return
+        }
         if NotchSupport.routesAppPanel(), NotchService.shared.acceptsSystemFeedback,
            NotchSupport.modules().contains(.system) {
             NotchService.shared.showMetric(detailKind, toggle: true); return

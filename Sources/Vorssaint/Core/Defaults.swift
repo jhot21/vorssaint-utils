@@ -327,6 +327,7 @@ enum DefaultsKey {
     static let menuBarCPU = "menuBarCPU"
     static let menuBarGPU = "menuBarGPU"
     static let menuBarMemory = "menuBarMemory"
+    static let menuBarDate = "menuBarDate"
     static let menuBarCPUTemperature = "menuBarCPUTemperature"
     static let menuBarGPUTemperature = "menuBarGPUTemperature"
     static let menuBarBatteryTemperature = "menuBarBatteryTemperature"
@@ -955,6 +956,7 @@ enum Defaults {
     static let allowedMenuBarMetricSpacings = ["standard", "compact"]
     static let allowedMenuBarMetricAppearances = ["values", "bars"]
     static let defaultMenuBarMetricOrder = [
+        "date",
         "cpu", "cpuTemperature",
         "gpu", "gpuTemperature",
         "memory",

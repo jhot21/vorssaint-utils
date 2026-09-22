@@ -5,7 +5,7 @@ import AppKit
 
 /// A live reading the user can pin next to the menu bar icon.
 enum MenuBarMetric: String, CaseIterable, Identifiable {
-    case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed
+    case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, date
 
     var id: String { rawValue }
 
@@ -25,6 +25,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .peripheralBattery: return DefaultsKey.menuBarPeripheralBattery
         case .power: return DefaultsKey.menuBarPower
         case .fanSpeed: return DefaultsKey.menuBarFanSpeed
+        case .date: return DefaultsKey.menuBarDate
         }
     }
 
@@ -44,6 +45,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .peripheralBattery: return "keyboard"
         case .power: return "powerplug.fill"
         case .fanSpeed: return "fanblades"
+        case .date: return "calendar"
         }
     }
 
@@ -63,10 +65,12 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .peripheralBattery: return strings.monitorShowPeripheralBattery
         case .power: return strings.monitorShowPowerLabel
         case .fanSpeed: return FeatureStrings.fanControl(L10n.shared.language).menuBarTitle
+        case .date: return FeatureStrings.calendar(L10n.shared.language).menuBarTitle
         }
     }
 
     static let defaultOrder: [MenuBarMetric] = [
+        .date,
         .cpu, .cpuTemperature,
         .gpu, .gpuTemperature,
         .memory,
@@ -96,6 +100,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .diskUsage, .diskActivity: return .monitorDisk
         case .battery, .batteryTime, .batteryTemperature, .peripheralBattery, .power: return .monitorPower
         case .fanSpeed: return .fanControl
+        case .date: return .menuBarDate
         }
     }
 
@@ -455,6 +460,11 @@ enum MenuBarRenderer {
                                             segments: [.symbol(metric.symbolName), .text(" " + value + " RPM")],
                                             width: reservedWidth(for: metric, preset: preset)))
                 }
+            case .date:
+                let (month, day) = dateMonthDayText()
+                items.append(MetricItem(metric: metric,
+                                        segments: [.symbol(metric.symbolName), .text(" " + month + " " + day)],
+                                        width: reservedWidth(for: metric, preset: preset)))
             }
         }
         return items
@@ -707,9 +717,27 @@ enum MenuBarRenderer {
                                                 style: style,
                                                 pressure: nil)])
                 }
+            case .date:
+                let (month, day) = dateMonthDayText()
+                groups.append([.metricBlock(label: month,
+                                            value: day,
+                                            minimumValue: "31",
+                                            style: style,
+                                            pressure: nil)])
             }
         }
         return blockJoined(groups, style: style)
+    }
+
+    /// The current month's short, uppercased symbol ("JAN") and day-of-month
+    /// number, for the date metric's label-above-value block. Localized via
+    /// the calendar's own short month symbols, not hardcoded English.
+    private static func dateMonthDayText(now: Date = Date(), calendar: Calendar = .current) -> (month: String, day: String) {
+        let day = calendar.component(.day, from: now)
+        let monthIndex = calendar.component(.month, from: now) - 1
+        let symbols = calendar.shortMonthSymbols
+        let month = (monthIndex >= 0 && monthIndex < symbols.count) ? symbols[monthIndex].uppercased() : ""
+        return (month, "\(day)")
     }
 
     private static func usageAndTemperatureSegments(label: String,
@@ -787,6 +815,8 @@ enum MenuBarRenderer {
         case (_, .fanSpeed):
             let count = max(1, SystemMonitor.fanTelemetryCount)
             return FanControlPolicy.menuBarWidthUnits(fanCount: count)
+        case (_, .date):
+            return 6       // "JAN" over "31" block, no leading symbol
         }
     }
 
