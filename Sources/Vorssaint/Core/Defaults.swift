@@ -505,6 +505,9 @@ enum DefaultsKey {
 
     static let windowPreviewExcludedApps = "windowPreviewExcludedApps" // pause thumbnail capture while these apps are in front
     static let calendarHiddenCalendarIDs = "calendarHiddenCalendarIDs" // EKCalendar.calendarIdentifier values hidden from the menu bar Calendar tile
+    static let meetingJoinZoomNative = "meetingJoinZoomNative" // open Zoom links in the Zoom app when installed
+    static let meetingJoinTeamsNative = "meetingJoinTeamsNative" // open Teams links in the Teams app when installed
+    static let meetingJoinNotifyOffset = "meetingJoinNotifyOffset" // MeetingJoinNotifyOffset raw value
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
@@ -1440,6 +1443,9 @@ enum Defaults {
         DefaultsKey.finderPasteImageAsFile: false,
         DefaultsKey.windowPreviewExcludedApps: [String](),
         DefaultsKey.calendarHiddenCalendarIDs: [String](),
+        DefaultsKey.meetingJoinZoomNative: true,
+        DefaultsKey.meetingJoinTeamsNative: true,
+        DefaultsKey.meetingJoinNotifyOffset: MeetingJoinNotifyOffset.atStart.rawValue,
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,
         DefaultsKey.pastePlainShortcut: GlobalShortcut.pastePlainDefault.storageValue,
