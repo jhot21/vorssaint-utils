@@ -16,7 +16,10 @@ struct MetricsTests {
             }),
             ("metrics", { MetricsFeatureTests.run(suite) }),
             ("clipboard", { ClipboardFeatureTests.run(suite) }),
-            ("calendar", { CalendarFeatureTests.run(suite) }),
+            ("calendar", {
+                CalendarFeatureTests.run(suite)
+                MeetingLinkFeatureTests.run(suite)
+            }),
             ("pointer-input", { PointerInputFeatureTests.run(suite) }),
             ("scroll-modifier", { ScrollHorizontalModifierTests.run(suite) }),
             ("preferences", { PreferencesFeatureTests.run(suite) }),
