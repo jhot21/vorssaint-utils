@@ -39,7 +39,9 @@ final class MeetingNotificationService: NSObject, ObservableObject {
             }
     }
 
-    /// Cancels the subscription so no further reconciles run. Deliberately
+    /// Cancels the subscription so no further events are observed; a
+    /// reconcile already dispatched onto `reconcileQueue` may still complete.
+    /// Deliberately
     /// does NOT walk scheduledEventIDs and cancel each pending system
     /// notification — a meeting notification already queued for the next
     /// few minutes should still fire even if the feature is switched off
@@ -67,8 +69,10 @@ final class MeetingNotificationService: NSObject, ObservableObject {
             Notifier.postMeetingJoin(event: event, link: link, triggerDate: triggerDate,
                                      title: event.title.isEmpty
                                         ? FeatureStrings.calendar(L10n.shared.language).untitled : event.title,
-                                     body: link.provider.rawValue)
-            scheduledEventIDs.insert(eventID)
+                                     body: link.provider.rawValue) { [weak self] accepted in
+                guard accepted else { return }
+                self?.reconcileQueue.async { self?.scheduledEventIDs.insert(eventID) }
+            }
         }
     }
 }

@@ -89,12 +89,14 @@ enum Notifier {
     /// handler runs before CalendarService has repopulated `events` — see
     /// AppDelegate's meeting-join branch.
     static func postMeetingJoin(event: CalendarEvent, link: MeetingLink, triggerDate: Date,
-                                title: String, body: String) {
+                                title: String, body: String,
+                                onSettled: @escaping (Bool) -> Void = { _ in }) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized
                 || settings.authorizationStatus == .provisional else {
                 log.notice("meeting-join notification dropped: authorization status \(settings.authorizationStatus.rawValue)")
+                onSettled(false)
                 return
             }
             let content = UNMutableNotificationContent()
@@ -115,8 +117,9 @@ enum Notifier {
             let request = UNNotificationRequest(identifier: event.id, content: content, trigger: trigger)
             center.add(request) { error in
                 if let error {
-                    log.error("meeting-join notification delivery failed: \(error.localizedDescription, privacy: .public)")
+                    log.error("meeting-join delivery failed: \(error.localizedDescription, privacy: .public)")
                 }
+                onSettled(error == nil)
             }
         }
     }
