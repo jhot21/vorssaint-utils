@@ -3,60 +3,26 @@
 
 import SwiftUI
 
-struct PanelCalendarView: View {
+/// The "Calendar" panel section: month grid, agenda list, and a permission
+/// card, matching how Mixer/Network/Power each occupy their own panel tab
+/// rather than living inside the Utilities tray.
+struct CalendarSection: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var calendar = CalendarService.shared
     @State private var month = Date()
     @State private var selectedDay: Date?
-
-    var onClose: () -> Void
+    var collapsible = true
 
     private var text: CalendarFeatureStrings { FeatureStrings.calendar(l10n.language) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
+        PanelSection(.calendar, title: text.title, collapsible: collapsible) {
             content
         }
-        .onAppear {
-            PanelInteractionState.shared.viewKeepsPopoverOpen = true
-            calendar.showMonth(month)
-        }
-        .onDisappear {
-            PanelInteractionState.shared.viewKeepsPopoverOpen = false
-            calendar.showMonth(nil)
-        }
+        .onAppear { calendar.showMonth(month) }
+        .onDisappear { calendar.showMonth(nil) }
         .onChange(of: month) { _, newMonth in calendar.showMonth(newMonth) }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var header: some View {
-        HStack(spacing: 8) {
-            Label(text.title, systemImage: "calendar")
-                .font(.system(size: 12, weight: .semibold))
-            Spacer()
-            Button {
-                SettingsRouter.shared.page = .calendar
-                appDelegate()?.openSettingsWindow()
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 22, height: 22)
-            }
-            .buttonStyle(.plain)
-            .help(l10n.s.menuSettings)
-            .accessibilityLabel(l10n.s.menuSettings)
-            Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 22, height: 22)
-            }
-            .buttonStyle(.plain)
-            .help(l10n.s.uninstallerCancel)
-        }
     }
 
     @ViewBuilder

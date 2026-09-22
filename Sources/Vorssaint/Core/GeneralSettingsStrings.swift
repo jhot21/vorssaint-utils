@@ -25,6 +25,7 @@ struct GeneralSettingsStrings {
     let sectionUtilities: String
     let sectionControls: String
     let sectionToggles: String
+    let sectionCalendar: String
 }
 
 extension FeatureStrings {
@@ -67,7 +68,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Fan speeds and your own fan curve.",
         sectionUtilities: "Screenshots, cleaner, updates and other tools.",
         sectionControls: "Switches for mouse, keyboard and window features.",
-        sectionToggles: "One-click actions like dark mode and muting the mic."
+        sectionToggles: "One-click actions like dark mode and muting the mic.",
+        sectionCalendar: "Month view and your upcoming appointments."
     )
 
     static let ptBR = GeneralSettingsStrings(
@@ -89,7 +91,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Velocidade das ventoinhas e sua própria curva.",
         sectionUtilities: "Capturas de tela, limpeza, atualizações e outras ferramentas.",
         sectionControls: "Chaves para recursos de mouse, teclado e janelas.",
-        sectionToggles: "Ações de um clique, como modo escuro e silenciar o microfone."
+        sectionToggles: "Ações de um clique, como modo escuro e silenciar o microfone.",
+        sectionCalendar: "Visão mensal e seus próximos compromissos."
     )
 
     static let tr = GeneralSettingsStrings(
@@ -111,7 +114,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Fan hızları ve kendi fan eğriniz.",
         sectionUtilities: "Ekran görüntüleri, temizleyici, güncellemeler ve diğer araçlar.",
         sectionControls: "Fare, klavye ve pencere özellikleri için anahtarlar.",
-        sectionToggles: "Karanlık mod ve mikrofonu sessize alma gibi tek tıklık eylemler."
+        sectionToggles: "Karanlık mod ve mikrofonu sessize alma gibi tek tıklık eylemler.",
+        sectionCalendar: "Aylık görünüm ve yaklaşan randevularınız."
     )
 
     static let ru = GeneralSettingsStrings(
@@ -133,7 +137,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Скорость вентиляторов и ваша собственная кривая.",
         sectionUtilities: "Снимки экрана, очистка, обновления и другие инструменты.",
         sectionControls: "Переключатели для функций мыши, клавиатуры и окон.",
-        sectionToggles: "Действия в одно нажатие, например тёмный режим и отключение микрофона."
+        sectionToggles: "Действия в одно нажатие, например тёмный режим и отключение микрофона.",
+        sectionCalendar: "Месяц и предстоящие встречи."
     )
 
     static let es = GeneralSettingsStrings(
@@ -155,7 +160,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Velocidad de los ventiladores y tu propia curva.",
         sectionUtilities: "Capturas de pantalla, limpieza, actualizaciones y otras herramientas.",
         sectionControls: "Interruptores para funciones de ratón, teclado y ventanas.",
-        sectionToggles: "Acciones de un clic, como el modo oscuro y silenciar el micrófono."
+        sectionToggles: "Acciones de un clic, como el modo oscuro y silenciar el micrófono.",
+        sectionCalendar: "Vista mensual y tus próximas citas."
     )
 
     static let de = GeneralSettingsStrings(
@@ -177,7 +183,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Lüfterdrehzahlen und deine eigene Lüfterkurve.",
         sectionUtilities: "Bildschirmfotos, Bereinigung, Updates und weitere Werkzeuge.",
         sectionControls: "Schalter für Maus-, Tastatur- und Fensterfunktionen.",
-        sectionToggles: "Aktionen mit einem Klick, etwa Dunkelmodus und Mikrofon stummschalten."
+        sectionToggles: "Aktionen mit einem Klick, etwa Dunkelmodus und Mikrofon stummschalten.",
+        sectionCalendar: "Monatsansicht und deine anstehenden Termine."
     )
 
     static let fr = GeneralSettingsStrings(
@@ -199,7 +206,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Vitesse des ventilateurs et votre propre courbe.",
         sectionUtilities: "Captures d’écran, nettoyage, mises à jour et autres outils.",
         sectionControls: "Interrupteurs pour les fonctions de souris, clavier et fenêtres.",
-        sectionToggles: "Actions en un clic, comme le mode sombre et la coupure du micro."
+        sectionToggles: "Actions en un clic, comme le mode sombre et la coupure du micro.",
+        sectionCalendar: "Vue mensuelle et vos prochains rendez-vous."
     )
 
     static let it = GeneralSettingsStrings(
@@ -221,7 +229,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Velocità delle ventole e la tua curva personale.",
         sectionUtilities: "Istantanee, pulizia, aggiornamenti e altri strumenti.",
         sectionControls: "Interruttori per le funzioni di mouse, tastiera e finestre.",
-        sectionToggles: "Azioni con un clic, come la modalità scura e il silenziamento del microfono."
+        sectionToggles: "Azioni con un clic, come la modalità scura e il silenziamento del microfono.",
+        sectionCalendar: "Vista mensile e i tuoi prossimi appuntamenti."
     )
 
     static let ja = GeneralSettingsStrings(
@@ -243,7 +252,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "ファンの回転数と自分で決めるファンカーブ。",
         sectionUtilities: "スクリーンショット、クリーナー、アップデートなどのツール。",
         sectionControls: "マウス、キーボード、ウインドウ機能のスイッチ。",
-        sectionToggles: "ダークモードやマイクのミュートなど、ワンクリックの操作。"
+        sectionToggles: "ダークモードやマイクのミュートなど、ワンクリックの操作。",
+        sectionCalendar: "月表示と今後の予定。"
     )
 
     static let ko = GeneralSettingsStrings(
@@ -265,7 +275,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "팬 속도와 직접 만드는 팬 곡선.",
         sectionUtilities: "스크린샷, 클리너, 업데이트 및 기타 도구.",
         sectionControls: "마우스, 키보드, 윈도우 기능 스위치.",
-        sectionToggles: "다크 모드, 마이크 음소거 같은 원클릭 동작."
+        sectionToggles: "다크 모드, 마이크 음소거 같은 원클릭 동작.",
+        sectionCalendar: "월별 보기와 다가오는 일정."
     )
 
     static let zhHans = GeneralSettingsStrings(
@@ -287,7 +298,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "风扇转速和你自己的风扇曲线。",
         sectionUtilities: "截屏、清理、更新和其他工具。",
         sectionControls: "鼠标、键盘和窗口功能的开关。",
-        sectionToggles: "深色模式、静音麦克风等一键操作。"
+        sectionToggles: "深色模式、静音麦克风等一键操作。",
+        sectionCalendar: "月视图和即将开始的日程。"
     )
 
     static let zhTW = GeneralSettingsStrings(
@@ -309,7 +321,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "風扇轉速和你自訂的風扇曲線。",
         sectionUtilities: "截圖、清理、更新和其他工具。",
         sectionControls: "滑鼠、鍵盤和視窗功能的開關。",
-        sectionToggles: "深色模式、將麥克風靜音等一鍵操作。"
+        sectionToggles: "深色模式、將麥克風靜音等一鍵操作。",
+        sectionCalendar: "月檢視與即將到來的行程。"
     )
 
     static let zhHK = GeneralSettingsStrings(
@@ -331,6 +344,7 @@ extension GeneralSettingsStrings {
         sectionFanControl: "風扇轉速和你自訂的風扇曲線。",
         sectionUtilities: "截圖、清理、更新和其他工具。",
         sectionControls: "滑鼠、鍵盤和視窗功能的開關。",
-        sectionToggles: "深色模式、將麥克風靜音等一鍵操作。"
+        sectionToggles: "深色模式、將麥克風靜音等一鍵操作。",
+        sectionCalendar: "月檢視與即將到來的行程。"
     )
 }

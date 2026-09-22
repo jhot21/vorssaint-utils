@@ -13,16 +13,20 @@ struct CalendarSettings: View {
 
     var body: some View {
         Form {
-            Section(text.calendarsListTitle) {
-                ForEach(calendars, id: \.calendarIdentifier) { calendar in
-                    Toggle(calendar.title, isOn: Binding(
-                        get: { !hiddenIDs.contains(calendar.calendarIdentifier) },
-                        set: { shown in
-                            if shown { hiddenIDs.remove(calendar.calendarIdentifier) }
-                            else { hiddenIDs.insert(calendar.calendarIdentifier) }
-                            save()
-                        }))
+            ForEach(groupedCalendars, id: \.source) { group in
+                Section(group.source) {
+                    ForEach(group.calendars, id: \.calendarIdentifier) { calendar in
+                        Toggle(calendar.title, isOn: Binding(
+                            get: { !hiddenIDs.contains(calendar.calendarIdentifier) },
+                            set: { shown in
+                                if shown { hiddenIDs.remove(calendar.calendarIdentifier) }
+                                else { hiddenIDs.insert(calendar.calendarIdentifier) }
+                                save()
+                            }))
+                    }
                 }
+            }
+            Section {
                 Text(text.hideCalendarHint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -30,6 +34,14 @@ struct CalendarSettings: View {
         }
         .formStyle(.grouped)
         .onAppear(perform: loadCalendars)
+    }
+
+    /// Grouped by account (e.g. "iCloud", "you@gmail.com") so calendars that
+    /// share a name across accounts are never ambiguous in the list.
+    private var groupedCalendars: [(source: String, calendars: [EKCalendar])] {
+        Dictionary(grouping: calendars, by: { $0.source.title })
+            .sorted { $0.key < $1.key }
+            .map { (source: $0.key, calendars: $0.value.sorted { $0.title < $1.title }) }
     }
 
     private func loadCalendars() {
