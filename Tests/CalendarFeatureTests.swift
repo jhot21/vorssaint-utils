@@ -40,5 +40,77 @@ enum CalendarFeatureTests {
             makeEvent(id: "out", color: red,
                      start: day.addingTimeInterval(-7200), end: day.addingTimeInterval(-3600)),
         ]) == nil, "an event entirely on a different day contributes no dot")
+
+        // MARK: Recurring-occurrence identity
+
+        let seriesStart1 = day
+        let seriesStart2 = day.addingTimeInterval(86400)
+        let occurrence1 = CalendarEvent(id: "series:\(seriesStart1.timeIntervalSinceReferenceDate)",
+                                        calendarItemIdentifier: "series", title: "Standup",
+                                        calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                        start: seriesStart1, end: seriesStart1.addingTimeInterval(1800),
+                                        allDay: false, location: "", recurring: true)
+        let occurrence2 = CalendarEvent(id: "series:\(seriesStart2.timeIntervalSinceReferenceDate)",
+                                        calendarItemIdentifier: "series", title: "Standup",
+                                        calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                        start: seriesStart2, end: seriesStart2.addingTimeInterval(1800),
+                                        allDay: false, location: "", recurring: true)
+        let orderedOccurrences = CalendarSupport.ordered([occurrence1, occurrence2])
+        suite.expect(orderedOccurrences.count == 2 && occurrence1.id != occurrence2.id,
+               "two occurrences of the same recurring series keep distinct ids and both survive dedup")
+        suite.expect(CalendarSupport.ordered([occurrence1, occurrence1]).count == 1,
+               "the exact same occurrence appearing twice collapses to one")
+
+        // MARK: Agenda grouping
+
+        let allDayEvent = CalendarEvent(id: "allday", calendarItemIdentifier: "allday", title: "Holiday",
+                                        calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                        start: day, end: Calendar.current.date(byAdding: .day, value: 1, to: day)!,
+                                        allDay: true, location: "", recurring: false)
+        let timedEvent = CalendarEvent(id: "timed", calendarItemIdentifier: "timed", title: "Meeting",
+                                       calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                       start: day.addingTimeInterval(3600 * 10),
+                                       end: day.addingTimeInterval(3600 * 11),
+                                       allDay: false, location: "", recurring: false)
+        let groups = CalendarSupport.upcomingGroups([allDayEvent, timedEvent], from: day)
+        suite.expect(groups.first?.day == day && groups.first?.events.count == 2,
+               "today's group includes both the all-day and timed events")
+        suite.expect(groups.allSatisfy { !$0.events.isEmpty },
+               "upcomingGroups never emits an empty day")
+        suite.expect(CalendarSupport.events([allDayEvent, timedEvent], on: day).first?.id == allDayEvent.id,
+               "within a day, the all-day event sorts before timed events")
+
+        // MARK: Fetch interval
+
+        let noMonth = CalendarSupport.fetchInterval(visibleMonth: nil, now: day, lookaheadDays: 30)
+        suite.expect(noMonth.start == day, "with the panel closed, the fetch starts today")
+        suite.expect(Calendar.current.dateComponents([.day], from: noMonth.start, to: noMonth.end).day == 30,
+               "with the panel closed, the fetch covers exactly the lookahead window")
+        let withMonth = CalendarSupport.fetchInterval(visibleMonth: day, now: day, lookaheadDays: 30)
+        suite.expect(withMonth.start <= day && withMonth.end >= noMonth.end,
+               "a visible month's range is unioned with, never narrower than, the lookahead window")
+
+        // MARK: Calendar.app deep link
+
+        let nonRecurring = CalendarEvent(id: "e1", calendarItemIdentifier: "item-1", title: "One-off",
+                                         calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                         start: day, end: day.addingTimeInterval(1800),
+                                         allDay: false, location: "", recurring: false)
+        suite.expect(CalendarSupport.eventURL(nonRecurring)?.absoluteString
+                == "ical://ekevent/item-1?method=show&options=more",
+               "a non-recurring event links straight to its item identifier")
+        suite.expect(CalendarSupport.eventURL(occurrence1)?.absoluteString.hasPrefix("ical://ekevent/") == true
+                && CalendarSupport.eventURL(occurrence1)?.absoluteString.contains("/series?method=show") == true,
+               "a recurring event's link includes its occurrence start before the item identifier")
+        let noIdentifier = CalendarEvent(id: "e3", calendarItemIdentifier: "", title: "",
+                                         calendarID: "cal", calendarTitle: "Cal", color: .fallback,
+                                         start: day, end: day, allDay: false, location: "", recurring: false)
+        suite.expect(CalendarSupport.eventURL(noIdentifier) == nil,
+               "an event with no calendar item identifier has no deep link")
+
+        // MARK: Next refresh
+
+        suite.expect(CalendarSupport.nextRefresh([timedEvent], now: day) <= timedEvent.start,
+               "the next refresh fires no later than the next event's own start")
     }
 }
