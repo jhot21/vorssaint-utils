@@ -289,6 +289,13 @@ final class FeatureRuntime: ObservableObject {
         .scratchpad: { ScratchpadService.shared.syncWithPreferences() },
         .commandBar: { CommandBarService.shared.syncWithPreferences() },
         .calendar: { CalendarService.shared.syncWithPreferences() },
+        // Order matters: MeetingNotificationService subscribes to
+        // CalendarService.$events, so CalendarService must already be
+        // running (or already correctly stopped) before it syncs.
+        .meetingJoin: {
+            CalendarService.shared.syncWithPreferences()
+            MeetingNotificationService.shared.syncWithPreferences()
+        },
         .cleaner: {
             CleanerScheduler.shared.syncWithPreferences()
             WhatsAppDownloadScheduler.shared.syncWithPreferences()

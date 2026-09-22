@@ -287,7 +287,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 71, "feature catalog has 71 features")
+        suite.expect(AppFeature.allCases.count == 72, "feature catalog has 72 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -300,7 +300,7 @@ enum FeatureCatalogTests {
             "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "calendar", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads",
+            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "calendar", "meetingJoin", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads",
             "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
             "fanControl", "menuBarDate",
         ], "feature ids are stable (they persist inside availability keys)")
@@ -428,10 +428,11 @@ enum FeatureCatalogTests {
                 && (AppFeature.availabilityDefaults[AppFeature.portManager.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.calendar.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.menuBarDate.availabilityKey] as? Bool) == false
+                && (AppFeature.availabilityDefaults[AppFeature.meetingJoin.availabilityKey] as? Bool) == false
                 && AppFeature.allCases.filter {
                     $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
                         && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .calendar
-                        && $0 != .menuBarDate
+                        && $0 != .menuBarDate && $0 != .meetingJoin
                 }.allSatisfy {
                     (AppFeature.availabilityDefaults[$0.availabilityKey] as? Bool) == true
                 },
@@ -1075,39 +1076,39 @@ enum FeatureCatalogTests {
                                                     DefaultsKey.dockClickCycleWindows],
                "the Dock click feature tracks every action that can keep its shared tap alive")
 
-        suite.expect(activeSet(.notifications) == [],
-               "no alerts and no schedule means notifications are unused")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.monitorAlertCPUTemperature]) == [.monitorCPU],
+        suite.expect(activeSet(.notifications) == [.meetingJoin],
+               "with no alerts or schedule, only an installed meeting-join feature uses notifications")
+        suite.expect(activeSet(.notifications, on: [DefaultsKey.monitorAlertCPUTemperature]) == [.monitorCPU, .meetingJoin],
                "a CPU temperature alert marks the CPU monitor as notifying")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.monitorAlertBatteryTemperature]) == [.monitorPower],
+        suite.expect(activeSet(.notifications, on: [DefaultsKey.monitorAlertBatteryTemperature]) == [.monitorPower, .meetingJoin],
                "a battery temperature alert marks the power monitor as notifying")
         suite.expect(activeSet(.notifications,
                          available: Set(AppFeature.allCases).subtracting([.monitorCPU]),
-                         on: [DefaultsKey.monitorAlertCPU]) == [],
+                         on: [DefaultsKey.monitorAlertCPU]) == [.meetingJoin],
                "an alert whose metric is unavailable does not notify")
         suite.expect(activeSet(.notifications, on: [DefaultsKey.cleanerScheduleNotify],
-                         strings: [DefaultsKey.cleanerScheduleFrequency: "weekly"]) == [.cleaner],
+                         strings: [DefaultsKey.cleanerScheduleFrequency: "weekly"]) == [.cleaner, .meetingJoin],
                "a scheduled cleaner with notice enabled uses notifications")
         suite.expect(activeSet(.notifications, on: [DefaultsKey.cleanerScheduleNotify],
-                         strings: [DefaultsKey.cleanerScheduleFrequency: "off"]) == [],
+                         strings: [DefaultsKey.cleanerScheduleFrequency: "off"]) == [.meetingJoin],
                "an unscheduled cleaner does not use notifications")
         suite.expect(activeSet(.notifications,
                          on: [DefaultsKey.whatsAppDownloadsAutomaticEnabled,
-                              DefaultsKey.whatsAppDownloadsNotify]) == [],
+                              DefaultsKey.whatsAppDownloadsNotify]) == [.meetingJoin],
                "WhatsApp cleanup notifications stay unused until that cleaner is turned on")
         suite.expect(activeSet(.notifications,
                          on: [DefaultsKey.whatsAppDownloadsEnabled,
                               DefaultsKey.whatsAppDownloadsAutomaticEnabled,
-                              DefaultsKey.whatsAppDownloadsNotify]) == [.cleaner],
+                              DefaultsKey.whatsAppDownloadsNotify]) == [.cleaner, .meetingJoin],
                "WhatsApp cleanup only uses notifications for an opted-in automatic summary")
         suite.expect(activeSet(.notifications,
                          on: [DefaultsKey.whatsAppOrganizerEnabled,
-                              DefaultsKey.whatsAppDownloadsNotify]) == [],
+                              DefaultsKey.whatsAppDownloadsNotify]) == [.meetingJoin],
                "the experimental WhatsApp organizer stays silent until that cleaner is turned on")
         suite.expect(activeSet(.notifications,
                          on: [DefaultsKey.whatsAppDownloadsEnabled,
                               DefaultsKey.whatsAppOrganizerEnabled,
-                              DefaultsKey.whatsAppDownloadsNotify]) == [.cleaner],
+                              DefaultsKey.whatsAppDownloadsNotify]) == [.cleaner, .meetingJoin],
                "the experimental WhatsApp organizer can offer an undo notification")
         suite.expect(activeSet(.filesAndFolders) == [],
                "WhatsApp Downloads folder access stays unused until that cleaner is turned on")

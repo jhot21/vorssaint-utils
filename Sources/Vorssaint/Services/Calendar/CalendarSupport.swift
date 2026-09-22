@@ -106,8 +106,12 @@ enum CalendarSupport {
         return DateInterval(start: min(first, today), end: max(monthEnd, lookaheadEnd))
     }
 
+    /// CalendarService must keep running for either the Calendar tab
+    /// (`.calendar`) or meeting-join notifications (`.meetingJoin`) alone —
+    /// someone who only wants MeetingBar-style join notifications should
+    /// never need to enable the Calendar tab itself.
     static func isEnabled(in defaults: UserDefaults = .standard) -> Bool {
-        AppFeature.calendar.isAvailable(in: defaults)
+        AppFeature.calendar.isAvailable(in: defaults) || AppFeature.meetingJoin.isAvailable(in: defaults)
     }
 
     /// The link Calendar resolves to one appointment. A series shares one

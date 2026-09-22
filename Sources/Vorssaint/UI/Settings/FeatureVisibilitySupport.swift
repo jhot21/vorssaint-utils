@@ -285,7 +285,7 @@ extension AppFeature {
         case .uninstaller: return FeatureSettingsDestination(.uninstaller)
         case .killProcess: return FeatureSettingsDestination(.killProcess)
         case .portManager: return FeatureSettingsDestination(.portManager)
-        case .calendar: return FeatureSettingsDestination(.calendar)
+        case .calendar, .meetingJoin: return FeatureSettingsDestination(.calendar)
         case .homebrew: return FeatureSettingsDestination(.homebrew)
         case .appUpdates: return FeatureSettingsDestination(.appUpdates)
         case .screenshot:
@@ -342,7 +342,9 @@ enum FeatureVisibilitySupport {
         case .uninstaller: return [.uninstaller]
         case .killProcess: return [.killProcess]
         case .portManager: return [.portManager]
-        case .calendar: return [.calendar]
+        // The Calendar settings page hosts both features' controls; it only
+        // disappears once both are switched off in the hub.
+        case .calendar: return [.calendar, .meetingJoin]
         case .keyDebounce: return [.keyboardDebounce]
         case .superKey: return [.superKey]
         case .textSnippets: return [.textSnippets]
