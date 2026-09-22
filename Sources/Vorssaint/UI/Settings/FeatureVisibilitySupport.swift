@@ -301,7 +301,7 @@ extension AppFeature {
             return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenRecorder)
 
         case .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-             .menuBarDate:
+             .menuBarDate, .menuBarNextMeeting:
             return FeatureSettingsDestination(.monitor)
         case .fanControl:
             return FeatureSettingsDestination(.monitor, sectionAnchor: .fanControl)
@@ -314,7 +314,7 @@ extension AppFeature {
 enum FeatureVisibilitySupport {
     static let monitorFeatures: [AppFeature] = [
         .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-        .fanControl, .menuBarDate,
+        .fanControl, .menuBarDate, .menuBarNextMeeting,
     ]
 
     /// Features gating a page; empty means the page is part of the app and

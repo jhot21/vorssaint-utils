@@ -328,6 +328,8 @@ enum DefaultsKey {
     static let menuBarGPU = "menuBarGPU"
     static let menuBarMemory = "menuBarMemory"
     static let menuBarDate = "menuBarDate"
+    static let menuBarNextMeeting = "menuBarNextMeeting"
+    static let menuBarNextMeetingWindowMinutes = "menuBarNextMeetingWindowMinutes"
     static let menuBarCPUTemperature = "menuBarCPUTemperature"
     static let menuBarGPUTemperature = "menuBarGPUTemperature"
     static let menuBarBatteryTemperature = "menuBarBatteryTemperature"
@@ -508,6 +510,7 @@ enum DefaultsKey {
     static let meetingJoinZoomNative = "meetingJoinZoomNative" // open Zoom links in the Zoom app when installed
     static let meetingJoinTeamsNative = "meetingJoinTeamsNative" // open Teams links in the Teams app when installed
     static let meetingJoinNotifyOffset = "meetingJoinNotifyOffset" // MeetingJoinNotifyOffset raw value
+    static let meetingJoinGoogleMeetBrowser = "meetingJoinGoogleMeetBrowser" // bundle identifier of the preferred browser; "" means system default
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
@@ -959,7 +962,7 @@ enum Defaults {
     static let allowedMenuBarMetricSpacings = ["standard", "compact"]
     static let allowedMenuBarMetricAppearances = ["values", "bars"]
     static let defaultMenuBarMetricOrder = [
-        "date",
+        "date", "nextMeeting",
         "cpu", "cpuTemperature",
         "gpu", "gpuTemperature",
         "memory",
@@ -1446,6 +1449,8 @@ enum Defaults {
         DefaultsKey.meetingJoinZoomNative: true,
         DefaultsKey.meetingJoinTeamsNative: true,
         DefaultsKey.meetingJoinNotifyOffset: MeetingJoinNotifyOffset.atStart.rawValue,
+        DefaultsKey.meetingJoinGoogleMeetBrowser: "",
+        DefaultsKey.menuBarNextMeetingWindowMinutes: Defaults.defaultNextMeetingWindowMinutes,
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,
         DefaultsKey.pastePlainShortcut: GlobalShortcut.pastePlainDefault.storageValue,
@@ -1941,6 +1946,13 @@ enum Defaults {
 
     static func sanitizedMonitorInterval(_ seconds: Int) -> Int {
         allowedMonitorIntervals.contains(seconds) ? seconds : 2
+    }
+
+    static let defaultNextMeetingWindowMinutes = 60
+    static let allowedNextMeetingWindowRange = 5...240
+
+    static func sanitizedNextMeetingWindowMinutes(_ minutes: Int) -> Int {
+        allowedNextMeetingWindowRange.contains(minutes) ? minutes : defaultNextMeetingWindowMinutes
     }
 
     /// Tap-to-middle-click accepts exactly three or four fingers; anything

@@ -371,6 +371,7 @@ private struct MenuBarMetricTiles: View {
             }
             MemoryMenuBarOrderOption()
             NetworkMenuBarOrderOption()
+            NextMeetingMenuBarWindowOption()
         }
         .onAppear { order = MenuBarMetric.order(in: .standard) }
         .onChange(of: order) { _, order in
@@ -454,6 +455,31 @@ private struct NetworkMenuBarOrderOption: View {
             MetricRowOption(symbol: MenuBarMetric.network.symbolName,
                             label: l10n.s.monitorNetworkUploadFirst,
                             isOn: $uploadFirst)
+        }
+    }
+}
+
+/// How far ahead of a meeting's start the next-meeting reading appears —
+/// only relevant, so only shown, while that reading itself is pinned.
+private struct NextMeetingMenuBarWindowOption: View {
+    @ObservedObject private var l10n = L10n.shared
+    @AppStorage(DefaultsKey.menuBarNextMeeting) private var menuBarNextMeeting = false
+    @AppStorage(DefaultsKey.menuBarNextMeetingWindowMinutes) private var windowMinutes =
+        Defaults.defaultNextMeetingWindowMinutes
+
+    private var text: CalendarFeatureStrings { FeatureStrings.calendar(l10n.language) }
+
+    var body: some View {
+        if menuBarNextMeeting {
+            SettingsRow(symbol: MenuBarMetric.nextMeeting.symbolName, title: text.nextMeetingWindowLabel) {
+                Stepper("\(windowMinutes) min",
+                        value: Binding(
+                            get: { windowMinutes },
+                            set: { windowMinutes = Defaults.sanitizedNextMeetingWindowMinutes($0) }),
+                        in: Defaults.allowedNextMeetingWindowRange,
+                        step: 5)
+                    .labelsHidden()
+            }
         }
     }
 }

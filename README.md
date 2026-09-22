@@ -58,6 +58,9 @@
 > - **Command Bar: browser bookmarks** — search and open bookmarks from Chrome, Firefox, and Safari directly from the Command Bar, with mtime-based caching and Full Disk Access handling for Safari.
 > - **Command Bar: script shortcuts** — default arguments for script shortcuts, plus an option to shell-split a typed argument before running.
 > - **Clipboard quick panel** — a paste-after-select toggle and keyboard-driven access to the panel's menu.
+> - **Calendar tab** — a menu bar panel tab with a month grid and upcoming agenda, reading your calendars locally and grouping them by account in Settings so same-named calendars from different accounts stay unambiguous.
+> - **Meeting-join notifications** — a local notification when a Zoom, Google Meet or Microsoft Teams meeting on your calendar starts (or a few minutes before) that joins the meeting when tapped, native app first with a browser fallback you can choose per Google Meet; joinable events get a camcorder icon in the agenda.
+> - **Next Meeting & Date menu bar readings** — pin today’s date or a live countdown to your next detected meeting (provider and minutes remaining, with a configurable lookahead window) next to your other menu bar readings.
 > - **Automated upstream sync** — a scheduled workflow that pulls `vorssaintapp/vorssaint-utils@main` into this fork and opens a PR (or flags conflicts for manual resolution).
 
 Per app volume, a real system monitor, a better app switcher, window snapping, Dock previews, clipboard history, text snippets, a file shelf, an uninstaller. The utilities Mac users usually buy one by one, together behind a single menu bar icon, with no account, no telemetry and no subscription.

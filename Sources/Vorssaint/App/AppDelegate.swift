@@ -2203,6 +2203,20 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                                     configuration: NSWorkspace.OpenConfiguration())
             return
         }
+        // Google Meet has no native app, so its browser choice is a
+        // standalone preference rather than a native-vs-browser toggle like
+        // Zoom/Teams — an empty preference (or a since-uninstalled browser)
+        // falls back to the system default, same as a missing native app
+        // falls back to the browser above.
+        if link.provider == .googleMeet {
+            let preferredBrowser = defaults.string(forKey: DefaultsKey.meetingJoinGoogleMeetBrowser) ?? ""
+            if !preferredBrowser.isEmpty,
+               let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: preferredBrowser) {
+                NSWorkspace.shared.open([link.browserURL], withApplicationAt: application,
+                                        configuration: NSWorkspace.OpenConfiguration())
+                return
+            }
+        }
         NSWorkspace.shared.open(link.browserURL)
     }
 }

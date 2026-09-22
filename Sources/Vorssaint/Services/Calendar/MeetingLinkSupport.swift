@@ -171,6 +171,24 @@ enum MeetingLinkSupport {
                               scheduled: Set<String>) -> (toAdd: Set<String>, toRemove: Set<String>) {
         (toAdd: desired.subtracting(scheduled), toRemove: scheduled.subtracting(desired))
     }
+
+    /// The soonest upcoming event with a detected meeting link, starting
+    /// strictly after `now` and no more than `windowMinutes` from now.
+    /// Ties (identical start times) resolve to whichever event
+    /// `CalendarSupport.ordered` places first — the same order the calendar
+    /// view itself shows. Returns nil once nothing qualifies, including the
+    /// instant a qualifying event's own start passes (it stops being "next").
+    static func nextQualifyingMeeting(events: [CalendarEvent], windowMinutes: Int,
+                                      now: Date = Date()) -> (event: CalendarEvent, link: MeetingLink)? {
+        guard windowMinutes > 0 else { return nil }
+        let windowEnd = now.addingTimeInterval(TimeInterval(windowMinutes) * 60)
+        for event in CalendarSupport.ordered(events) {
+            guard !event.allDay, event.start > now, event.start <= windowEnd,
+                  let link = detect(for: event) else { continue }
+            return (event, link)
+        }
+        return nil
+    }
 }
 
 private extension MeetingLink {

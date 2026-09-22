@@ -35,7 +35,7 @@ enum AppFeature: String, CaseIterable {
     // System monitor, one entry per metric family (temperatures live with
     // their parent metric: CPU temp with CPU, battery temp with power).
     case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, fanControl,
-         menuBarDate
+         menuBarDate, menuBarNextMeeting
 }
 
 /// Hub sections, in display order.
@@ -119,7 +119,7 @@ extension AppFeature {
              .notchLyrics, .notchQueue, .notchLiveEqualizer, .notchDownloads:
             return .dynamicIsland
         case .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-             .fanControl, .menuBarDate:
+             .fanControl, .menuBarDate, .menuBarNextMeeting:
             return .monitor
         }
     }
@@ -201,6 +201,7 @@ extension AppFeature {
         case .monitorPower: return "bolt.fill"
         case .fanControl: return "fanblades.fill"
         case .menuBarDate: return "calendar"
+        case .menuBarNextMeeting: return "video"
         }
     }
 
@@ -278,6 +279,7 @@ extension AppFeature {
              .fanControl:
             return []
         case .menuBarDate: return [DefaultsKey.menuBarDate]
+        case .menuBarNextMeeting: return [DefaultsKey.menuBarNextMeeting]
         }
     }
 
@@ -336,6 +338,7 @@ extension AppFeature {
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .calendar: return [.calendar]
         case .meetingJoin: return [.notifications, .calendar]
+        case .menuBarNextMeeting: return [.calendar]
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher,
              .extraBrightness, .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
@@ -377,7 +380,7 @@ extension AppFeature {
             ($0.availabilityKey,
              $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
                 && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager
-                && $0 != .calendar && $0 != .menuBarDate && $0 != .meetingJoin)
+                && $0 != .calendar && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting)
         })
     }
 

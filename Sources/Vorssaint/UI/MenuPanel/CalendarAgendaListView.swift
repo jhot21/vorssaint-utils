@@ -43,12 +43,25 @@ struct CalendarAgendaListView: View {
     }
 
     private func eventRow(_ event: CalendarEvent) -> some View {
-        Button { openInCalendar(event) } label: {
+        let color = Color(red: event.color.red, green: event.color.green, blue: event.color.blue)
+        return Button { openInCalendar(event) } label: {
             HStack(alignment: .top, spacing: 8) {
-                Circle()
-                    .fill(Color(red: event.color.red, green: event.color.green, blue: event.color.blue))
-                    .frame(width: 7, height: 7)
-                    .padding(.top, 4)
+                // A detected meeting link swaps the plain dot for a camcorder
+                // icon, still tinted with the event's own calendar color, so
+                // a joinable event stands out in the agenda without needing
+                // its own dedicated column.
+                if MeetingLinkSupport.detect(for: event) != nil {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(color)
+                        .frame(width: 7, height: 7)
+                        .padding(.top, 4)
+                } else {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 7, height: 7)
+                        .padding(.top, 4)
+                }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(event.title.isEmpty ? text.untitled : event.title)
                         .font(.system(size: 11.5, weight: .medium))

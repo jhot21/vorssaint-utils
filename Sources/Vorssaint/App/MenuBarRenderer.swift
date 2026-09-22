@@ -5,7 +5,7 @@ import AppKit
 
 /// A live reading the user can pin next to the menu bar icon.
 enum MenuBarMetric: String, CaseIterable, Identifiable {
-    case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, date
+    case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, date, nextMeeting
 
     var id: String { rawValue }
 
@@ -26,6 +26,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .power: return DefaultsKey.menuBarPower
         case .fanSpeed: return DefaultsKey.menuBarFanSpeed
         case .date: return DefaultsKey.menuBarDate
+        case .nextMeeting: return DefaultsKey.menuBarNextMeeting
         }
     }
 
@@ -46,6 +47,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .power: return "powerplug.fill"
         case .fanSpeed: return "fanblades"
         case .date: return "calendar"
+        case .nextMeeting: return "video"
         }
     }
 
@@ -66,11 +68,12 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .power: return strings.monitorShowPowerLabel
         case .fanSpeed: return FeatureStrings.fanControl(L10n.shared.language).menuBarTitle
         case .date: return FeatureStrings.calendar(L10n.shared.language).menuBarTitle
+        case .nextMeeting: return FeatureStrings.calendar(L10n.shared.language).nextMeetingMenuBarTitle
         }
     }
 
     static let defaultOrder: [MenuBarMetric] = [
-        .date,
+        .date, .nextMeeting,
         .cpu, .cpuTemperature,
         .gpu, .gpuTemperature,
         .memory,
@@ -101,6 +104,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .battery, .batteryTime, .batteryTemperature, .peripheralBattery, .power: return .monitorPower
         case .fanSpeed: return .fanControl
         case .date: return .menuBarDate
+        case .nextMeeting: return .menuBarNextMeeting
         }
     }
 
@@ -465,6 +469,13 @@ enum MenuBarRenderer {
                 items.append(MetricItem(metric: metric,
                                         segments: [.symbol(metric.symbolName), .text(" " + month + " " + day)],
                                         width: reservedWidth(for: metric, preset: preset)))
+            case .nextMeeting:
+                if let (event, link) = nextQualifyingMeeting() {
+                    let text = providerLabel(link.provider) + " " + minutesRemainingText(for: event)
+                    items.append(MetricItem(metric: metric,
+                                            segments: [.symbol(metric.symbolName), .text(" " + text)],
+                                            width: reservedWidth(for: metric, preset: preset)))
+                }
             }
         }
         return items
@@ -724,9 +735,47 @@ enum MenuBarRenderer {
                                             minimumValue: "31",
                                             style: style,
                                             pressure: nil)])
+            case .nextMeeting:
+                if let (event, link) = nextQualifyingMeeting() {
+                    groups.append([.metricBlock(label: providerLabel(link.provider),
+                                                value: minutesRemainingText(for: event),
+                                                minimumValue: "240",
+                                                style: style,
+                                                pressure: nil)])
+                }
             }
         }
         return blockJoined(groups, style: style)
+    }
+
+    /// Reads live calendar state directly (like `dateMonthDayText()` reads
+    /// `Date()`), rather than threading it through `SystemSnapshot` — this
+    /// file already reads several cross-cutting settings straight from
+    /// `UserDefaults.standard` inline (memory style, temperature unit, and
+    /// so on), so this follows the same established convention.
+    private static func nextQualifyingMeeting() -> (event: CalendarEvent, link: MeetingLink)? {
+        let windowMinutes = Defaults.sanitizedNextMeetingWindowMinutes(
+            UserDefaults.standard.integer(forKey: DefaultsKey.menuBarNextMeetingWindowMinutes))
+        return MeetingLinkSupport.nextQualifyingMeeting(events: CalendarService.shared.events,
+                                                        windowMinutes: windowMinutes)
+    }
+
+    /// Deliberately hardcoded English abbreviations, matching every other
+    /// block label in this file ("CPU", "BAT", "RPM", ...) — menu bar block
+    /// labels in this renderer are not localized.
+    private static func providerLabel(_ provider: MeetingProvider) -> String {
+        switch provider {
+        case .zoom: return "ZOOM"
+        case .googleMeet: return "MEET"
+        case .microsoftTeams: return "TEAMS"
+        }
+    }
+
+    /// Rounds up so a meeting under a minute away never displays "0" —
+    /// which would read as already started rather than imminent.
+    private static func minutesRemainingText(for event: CalendarEvent, now: Date = Date()) -> String {
+        let minutes = max(1, Int(ceil(event.start.timeIntervalSince(now) / 60)))
+        return "\(minutes)"
     }
 
     /// The current month's short, uppercased symbol ("JAN") and day-of-month
@@ -817,6 +866,8 @@ enum MenuBarRenderer {
             return FanControlPolicy.menuBarWidthUnits(fanCount: count)
         case (_, .date):
             return 6       // "JAN" over "31" block, no leading symbol
+        case (_, .nextMeeting):
+            return 8       // "TEAMS" over "240" block, no leading symbol
         }
     }
 

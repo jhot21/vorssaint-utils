@@ -890,6 +890,7 @@ extension AppFeature {
         case .monitorPower: return s.powerSection
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
         case .menuBarDate: return FeatureStrings.calendar(L10n.shared.language).menuBarTitle
+        case .menuBarNextMeeting: return FeatureStrings.calendar(L10n.shared.language).nextMeetingMenuBarTitle
         }
     }
 
@@ -975,6 +976,7 @@ extension AppFeature {
         case .monitorPower: return hub.descMonitorPower
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).hubDescription
         case .menuBarDate: return FeatureStrings.calendar(L10n.shared.language).menuBarHubDescription
+        case .menuBarNextMeeting: return FeatureStrings.calendar(L10n.shared.language).nextMeetingMenuBarHubDescription
         }
     }
 }

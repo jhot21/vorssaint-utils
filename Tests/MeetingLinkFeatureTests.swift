@@ -160,5 +160,44 @@ enum MeetingLinkFeatureTests {
         let diffNoOp = MeetingLinkSupport.reconcileDiff(desired: ["a"], scheduled: ["a"])
         suite.expect(diffNoOp.toAdd.isEmpty && diffNoOp.toRemove.isEmpty,
                "an already-correct set produces no changes")
+
+        // MARK: Next qualifying meeting
+
+        suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [], windowMinutes: 60, now: day) == nil,
+               "no events means no next meeting")
+        let noLinkSoon = makeEvent(id: "noLink", start: day.addingTimeInterval(300))
+        suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [noLinkSoon], windowMinutes: 60, now: day) == nil,
+               "an upcoming event with no detected link never qualifies")
+        let outsideWindow = makeEvent(id: "far", start: day.addingTimeInterval(3700),
+                                      notes: "https://zoom.us/j/123456789")
+        suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [outsideWindow], windowMinutes: 60, now: day) == nil,
+               "a linked event starting after the window closes does not qualify")
+        let alreadyStarted = makeEvent(id: "started", start: day.addingTimeInterval(-60),
+                                       notes: "https://zoom.us/j/123456789")
+        suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [alreadyStarted], windowMinutes: 60, now: day) == nil,
+               "an event whose start has already passed is no longer 'next'")
+        let allDayLinked = makeEvent(id: "allDay", start: day, allDay: true,
+                                     notes: "https://zoom.us/j/123456789")
+        suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [allDayLinked], windowMinutes: 60, now: day) == nil,
+               "an all-day event never qualifies, even with a detected link")
+
+        let sooner = makeEvent(id: "sooner", start: day.addingTimeInterval(600),
+                               notes: "https://meet.google.com/abc-defg-hij")
+        let later = makeEvent(id: "later", start: day.addingTimeInterval(1800),
+                              notes: "https://zoom.us/j/123456789")
+        let soonest = MeetingLinkSupport.nextQualifyingMeeting(events: [later, sooner], windowMinutes: 60, now: day)
+        suite.expect(soonest?.event.id == "sooner" && soonest?.link.provider == .googleMeet,
+               "the soonest qualifying event wins regardless of input order")
+
+        let tieA = makeEvent(id: "tieA", start: day.addingTimeInterval(600),
+                             notes: "https://zoom.us/j/123456789")
+        let tieB = makeEvent(id: "tieB", start: day.addingTimeInterval(600),
+                             notes: "https://meet.google.com/abc-defg-hij")
+        let tieBroken = MeetingLinkSupport.nextQualifyingMeeting(events: [tieB, tieA], windowMinutes: 60, now: day)
+        suite.expect(tieBroken?.event.id == CalendarSupport.ordered([tieB, tieA]).first?.id,
+               "identical start times break the tie the same way CalendarSupport.ordered does")
+
+        suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [sooner], windowMinutes: 0, now: day) == nil,
+               "a zero-minute window never shows anything")
     }
 }
