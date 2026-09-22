@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Vorssaint
 
 # Builds Vorssaint, assembles the .app bundle, signs it and (with --install)
-# installs it into /Applications.
+# installs it into /Applications and launches it.
 #
 # The bundle is staged in a temporary directory outside ~/Documents: folders synced
 # by File Provider gain xattrs (com.apple.provenance etc.) that invalidate codesign.
@@ -27,7 +27,8 @@ trap cleanup EXIT
 trap 'exit 1' INT TERM HUP
 
 # Flags: --dev builds the local-only "Vorssaint (Developer)" variant (its own
-# bundle id, so it coexists with the official app); --install puts it in /Applications.
+# bundle id, so it coexists with the official app); --install puts it in
+# /Applications and launches it.
 DEV=0
 INSTALL=0
 TEST=0
@@ -191,6 +192,7 @@ if (( INSTALL && ! TEST )) && [[ "${VORSSAINT_INSTALL_CHILD:-0}" != "1" ]]; then
         exit "$child_status"
     fi
     finalize_installed_bundle_after_child "/Applications/$APP_NAME.app"
+    open "/Applications/$APP_NAME.app"
     exit 0
 fi
 
