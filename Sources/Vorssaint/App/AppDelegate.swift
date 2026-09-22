@@ -136,6 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             KeepAwakeManager.shared.activateOnLaunchIfNeeded()
         }
         FanControlService.recoverIfNeeded()
+        Notifier.registerCategories()
         // One binding per feature: only available features are touched, so a
         // feature switched off in the hub never even instantiates here.
         FeatureRuntime.shared.syncAtLaunch()
@@ -2172,6 +2173,36 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                 WhatsAppDownloadOrganizer.shared.undoLastRun(transactionID: transactionID)
             }
         }
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+           let eventID = Notifier.meetingJoinEventID(from: response) {
+            DispatchQueue.main.async {
+                AppDelegate.openMeetingLink(eventID: eventID, response: response)
+            }
+        }
         completionHandler()
+    }
+
+    /// Prefers a live re-detection against CalendarService's current events
+    /// (the common case: the app is normally already running) so a link the
+    /// organizer updated after scheduling is still followed correctly. Falls
+    /// back to the link frozen in the notification's own userInfo when the
+    /// live lookup misses — the cold-launch case, where this can run before
+    /// CalendarService's first post-launch refresh has populated `events`.
+    private static func openMeetingLink(eventID: String, response: UNNotificationResponse) {
+        let liveLink = CalendarService.shared.events.first { $0.id == eventID }
+            .flatMap(MeetingLinkSupport.detect(for:))
+        guard let link = liveLink ?? Notifier.meetingJoinFrozenLink(from: response) else { return }
+        let defaults = UserDefaults.standard
+        let preferNative = link.provider == .zoom ? defaults.bool(forKey: DefaultsKey.meetingJoinZoomNative)
+            : link.provider == .microsoftTeams ? defaults.bool(forKey: DefaultsKey.meetingJoinTeamsNative)
+            : false
+        if preferNative, let nativeAppURL = link.nativeAppURL,
+           let bundleIdentifier = link.provider.nativeAppBundleIdentifier,
+           let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            NSWorkspace.shared.open([nativeAppURL], withApplicationAt: application,
+                                    configuration: NSWorkspace.OpenConfiguration())
+            return
+        }
+        NSWorkspace.shared.open(link.browserURL)
     }
 }

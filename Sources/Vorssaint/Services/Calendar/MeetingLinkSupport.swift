@@ -5,6 +5,18 @@ import Foundation
 
 enum MeetingProvider: String, CaseIterable, Sendable {
     case zoom, googleMeet, microsoftTeams
+
+    /// The currently-shipping bundle identifier for each provider's native
+    /// app, used to resolve NSWorkspace.shared.urlForApplication(withBundleIdentifier:).
+    /// Confirm these against the actual installed apps during manual
+    /// verification (Task 9) — they can drift across major app versions.
+    var nativeAppBundleIdentifier: String? {
+        switch self {
+        case .zoom: return "us.zoom.xos"
+        case .microsoftTeams: return "com.microsoft.teams2"
+        case .googleMeet: return nil
+        }
+    }
 }
 
 struct MeetingLink: Equatable, Sendable {
