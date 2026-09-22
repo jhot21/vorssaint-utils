@@ -2047,18 +2047,27 @@ enum SwitcherModelFeatureTests {
                "a signal brings the main item back even in the separate-items mode")
         suite.expect(MenuBarSpacingSupport.needsTitleRefreshTimer(keepAwakeActive: true,
                                                             showsCountdown: true,
-                                                            hasEndDate: true),
+                                                            hasEndDate: true,
+                                                            nextMeetingActive: false),
                "a visible finite Keep Awake countdown owns the title timer")
         suite.expect(!MenuBarSpacingSupport.needsTitleRefreshTimer(keepAwakeActive: false,
                                                              showsCountdown: true,
-                                                             hasEndDate: true)
+                                                             hasEndDate: true,
+                                                             nextMeetingActive: false)
                 && !MenuBarSpacingSupport.needsTitleRefreshTimer(keepAwakeActive: true,
                                                                   showsCountdown: false,
-                                                                  hasEndDate: true)
+                                                                  hasEndDate: true,
+                                                                  nextMeetingActive: false)
                 && !MenuBarSpacingSupport.needsTitleRefreshTimer(keepAwakeActive: true,
                                                                   showsCountdown: true,
-                                                                  hasEndDate: false),
+                                                                  hasEndDate: false,
+                                                                  nextMeetingActive: false),
                "idle, hidden and indefinite Keep Awake titles need no timer")
+        suite.expect(MenuBarSpacingSupport.needsTitleRefreshTimer(keepAwakeActive: false,
+                                                            showsCountdown: false,
+                                                            hasEndDate: false,
+                                                            nextMeetingActive: true),
+               "the Next Meeting reading owns the title timer on its own, independent of Keep Awake")
         let statusPlacementSuite = "com.vorssaint.tests.statusItemPlacement"
         if let statusDefaults = UserDefaults(suiteName: statusPlacementSuite) {
             statusDefaults.removePersistentDomain(forName: statusPlacementSuite)

@@ -153,13 +153,17 @@ enum MenuBarSpacingSupport {
     /// preview both render there).
     private static var digitHighWater: [String: Int] = [:]
 
-    /// A finite Keep Awake countdown is the only menu-bar content whose text
-    /// changes just because time passed. Everything else refreshes from its
-    /// publisher or preference change, so no timer should live at rest.
+    /// A finite Keep Awake countdown and the Next Meeting reading are the
+    /// only menu-bar content whose text changes just because time passed —
+    /// neither corresponds to a SystemMonitor sampling need, so its periodic
+    /// timer never runs on their behalf alone. Everything else refreshes
+    /// from its own publisher or a preference change, so no timer should
+    /// live at rest beyond these two cases.
     static func needsTitleRefreshTimer(keepAwakeActive: Bool,
                                        showsCountdown: Bool,
-                                       hasEndDate: Bool) -> Bool {
-        keepAwakeActive && showsCountdown && hasEndDate
+                                       hasEndDate: Bool,
+                                       nextMeetingActive: Bool) -> Bool {
+        (keepAwakeActive && showsCountdown && hasEndDate) || nextMeetingActive
     }
 
     /// The reserve compact mode uses for a metric block: the current value's

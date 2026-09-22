@@ -273,11 +273,13 @@ final class StatusItemController {
 
     private func syncTitleTimer(keepAwakeActive: Bool,
                                 showsCountdown: Bool,
-                                endDate: Date?) {
+                                endDate: Date?,
+                                nextMeetingActive: Bool) {
         let shouldRun = MenuBarSpacingSupport.needsTitleRefreshTimer(
             keepAwakeActive: keepAwakeActive,
             showsCountdown: showsCountdown,
-            hasEndDate: endDate != nil)
+            hasEndDate: endDate != nil,
+            nextMeetingActive: nextMeetingActive)
         guard shouldRun else {
             titleTimer?.invalidate()
             titleTimer = nil
@@ -418,7 +420,8 @@ final class StatusItemController {
 
         syncTitleTimer(keepAwakeActive: manager.isActive,
                        showsCountdown: defaults.bool(forKey: DefaultsKey.showCountdown),
-                       endDate: manager.endDate)
+                       endDate: manager.endDate,
+                       nextMeetingActive: metrics.contains(.nextMeeting))
 
         // Compose the title from the keep-awake countdown (when shown) followed by
         // the pinned live metrics. Built attributed so the memory pressure dot can
