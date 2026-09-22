@@ -93,20 +93,38 @@ enum MeetingLinkSupport {
         let range = NSRange(text.startIndex..., in: text)
         guard let match = regex.firstMatch(in: text, range: range),
               let matchRange = Range(match.range, in: text) else { return nil }
-        return String(text[matchRange])
+        return trimmingTrailingPunctuation(String(text[matchRange]))
+    }
+
+    /// The URL character classes (`[^\s"'<>]+`) deliberately admit every
+    /// non-space URL character, so a link ending a sentence or sitting
+    /// inside parentheses captures its trailing `.`/`)`/`,` etc. into the
+    /// match; left alone that punctuation leaks into `browserURL` and, for
+    /// Zoom, into the `confno=` deep link. Stripped repeatedly so `).`
+    /// trims to nothing.
+    private static func trimmingTrailingPunctuation(_ text: String) -> String {
+        let trailing: Set<Character> = [".", ",", ";", ":", "!", "?", ")", "]"]
+        var trimmed = text
+        while let last = trimmed.last, trailing.contains(last) {
+            trimmed.removeLast()
+        }
+        return trimmed
     }
 
     /// Extracts a Zoom meeting id from a `/j/<id>` or `/webinar/<id>` link's
     /// path component for building the `zoommtg://` deep link's `confno`
-    /// parameter. Returns nil for any shape it doesn't recognize (a `/my/`
-    /// personal-room link never reaches this — see `link(in:)` — but a
-    /// malformed match falls back to nil rather than an empty `confno`).
+    /// parameter. Returns nil for any shape it doesn't recognize — a `/my/`
+    /// personal-room link never reaches this (see `link(in:)`), and a
+    /// non-numeric component (e.g. `/webinar/register/WN_…`, a registration
+    /// landing page, not a join) would otherwise become a garbage `confno`.
     private static func zoomConfno(from urlString: String) -> String? {
         guard let url = URL(string: urlString) else { return nil }
         let components = url.pathComponents
         guard let anchorIndex = components.firstIndex(where: { $0 == "j" || $0 == "webinar" }),
               anchorIndex + 1 < components.count else { return nil }
-        return components[anchorIndex + 1]
+        let id = components[anchorIndex + 1]
+        guard !id.isEmpty, id.allSatisfy(\.isNumber) else { return nil }
+        return id
     }
 
     /// `event.start` minus the configured offset, or nil when that trigger

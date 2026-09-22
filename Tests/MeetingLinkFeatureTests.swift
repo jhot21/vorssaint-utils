@@ -64,6 +64,22 @@ enum MeetingLinkFeatureTests {
                 .contains("pwd=Ab.C%2F1-2") == true,
                "a Zoom query string containing '.', '%%', and '/' is captured in full")
 
+        let zoomTrailingPeriod = makeEvent(notes: "Meeting at https://zoom.us/j/123456789.")
+        let zoomTrailingPeriodLink = MeetingLinkSupport.detect(for: zoomTrailingPeriod)
+        suite.expect(zoomTrailingPeriodLink?.browserURL.absoluteString == "https://zoom.us/j/123456789"
+                && zoomTrailingPeriodLink?.nativeAppURL?.absoluteString
+                    == "zoommtg://zoom.us/join?confno=123456789",
+               "a sentence-ending period is not captured into a Zoom browser URL or deep link")
+        let zoomTrailingParen = makeEvent(notes: "Join (https://zoom.us/j/123456789)")
+        suite.expect(MeetingLinkSupport.detect(for: zoomTrailingParen)?.browserURL.absoluteString
+                == "https://zoom.us/j/123456789",
+               "a closing parenthesis is not captured into a Zoom browser URL")
+        let teamsTrailingComma = makeEvent(notes:
+            "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ABC%40thread.v2/0,")
+        suite.expect(MeetingLinkSupport.detect(for: teamsTrailingComma)?.browserURL.absoluteString
+                .hasSuffix("/0") == true,
+               "a trailing comma is not captured into a Teams browser URL")
+
         // MARK: Zoom subdomain and personal room
 
         suite.expect(MeetingLinkSupport.detect(for: makeEvent(
@@ -73,6 +89,17 @@ enum MeetingLinkFeatureTests {
         let personalRoomLink = MeetingLinkSupport.detect(for: personalRoom)
         suite.expect(personalRoomLink?.provider == .zoom && personalRoomLink?.nativeAppURL == nil,
                "a Zoom personal-room link detects as Zoom but has no native deep link")
+        let webinarRegister = makeEvent(notes: "https://zoom.us/webinar/register/WN_aBc123")
+        let webinarRegisterLink = MeetingLinkSupport.detect(for: webinarRegister)
+        suite.expect(webinarRegisterLink?.provider == .zoom
+                && webinarRegisterLink?.browserURL.absoluteString
+                    == "https://zoom.us/webinar/register/WN_aBc123"
+                && webinarRegisterLink?.nativeAppURL == nil,
+               "a Zoom webinar registration landing page has no joinable native deep link")
+        let webinarNumeric = makeEvent(notes: "https://zoom.us/webinar/123456789")
+        suite.expect(MeetingLinkSupport.detect(for: webinarNumeric)?.nativeAppURL?.absoluteString
+                .hasPrefix("zoommtg://") == true,
+               "a numeric Zoom webinar id still produces a zoommtg:// native URL")
 
         // MARK: No match
 
