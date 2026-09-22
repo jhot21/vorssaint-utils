@@ -28,6 +28,10 @@ struct CalendarMonthGridView: View {
             Text(month, format: .dateTime.month(.wide).year())
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
+            Button { month = Date(); selectedDay = nil } label: { Text(text.today) }
+                .buttonStyle(.plain)
+                .font(.system(size: 12))
+            Spacer()
             Button { shiftMonth(1) } label: { Image(systemName: "chevron.right") }
                 .buttonStyle(.plain)
                 .accessibilityLabel(text.nextMonth)

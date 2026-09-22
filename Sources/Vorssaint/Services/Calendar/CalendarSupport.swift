@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Vorssaint
 
 import Foundation
-import EventKit
 
 struct CalendarColor: Equatable, Sendable {
     let red: Double

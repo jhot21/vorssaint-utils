@@ -56,6 +56,12 @@ struct CalendarAgendaListView: View {
                     Text(event.allDay ? text.allDay : timeRange(event))
                         .font(.system(size: 9.5))
                         .foregroundStyle(.secondary)
+                    if !event.location.isEmpty {
+                        Text(event.location)
+                            .font(.system(size: 9.5))
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer()
             }
