@@ -20,17 +20,17 @@ enum Notifier {
     private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "vorssaint",
                                     category: "notifications")
 
-    /// The single call site for `setNotificationCategories`, which REPLACES
-    /// the entire registered set rather than merging into it — every
-    /// category-posting method in this file relies on this having run once
-    /// at launch instead of registering its own category. Called from
-    /// `AppDelegate.applicationDidFinishLaunching`.
+    /// Registers the full notification category set at launch. This is one of
+    /// exactly two `setNotificationCategories` call sites (the other is
+    /// `postWhatsAppOrganization`); the API REPLACES the entire set rather than
+    /// merging, so each call site must always pass EVERY category it wants to
+    /// keep. Called from `AppDelegate.applicationDidFinishLaunching`.
     static func registerCategories() {
-        // The WhatsApp undo button's real, localized title is only known
-        // once postWhatsAppOrganization actually runs (it re-registers both
-        // categories with the correct title then — see Step 2 below); a
-        // placeholder title here is harmless because no WhatsApp
-        // notification exists yet for this category to be attached to.
+        // The undo action's real localized title isn't known until there is a
+        // run to undo, so this launch-time registration uses an empty
+        // placeholder. `postWhatsAppOrganization` re-registers the full set with
+        // the real title before any WhatsApp notification is posted; nothing can
+        // reference this category before then, so the placeholder is harmless.
         let undo = UNNotificationAction(
             identifier: whatsAppOrganizerUndoActionIdentifier,
             title: "",
@@ -64,8 +64,11 @@ enum Notifier {
                                          body: String,
                                          undoTitle: String,
                                          transactionID: UUID) {
-        // Category registration (including this action's real title) happens
-        // once, in registerCategories(), not here — see that method's doc.
+        // `setNotificationCategories` REPLACES the entire set, so this second
+        // call site must re-register BOTH categories — dropping either would
+        // unregister it. Re-registering is required because the undo action's
+        // real localized title (known only for a concrete run) has to replace the
+        // empty placeholder registered at launch.
         let undo = UNNotificationAction(
             identifier: whatsAppOrganizerUndoActionIdentifier,
             title: undoTitle,
