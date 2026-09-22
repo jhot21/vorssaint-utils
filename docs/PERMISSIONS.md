@@ -102,6 +102,7 @@ Download monitoring watches only the folder you choose in the system picker. Fol
 - **Monitor**, with optional alerts for the conditions you turn on.
 - **Updates**, with a one time note when a new version shows up, and only while automatic update checks are on.
 - **App updates**, with a note when other apps on the Mac have a newer version, and only while the background check is on.
+- **Meeting notifications**, only for calendar events with a detected Zoom, Google Meet or Microsoft Teams link, and only while that feature is on.
 
 **If you say no.** These system notifications are not posted. Status remains available inside the app, and alarms from timers you start still work. Mirroring existing system banners uses Accessibility instead of this permission.
 
