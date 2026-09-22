@@ -366,6 +366,8 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Audio/MixerRoutingSupport.swift
         Sources/Vorssaint/Services/Audio/MusicLaunchSupport.swift
         Sources/Vorssaint/Services/Bluetooth/BluetoothSleepSupport.swift
+        Sources/Vorssaint/Services/Calendar/CalendarSupport.swift
+        Sources/Vorssaint/Core/CalendarStrings.swift
         Sources/Vorssaint/UI/MenuPanel/MixerPercentNativeTextField.swift
         Sources/Vorssaint/UI/MenuPanel/MixerAppDragSource.swift
         Sources/Vorssaint/Services/Audio/BoostLimiter.swift
