@@ -11,7 +11,7 @@ You can review or change every grant in System Settings, under Privacy and Secur
 | System Audio Recording | Yes | Volume mixer, optional live equalizer and system audio capture for recordings |
 | Microphone | Yes | Your voice in a screen recording, only when you turn it on |
 | Camera | Yes | The camera preview mirror, floating or inside the notch |
-| Calendars | Yes | Upcoming appointments in the notch |
+| Calendars | Yes | Upcoming appointments in the notch and the menu bar panel's Calendar tile |
 | Files and Folders | Yes | Monitoring downloads in a folder you choose |
 | Notifications | Yes | Keep awake, battery, Monitor and update alerts |
 | Full Disk Access | Yes | A deeper uninstaller scan, Command Bar's Safari bookmarks source |
@@ -85,7 +85,7 @@ You can review or change every grant in System Settings, under Privacy and Secur
 
 ## Calendars
 
-The optional notch calendar asks for access when you press its permission button. macOS calls this full calendar access; Vorssaint uses it only to read appointments and never modifies them. If access is denied, the calendar shows a System Settings shortcut while the rest of the notch remains available. Event content stays on this Mac.
+The optional notch calendar and the menu bar panel's Calendar tile both ask for access when you press their own permission button. macOS calls this full calendar access; Vorssaint uses it only to read appointments and never modifies them. If access is denied, each surface shows a System Settings shortcut while the rest of the app remains available. Event content stays on this Mac.
 
 ## Files and Folders
 
