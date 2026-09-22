@@ -426,9 +426,10 @@ enum FeatureCatalogTests {
                 && (AppFeature.availabilityDefaults[AppFeature.focusFollowsMouse.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.killProcess.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.portManager.availabilityKey] as? Bool) == false
+                && (AppFeature.availabilityDefaults[AppFeature.calendar.availabilityKey] as? Bool) == false
                 && AppFeature.allCases.filter {
                     $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
-                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager
+                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .calendar
                 }.allSatisfy {
                     (AppFeature.availabilityDefaults[$0.availabilityKey] as? Bool) == true
                 },

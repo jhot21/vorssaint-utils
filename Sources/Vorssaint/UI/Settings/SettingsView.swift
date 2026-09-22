@@ -372,6 +372,7 @@ struct SettingsView: View {
         case .uninstaller: UninstallerView()
         case .killProcess: KillProcessView()
         case .portManager: PortManagerView()
+        case .calendar: CalendarSettings()
         case .urlCleaner: URLCleanerSettings()
         case .cleaner: CleanerSettings()
         case .homebrew: HomebrewSettings()

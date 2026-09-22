@@ -216,6 +216,10 @@ enum SettingsDirectory {
                                       title: FeatureStrings.portManager(language).title,
                                       icon: "network",
                                       keywords: ["port", "ports", "listening", "socket", "PID", "kill port"]),
+                SettingsDirectoryItem(page: .calendar,
+                                      title: FeatureStrings.calendar(language).title,
+                                      icon: "calendar",
+                                      keywords: ["calendar", "agenda", "month", "appointments", "events", "itsycal"]),
             ]),
             (categories.utilities, [
                 SettingsDirectoryItem(page: .notch,
