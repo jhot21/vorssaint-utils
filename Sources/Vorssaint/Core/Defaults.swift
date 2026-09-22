@@ -502,6 +502,7 @@ enum DefaultsKey {
     static let clipboardAutoClearOnScreenLock = "clipboardAutoClearOnScreenLock"
 
     static let windowPreviewExcludedApps = "windowPreviewExcludedApps" // pause thumbnail capture while these apps are in front
+    static let calendarHiddenCalendarIDs = "calendarHiddenCalendarIDs" // EKCalendar.calendarIdentifier values hidden from the menu bar Calendar tile
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
@@ -643,6 +644,7 @@ enum DefaultsKey {
     static let recorderSharingEnabled = "recorderSharingEnabled"
     static let panelUtilityScreenRecorder = "panelUtilityScreenRecorder"
     static let panelUtilityPortManager = "panelUtilityPortManager"
+    static let panelUtilityCalendar = "panelUtilityCalendar"
 
     // Window Layout — snapping, global shortcuts and optional pointer gestures.
     static let windowLayoutShortcutsEnabled = "windowLayoutShortcutsEnabled"
@@ -1434,6 +1436,7 @@ enum Defaults {
         DefaultsKey.finderCutPasteShowHUD: true,
         DefaultsKey.finderPasteImageAsFile: false,
         DefaultsKey.windowPreviewExcludedApps: [String](),
+        DefaultsKey.calendarHiddenCalendarIDs: [String](),
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,
         DefaultsKey.pastePlainShortcut: GlobalShortcut.pastePlainDefault.storageValue,
@@ -1501,6 +1504,7 @@ enum Defaults {
         DefaultsKey.recorderSharingEnabled: true,
         DefaultsKey.panelUtilityScreenRecorder: true,
         DefaultsKey.panelUtilityPortManager: true,
+        DefaultsKey.panelUtilityCalendar: true,
         DefaultsKey.screenshotShowCaptureMenuOnShortcut: true,
         DefaultsKey.recorderShowCaptureMenuOnShortcut: true,
         DefaultsKey.screenOCRShowCaptureMenuOnShortcut: true,
