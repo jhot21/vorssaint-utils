@@ -8,6 +8,9 @@ struct CalendarSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var hiddenIDs: Set<String> = Self.savedHiddenIDs
     @State private var calendars: [EKCalendar] = []
+    @AppStorage(DefaultsKey.meetingJoinZoomNative) private var zoomNative = true
+    @AppStorage(DefaultsKey.meetingJoinTeamsNative) private var teamsNative = true
+    @AppStorage(DefaultsKey.meetingJoinNotifyOffset) private var offsetRaw = MeetingJoinNotifyOffset.atStart.rawValue
 
     private var text: CalendarFeatureStrings { FeatureStrings.calendar(l10n.language) }
 
@@ -30,6 +33,18 @@ struct CalendarSettings: View {
                 Text(text.hideCalendarHint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            if AppFeature.meetingJoin.isAvailable {
+                Section(text.meetingJoinSectionHeader) {
+                    Picker(text.meetingJoinOffsetLabel, selection: $offsetRaw) {
+                        Text(text.meetingJoinOffsetAtStart).tag(MeetingJoinNotifyOffset.atStart.rawValue)
+                        Text(text.meetingJoinOffsetOneMinuteBefore).tag(MeetingJoinNotifyOffset.oneMinuteBefore.rawValue)
+                        Text(text.meetingJoinOffsetThreeMinutesBefore).tag(MeetingJoinNotifyOffset.threeMinutesBefore.rawValue)
+                        Text(text.meetingJoinOffsetFiveMinutesBefore).tag(MeetingJoinNotifyOffset.fiveMinutesBefore.rawValue)
+                    }
+                    Toggle(text.meetingJoinZoomNativeToggle, isOn: $zoomNative)
+                    Toggle(text.meetingJoinTeamsNativeToggle, isOn: $teamsNative)
+                }
             }
         }
         .formStyle(.grouped)
