@@ -295,6 +295,16 @@ final class FeatureRuntime: ObservableObject {
         .meetingJoin: {
             CalendarService.shared.syncWithPreferences()
             MeetingNotificationService.shared.syncWithPreferences()
+            // Requesting when the feature is off would be a pointless prompt;
+            // when it's on, this fires whenever the binding runs — at the
+            // moment it's toggled on, and again at every launch while it
+            // stays available. requestAuthorization only shows the system
+            // dialog the first time ever asked; every call after that just
+            // silently returns the existing status, so repeating this on
+            // each launch is a no-op once answered, not a repeat prompt.
+            if AppFeature.meetingJoin.isAvailable {
+                Notifier.requestPermission()
+            }
         },
         .cleaner: {
             CleanerScheduler.shared.syncWithPreferences()

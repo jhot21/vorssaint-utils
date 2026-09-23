@@ -20,6 +20,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     private var popoverLastFrame: CGRect?
     private var popoverLastWindowNumber: Int?
     private var popoverForeignReopenAt = Date.distantPast
+    /// Set when a meeting-join notification tap is about to reactivate the
+    /// app; consumed by applicationShouldHandleReopen so that reactivation
+    /// doesn't also pop the panel — joining a meeting needs no panel at all.
+    /// Time-boxed so a stale flag (the reopen callback never firing, for
+    /// whatever reason) can never suppress a later, unrelated reopen.
+    private var meetingJoinReopenSuppressedUntil: Date?
     private var popoverIsSwitchingAnchor = false
     private var metricAnchorSwitchSerial = 0
     private var popoverCloseCompletions: [() -> Void] = []
@@ -322,6 +328,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     /// in. (A cold launch can't happen while running, so this is the recovery path.)
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard !flag else { return true }
+        // Captured now (this call is main-thread, same as the notification
+        // handler that sets it) so the decision is locked in before the
+        // panel-opening work below runs on a later run-loop turn.
+        let suppressPanel = (meetingJoinReopenSuppressedUntil.map { $0 > Date() }) ?? false
+        meetingJoinReopenSuppressedUntil = nil
         // A deliberate reopen with no windows showing is the user's recovery action.
         // Rebuild the menu bar item only when it is actually missing: the
         // pre-rebuild item has a settled frame, so iconIsOnScreen() is trustworthy
@@ -341,7 +352,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // when the icon is genuinely on screen, else fall back to the Settings
         // window. Either way the user ALWAYS gets back in.
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+            guard let self, !suppressPanel else { return }
             if self.iconIsOnScreen(), !self.popover.isShown {
                 self.popoverClosedAt = .distantPast
                 self.togglePopover()
@@ -2165,6 +2176,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
 }
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
+    /// Without this, the system silently withholds a notification's banner
+    /// and sound whenever the app is in the foreground at the moment it
+    /// fires — no error, nothing to log, it just never appears. Vorssaint is
+    /// a background menu bar utility whose windows (Settings, the panel
+    /// popover) are exactly the surfaces someone is most likely to have open
+    /// right when a meeting notification lands, so this applies to every
+    /// notification the app posts, not meeting-join alone.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list, .sound])
+    }
+
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
@@ -2175,7 +2199,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         }
         if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
            let eventID = Notifier.meetingJoinEventID(from: response) {
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                self?.meetingJoinReopenSuppressedUntil = Date().addingTimeInterval(3)
                 AppDelegate.openMeetingLink(eventID: eventID, response: response)
             }
         }
