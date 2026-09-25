@@ -23,6 +23,11 @@ It has its own preferences and permissions and does not replace the official app
 A plain `./build.sh` builds the optimized variant used by CI; its health check is
 `./build/Vorssaint --selftest`.
 
+Builds are incremental: the app compile reuses unchanged objects, and the fan
+helper, Now Playing adapter and icons are rebuilt only when their inputs change,
+so repeat builds finish in seconds. `./build.sh --clean` discards that cache and
+rebuilds everything from scratch.
+
 ### Stable signing
 
 Developer and install builds automatically try to create a stable local signing

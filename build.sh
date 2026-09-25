@@ -28,15 +28,18 @@ trap 'exit 1' INT TERM HUP
 
 # Flags: --dev builds the local-only "Vorssaint (Developer)" variant (its own
 # bundle id, so it coexists with the official app); --install puts it in
-# /Applications and launches it.
+# /Applications and launches it; --clean discards the incremental object cache
+# and rebuilds from scratch.
 DEV=0
 INSTALL=0
 TEST=0
+CLEAN=0
 TEST_ARGS=()
 for arg in "$@"; do
     case "$arg" in
         --dev)     DEV=1 ;;
         --install) INSTALL=1 ;;
+        --clean)   CLEAN=1 ;;
         --test)    TEST=1 ;;
         --test-suite=*) TEST=1; TEST_ARGS+=("--suite=${arg#*=}") ;;
         --list-tests) TEST=1; TEST_ARGS+=(--list) ;;
@@ -66,6 +69,15 @@ NOW_PLAYING_ADAPTER="libVorssaintNowPlaying.dylib"
 TARGET="arm64-apple-macosx14.0"
 ENTITLEMENTS="Resources/Vorssaint.entitlements"
 LEGACY_IDENTITY="Vorssaint Utils Signing"
+
+# The commit this build is made from: stamped into the Developer build's About
+# page and printed when --install launches the fresh instance, so the running app
+# can always be tied back to a commit. `-dirty` marks uncommitted changes so a
+# build is never mistaken for the commit alone.
+BUILD_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+    BUILD_SHA="$BUILD_SHA-dirty"
+fi
 
 developer_id_identity() {
     security find-identity -v -p codesigning 2>/dev/null \
@@ -150,6 +162,29 @@ write_swift_output_file_map() {
     } > "$output_file"
 }
 
+# Content hash of an output's inputs, used to skip rebuilding a helper whose
+# sources have not changed. `recipe` carries the compiler flags, target and SDK
+# so a flag or SDK change invalidates the cache too.
+inputs_signature() {
+    local recipe="$1"; shift
+    { print -r -- "$recipe"; cat "$@" } | /usr/bin/shasum -a 256 | /usr/bin/awk '{print $1}'
+}
+
+# True when `output` exists and the hash of `recipe` plus the listed input files
+# is unchanged since the last build that wrote it. Any missing input yields a
+# signature that matches no stamp, so the step rebuilds.
+step_is_current() {
+    local output="$1" recipe="$2"; shift 2
+    local stamp="${output}.stamp"
+    [[ -f "$output" && -f "$stamp" ]] || return 1
+    [[ "$(inputs_signature "$recipe" "$@")" == "$(cat "$stamp")" ]]
+}
+
+record_step() {
+    local output="$1" recipe="$2"; shift 2
+    inputs_signature "$recipe" "$@" > "${output}.stamp"
+}
+
 finalize_installed_bundle_after_child() {
     local bundle="$1"
     local helper="$bundle/Contents/Library/LaunchServices/$FAN_HELPER_ID"
@@ -185,6 +220,37 @@ finalize_installed_bundle_after_child() {
     echo "✓ Signature ready: $bundle"
 }
 
+# Is a process whose executable is named `proc` running? A short name is the
+# process name macOS reports; a longer executable (the Developer build's) is
+# matched by its path inside the bundle instead.
+process_is_running() {
+    local proc="$1"
+    if (( ${#proc} > 15 )); then
+        pgrep -f "/Contents/MacOS/$proc" >/dev/null 2>&1
+    else
+        pgrep -x "$proc" >/dev/null 2>&1
+    fi
+}
+
+# Stops `proc` and waits for it to actually exit, so a later `open` cannot merely
+# reactivate the instance being replaced. Fails after five seconds.
+stop_process() {
+    local proc="$1"
+    if (( ${#proc} > 15 )); then
+        pkill -f "/Contents/MacOS/$proc" 2>/dev/null || true
+    else
+        pkill -x "$proc" 2>/dev/null || true
+    fi
+    for _ in {1..50}; do
+        if ! process_is_running "$proc"; then
+            return 0
+        fi
+        sleep 0.1
+    done
+    echo "✗ $proc is still running — quit it and retry" >&2
+    return 1
+}
+
 if (( INSTALL && ! TEST )) && [[ "${VORSSAINT_INSTALL_CHILD:-0}" != "1" ]]; then
     VORSSAINT_INSTALL_CHILD=1 "$0" "$@"
     child_status=$?
@@ -192,8 +258,41 @@ if (( INSTALL && ! TEST )) && [[ "${VORSSAINT_INSTALL_CHILD:-0}" != "1" ]]; then
         exit "$child_status"
     fi
     finalize_installed_bundle_after_child "/Applications/$APP_NAME.app"
+    # The child already stopped the running instance before replacing the bundle;
+    # assert it here as well so a survivor can never make `open` merely
+    # reactivate the old build.
+    if process_is_running "$EXECUTABLE"; then
+        echo "▸ Stopping the running $APP_NAME…"
+        if ! stop_process "$EXECUTABLE"; then
+            echo "✗ $APP_NAME is still running — not launching a possibly-stale build" >&2
+            exit 1
+        fi
+    fi
     open "/Applications/$APP_NAME.app"
+    # Wait for the fresh instance and name the commit it was built from, so
+    # "up to date" is something you can see rather than assume.
+    launched=0
+    for _ in {1..100}; do
+        if process_is_running "$EXECUTABLE"; then
+            echo "✓ Launched $APP_NAME — build $BUILD_SHA"
+            launched=1
+            break
+        fi
+        sleep 0.1
+    done
+    if (( ! launched )); then
+        echo "✗ $APP_NAME was installed but did not launch" >&2
+        exit 1
+    fi
     exit 0
+fi
+
+# --clean drops the incremental object cache and every generated artifact, so the
+# next compile runs from scratch. Without it, app builds reuse unchanged objects
+# (see the compile step) and only recompile what changed.
+if (( CLEAN )); then
+    echo "▸ Cleaning build cache…"
+    rm -rf build
 fi
 
 # Prefer the macOS 26 SDK when present: the 27 SDK turns SwiftUI property wrappers
@@ -518,48 +617,75 @@ fi
 
 echo "▸ Compiling ($BUILD_CONFIGURATION) against $(basename "$SDK")…"
 APP_SOURCES=(Sources/Vorssaint/**/*.swift)
-if (( DEV )); then
-    APP_OBJECT_DIR="build/objects/$EXECUTABLE"
-    mkdir -p build "$APP_OBJECT_DIR"
-    APP_OUTPUT_FILE_MAP="$APP_OBJECT_DIR/output-file-map.json"
-    write_swift_output_file_map "$APP_OUTPUT_FILE_MAP" "$APP_OBJECT_DIR" "${APP_SOURCES[@]}"
-    swiftc "${APP_OPTIMIZATION_FLAGS[@]}" -incremental -j "$(sysctl -n hw.logicalcpu)" \
-        -output-file-map "$APP_OUTPUT_FILE_MAP" \
-        -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" "${VM_STATISTICS_COMPAT_FLAGS[@]}" "${HID_EVENT_SYSTEM_FLAGS[@]}" \
-        "${BUILD_VARIANT_FLAGS[@]}" \
-        "${APP_SOURCES[@]}" -o "build/$EXECUTABLE"
+# Incremental, per-file compilation: the object directory persists across builds,
+# so a rebuild only recompiles the files whose dependencies changed instead of
+# all of them. `--clean` (or `rm -rf build`) resets it for a full build.
+APP_OBJECT_DIR="build/objects/$EXECUTABLE"
+mkdir -p build "$APP_OBJECT_DIR"
+APP_OUTPUT_FILE_MAP="$APP_OBJECT_DIR/output-file-map.json"
+write_swift_output_file_map "$APP_OUTPUT_FILE_MAP" "$APP_OBJECT_DIR" "${APP_SOURCES[@]}"
+swiftc "${APP_OPTIMIZATION_FLAGS[@]}" -incremental -j "$(sysctl -n hw.logicalcpu)" \
+    -output-file-map "$APP_OUTPUT_FILE_MAP" \
+    -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" "${VM_STATISTICS_COMPAT_FLAGS[@]}" "${HID_EVENT_SYSTEM_FLAGS[@]}" \
+    "${BUILD_VARIANT_FLAGS[@]}" \
+    "${APP_SOURCES[@]}" -o "build/$EXECUTABLE"
+
+# The helper, adapter and icon are separate `swiftc` invocations that used to be
+# rebuilt on every run. Each is skipped when the contents of its inputs (and the
+# flags that shape it) are unchanged since the last successful build.
+FAN_HELPER_SOURCES=(
+    Sources/Vorssaint/Services/FanControl/FanControlSupport.swift
+    Sources/Vorssaint/Services/FanControl/FanControlXPC.swift
+    Sources/Vorssaint/Services/SystemMonitor/SMCClient.swift
+    Sources/Vorssaint/Services/Metrics/TemperatureSensorSelector.swift
+    Sources/Vorssaint/Services/FanControl/FanControlHardware.swift
+    Sources/FanControlHelper/main.swift
+)
+FAN_HELPER_RECIPE="$SDK|$TARGET|${(j: :)BUILD_VARIANT_FLAGS[@]}|-O"
+if step_is_current "build/$FAN_HELPER_ID" "$FAN_HELPER_RECIPE" "${FAN_HELPER_SOURCES[@]}"; then
+    echo "▸ Protected fan helper unchanged — skipping"
 else
-    rm -rf build
-    mkdir -p build
-    swiftc "${APP_OPTIMIZATION_FLAGS[@]}" -target "$TARGET" -sdk "$SDK" \
-        "${SDK_COMPAT_FLAGS[@]}" "${VM_STATISTICS_COMPAT_FLAGS[@]}" "${HID_EVENT_SYSTEM_FLAGS[@]}" "${BUILD_VARIANT_FLAGS[@]}" \
-        "${APP_SOURCES[@]}" -o "build/$EXECUTABLE"
+    echo "▸ Compiling protected fan helper…"
+    swiftc -O -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" "${BUILD_VARIANT_FLAGS[@]}" \
+        "${FAN_HELPER_SOURCES[@]}" \
+        -o "build/$FAN_HELPER_ID"
+    "build/$FAN_HELPER_ID" --selftest
+    record_step "build/$FAN_HELPER_ID" "$FAN_HELPER_RECIPE" "${FAN_HELPER_SOURCES[@]}"
 fi
 
-echo "▸ Compiling protected fan helper…"
-swiftc -O -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" "${BUILD_VARIANT_FLAGS[@]}" \
-    Sources/Vorssaint/Services/FanControl/FanControlSupport.swift \
-    Sources/Vorssaint/Services/FanControl/FanControlXPC.swift \
-    Sources/Vorssaint/Services/SystemMonitor/SMCClient.swift \
-    Sources/Vorssaint/Services/Metrics/TemperatureSensorSelector.swift \
-    Sources/Vorssaint/Services/FanControl/FanControlHardware.swift \
-    Sources/FanControlHelper/main.swift \
-    -o "build/$FAN_HELPER_ID"
-"build/$FAN_HELPER_ID" --selftest
+NOW_PLAYING_SOURCES=(
+    Sources/NowPlayingAdapter/NowPlayingAdapter.swift
+    Sources/NowPlayingAdapter/NowPlayingQueue.swift
+    Sources/NowPlayingAdapter/NowPlayingSelection.swift
+    Sources/Vorssaint/Services/Notch/NotchPlaybackSource.swift
+    Sources/Vorssaint/Services/Notch/NotchPlaybackCommand.swift
+)
+NOW_PLAYING_RECIPE="$SDK|$TARGET|-emit-library|-O"
+if step_is_current "build/$NOW_PLAYING_ADAPTER" "$NOW_PLAYING_RECIPE" "${NOW_PLAYING_SOURCES[@]}"; then
+    echo "▸ Now Playing adapter unchanged — skipping"
+else
+    echo "▸ Compiling Now Playing adapter…"
+    swiftc -O -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" -emit-library \
+        -module-name VorssaintNowPlaying \
+        "${NOW_PLAYING_SOURCES[@]}" \
+        -o "build/$NOW_PLAYING_ADAPTER"
+    record_step "build/$NOW_PLAYING_ADAPTER" "$NOW_PLAYING_RECIPE" "${NOW_PLAYING_SOURCES[@]}"
+fi
 
-echo "▸ Compiling Now Playing adapter…"
-swiftc -O -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" -emit-library \
-    -module-name VorssaintNowPlaying \
-    Sources/NowPlayingAdapter/NowPlayingAdapter.swift \
-    Sources/NowPlayingAdapter/NowPlayingQueue.swift \
-    Sources/NowPlayingAdapter/NowPlayingSelection.swift \
-    Sources/Vorssaint/Services/Notch/NotchPlaybackSource.swift \
-    Sources/Vorssaint/Services/Notch/NotchPlaybackCommand.swift \
-    -o "build/$NOW_PLAYING_ADAPTER"
-
-echo "▸ Generating app icon…"
-swift Tools/MakeIcon.swift build/AppIcon.iconset
-xattr -c -r build/AppIcon.iconset build/AppIcon.icns build/MenuBarIcon.png build/MenuBarIcon@2x.png build/BrandMark.png 2>/dev/null || true
+ICON_SOURCES=(
+    Tools/MakeIcon.swift
+    Resources/Brand/logo.png
+    Resources/Brand/AppIcon-Default.png
+)
+ICON_RECIPE="$SDK|$TARGET"
+if step_is_current "build/AppIcon.icns" "$ICON_RECIPE" "${ICON_SOURCES[@]}"; then
+    echo "▸ App icon unchanged — skipping"
+else
+    echo "▸ Generating app icon…"
+    swift Tools/MakeIcon.swift build/AppIcon.iconset
+    xattr -c -r build/AppIcon.iconset build/AppIcon.icns build/MenuBarIcon.png build/MenuBarIcon@2x.png build/BrandMark.png 2>/dev/null || true
+    record_step "build/AppIcon.icns" "$ICON_RECIPE" "${ICON_SOURCES[@]}"
+fi
 ACTOOL_BIN="$(xcrun --find actool 2>/dev/null || true)"
 ICON_TMP="$(mktemp -d)"
 ADAPTIVE_SKIP=""
@@ -621,10 +747,8 @@ if (( DEV )); then
     # Stamp the source commit + build time so the running dev app shows (in About)
     # exactly which code it was compiled from. Lets you verify it matches HEAD before
     # testing, instead of unknowingly running a stale build. Dev-only; never shipped.
-    SHA="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-    [[ -n "$(git status --porcelain 2>/dev/null)" ]] && SHA="$SHA-dirty"
-    /usr/libexec/PlistBuddy -c "Add :VorssaintBuildCommit string '$SHA · $(date '+%Y-%m-%d %H:%M')'" "$STAGE/Contents/Info.plist"
-    echo "  stamped dev build: $SHA"
+    /usr/libexec/PlistBuddy -c "Add :VorssaintBuildCommit string '$BUILD_SHA · $(date '+%Y-%m-%d %H:%M')'" "$STAGE/Contents/Info.plist"
+    echo "  stamped dev build: $BUILD_SHA"
 fi
 FAN_HELPER_VERSION="$(
     export LC_ALL=C
@@ -741,32 +865,6 @@ sign_installed_bundle() {
 
 sign_bundle "$STAGE"
 
-process_is_running() {
-    local proc="$1"
-    if (( ${#proc} > 15 )); then
-        pgrep -f "/Contents/MacOS/$proc" >/dev/null 2>&1
-    else
-        pgrep -x "$proc" >/dev/null 2>&1
-    fi
-}
-
-stop_process() {
-    local proc="$1"
-    if (( ${#proc} > 15 )); then
-        pkill -f "/Contents/MacOS/$proc" 2>/dev/null || true
-    else
-        pkill -x "$proc" 2>/dev/null || true
-    fi
-    for _ in {1..50}; do
-        if ! process_is_running "$proc"; then
-            return 0
-        fi
-        sleep 0.1
-    done
-    echo "✗ $proc is still running — quit it and retry" >&2
-    return 1
-}
-
 wait_for_install_metadata() {
     local bundle="$1"
     local missing
@@ -817,6 +915,11 @@ fi
 
 if (( INSTALL )); then
     echo "▸ Installing into /Applications…"
+    # Stop the running instance before the new bundle lands, so the instance the
+    # parent later launches is the one just built, not a surviving old process.
+    if process_is_running "$EXECUTABLE"; then
+        echo "▸ Stopping the running $APP_NAME…"
+    fi
     stop_process "$EXECUTABLE"
     # Remove the pre-rename apps so two menu bar items never coexist. Same bundle
     # id, so macOS keeps the granted permissions for the new bundle.
