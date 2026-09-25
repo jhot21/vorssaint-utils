@@ -103,6 +103,7 @@ enum Notifier {
             content.title = title
             content.body = body
             content.categoryIdentifier = meetingJoinCategoryIdentifier
+            content.sound = .default
             var userInfo: [AnyHashable: Any] = [
                 meetingJoinEventIDKey: event.id,
                 meetingJoinProviderKey: link.provider.rawValue,
