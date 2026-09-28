@@ -5,7 +5,11 @@ import AppKit
 
 /// A live reading the user can pin next to the menu bar icon.
 enum MenuBarMetric: String, CaseIterable, Identifiable {
+<<<<<<< HEAD
     case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, date, nextMeeting
+=======
+    case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, connectedDevices
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
 
     var id: String { rawValue }
 
@@ -24,6 +28,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .batteryTime: return DefaultsKey.menuBarBatteryTime
         case .peripheralBattery: return DefaultsKey.menuBarPeripheralBattery
         case .power: return DefaultsKey.menuBarPower
+        case .connectedDevices: return DefaultsKey.menuBarConnectedDevices
         case .fanSpeed: return DefaultsKey.menuBarFanSpeed
         case .date: return DefaultsKey.menuBarDate
         case .nextMeeting: return DefaultsKey.menuBarNextMeeting
@@ -44,6 +49,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .battery: return "battery.100"
         case .batteryTime: return "clock"
         case .peripheralBattery: return "keyboard"
+        case .connectedDevices: return "cable.connector"
         case .power: return "powerplug.fill"
         case .fanSpeed: return "fanblades"
         case .date: return "calendar"
@@ -65,6 +71,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .battery: return strings.batteryLabel
         case .batteryTime: return FeatureStrings.batteryTime(L10n.shared.language).title
         case .peripheralBattery: return strings.monitorShowPeripheralBattery
+        case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).title
         case .power: return strings.monitorShowPowerLabel
         case .fanSpeed: return FeatureStrings.fanControl(L10n.shared.language).menuBarTitle
         case .date: return FeatureStrings.calendar(L10n.shared.language).menuBarTitle
@@ -78,7 +85,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         .gpu, .gpuTemperature,
         .memory,
         .battery, .batteryTime, .batteryTemperature, .peripheralBattery,
-        .network, .diskUsage, .diskActivity, .power, .fanSpeed,
+        .network, .diskUsage, .diskActivity, .connectedDevices, .power, .fanSpeed,
     ]
 
     static func order(in defaults: UserDefaults) -> [MenuBarMetric] {
@@ -101,6 +108,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .memory: return .monitorMemory
         case .network: return .monitorNetwork
         case .diskUsage, .diskActivity: return .monitorDisk
+        case .connectedDevices: return .connectedDevices
         case .battery, .batteryTime, .batteryTemperature, .peripheralBattery, .power: return .monitorPower
         case .fanSpeed: return .fanControl
         case .date: return .menuBarDate
@@ -410,7 +418,7 @@ enum MenuBarRenderer {
                 }
             case .diskUsage:
                 if let disk = primaryDisk(from: snapshot.disk) {
-                    let text = "DSK " + percent(disk.usedFraction)
+                    let text = "DSK " + DiskMenuBarStyle.current.value(for: disk)
                     items.append(MetricItem(metric: metric,
                                             segments: [.symbol(metric.symbolName), .text(" " + text)],
                                             width: reservedWidth(for: metric, preset: preset)))
@@ -451,6 +459,11 @@ enum MenuBarRenderer {
                                             segments: [.symbol(metric.symbolName), .text(" " + text)],
                                             width: reservedWidth(for: metric, preset: preset)))
                 }
+            case .connectedDevices:
+                let count = snapshot.connectedDevices.count
+                items.append(MetricItem(metric: metric,
+                                        segments: [.symbol(metric.symbolName), .text(" \(count)")],
+                                        width: reservedWidth(for: metric, preset: preset)))
             case .power:
                 if let watts = snapshot.power?.systemWatts {
                     let text = "PWR " + MetricFormat.wattsCompact(watts)
@@ -621,15 +634,16 @@ enum MenuBarRenderer {
                 }
             case .diskUsage:
                 if let disk = primaryDisk(from: snapshot.disk) {
-                    if usesBars {
+                    let diskStyle = DiskMenuBarStyle.current
+                    if usesBars && diskStyle.showsPercentage {
                         groups.append([.usageBarBlock(label: "DSK",
                                                       fraction: disk.usedFraction,
                                                       style: style,
                                                       pressure: nil)])
                     } else {
                         groups.append([.metricBlock(label: "DSK",
-                                                    value: percent(disk.usedFraction),
-                                                    minimumValue: "100%",
+                                                    value: diskStyle.value(for: disk),
+                                                    minimumValue: diskStyle.minimumValue,
                                                     style: style,
                                                     pressure: nil)])
                     }
@@ -710,6 +724,13 @@ enum MenuBarRenderer {
                                                 style: style,
                                                 pressure: nil)])
                 }
+            case .connectedDevices:
+                let count = snapshot.connectedDevices.count
+                groups.append([.metricBlock(label: FeatureStrings.connectedDevices(L10n.shared.language).menuBarLabel,
+                                            value: "\(count)",
+                                            minimumValue: "99",
+                                            style: style,
+                                            pressure: nil)])
             case .power:
                 if let watts = snapshot.power?.systemWatts {
                     groups.append([.metricBlock(label: "PWR",
@@ -854,13 +875,15 @@ enum MenuBarRenderer {
         case (_, .network):
             return 15      // down symbol + 1.0G + up symbol + 1.0G
         case (_, .diskUsage):
-            return 11      // symbol + " DSK 100%"
+            return DiskMenuBarStyle.current.showsPercentage ? 11 : 14
         case (_, .diskActivity):
             return 15      // R1.0G + W1.0G
         case (_, .battery), (_, .power):
             return 11      // symbol + " BAT 100%" / " PWR 99W"
         case (_, .batteryTime):
             return 12      // clock symbol + "99h 59m"
+        case (_, .connectedDevices):
+            return 6       // symbol + " 99"
         case (_, .fanSpeed):
             let count = max(1, SystemMonitor.fanTelemetryCount)
             return FanControlPolicy.menuBarWidthUnits(fanCount: count)

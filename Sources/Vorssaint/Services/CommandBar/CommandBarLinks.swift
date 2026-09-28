@@ -49,6 +49,7 @@ struct CommandBarLink: Codable, Identifiable, Equatable {
     /// no input at all.
     var runsWithoutArgument = false
 
+<<<<<<< HEAD
     /// Off unless the person says otherwise: whatever follows the name is
     /// passed to the script as one argument, same as before this existed. On,
     /// it is shell-word-split first, so a script written to take flags (`-l
@@ -65,6 +66,14 @@ struct CommandBarLink: Codable, Identifiable, Equatable {
     /// to after, since a trailing flag is the common case and it matches how
     /// a hand-rolled wrapper script for this would normally be written.
     var defaultArgumentsPlacement = ArgumentPlacement.after
+=======
+    /// Whether the script answers to its own global shortcut all by itself:
+    /// it runs at once with no argument and nothing on screen, instead of
+    /// opening the bar. Off unless the person says otherwise, because a
+    /// script run this way shows its output nowhere — it is for scripts
+    /// whose work is the effect, not the answer.
+    var runsDirectly = false
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
 
     /// True when the destination waits for whatever is typed after the name,
     /// which is what turns a link into a search.
@@ -92,10 +101,15 @@ extension CommandBarLink {
         destination = try container.decodeIfPresent(String.self, forKey: .destination) ?? ""
         runsWithoutArgument = try container.decodeIfPresent(Bool.self,
                                                             forKey: .runsWithoutArgument) ?? false
+<<<<<<< HEAD
         splitArgument = try container.decodeIfPresent(Bool.self, forKey: .splitArgument) ?? false
         defaultArguments = try container.decodeIfPresent(String.self, forKey: .defaultArguments) ?? ""
         defaultArgumentsPlacement = try container.decodeIfPresent(ArgumentPlacement.self,
             forKey: .defaultArgumentsPlacement) ?? .after
+=======
+        runsDirectly = try container.decodeIfPresent(Bool.self,
+                                                     forKey: .runsDirectly) ?? false
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
     }
 }
 
@@ -222,6 +236,7 @@ enum CommandBarLinks {
         return ""
     }
 
+<<<<<<< HEAD
     /// A script argument, shell-word-split the way a shell would split it
     /// before handing it to a process: single and double quotes group words
     /// containing spaces, a backslash escapes the character after it, and
@@ -292,6 +307,21 @@ enum CommandBarLinks {
         guard !link.defaultArguments.isEmpty else { return typed }
         let defaults = splitArguments(link.defaultArguments)
         return link.defaultArgumentsPlacement == .before ? defaults + typed : typed + defaults
+=======
+    /// The script a global shortcut should run with nothing on screen, if the
+    /// row it is bound to is one. A saved link's row id is the links source's
+    /// prefix plus the link's UUID; anything else — another kind of row, a
+    /// stale id, a script not marked for it — answers nil, and the shortcut
+    /// falls back to opening the bar as it always has.
+    static func directRunScript(forStableKey key: String,
+                                in links: [CommandBarLink]) -> CommandBarLink? {
+        let prefix = CommandBarSource.links.idPrefix ?? "link."
+        guard key.hasPrefix(prefix),
+              let id = UUID(uuidString: String(key.dropFirst(prefix.count))),
+              let link = links.first(where: { $0.id == id }),
+              link.kind == .script, link.runsDirectly else { return nil }
+        return link
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
     }
 
     /// Every script the query names. The answer row stands in for all of them,

@@ -107,27 +107,38 @@ extension AppFeature {
                 || edgeSnapRuns
                 ? .pointer : .idle
         case .radialMenu:
-            // With a side button configured the trigger is a mouse tap;
-            // shortcut-only costs nothing at rest.
-            return RadialMenuMouseTrigger.sanitized(
-                UserDefaults.standard.string(forKey: DefaultsKey.radialMenuMouseButton)) == .off
-                ? .idle : .mouse
+            // A side button or the trackpad tap on any wheel keeps an input
+            // tap running; shortcut-only costs nothing at rest.
+            return RadialMenuSupport.opensFromMouseOrTrackpad(
+                UserDefaults.standard.data(forKey: DefaultsKey.radialMenuProfiles))
+                ? .mouse : .idle
         case .notchNotifications, .notchGestures, .notchTimer, .notchQueue, .notchDownloads: return .idle
         case .notchAccessories: return .periodic
+<<<<<<< HEAD
         case .notch, .notchCalendar, .notchLyrics, .notchLiveEqualizer: return .periodic
         case .calendar, .meetingJoin, .menuBarNextMeeting: return .periodic
+=======
+        // Log changes arrive as file events; a timer keeps countdowns and
+        // limits current while the section is on.
+        case .notch, .notchCalendar, .notchLyrics, .notchLiveEqualizer, .notchAgents: return .periodic
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         case .clipboardHistory, .urlCleaner, .extraBrightness,
              .monitorCPU, .monitorGPU, .monitorMemory,
-             .monitorNetwork, .monitorDisk, .monitorPower:
+             .monitorNetwork, .monitorDisk, .monitorPower, .connectedDevices:
             return .periodic
         case .mixer:
             return UserDefaults.standard.bool(forKey: DefaultsKey.preciseVolumeRollerEnabled)
                 ? .keyboard : .idle
-        case .mouseAcceleration, .pastePlain, .soundOutputSwitcher, .micMute,
+        case .mouseAcceleration, .pastePlain, .soundOutputSwitcher, .audioPriority, .micMute,
              .musicBlock, .bluetoothSleep, .keepAwake, .brightness, .quickLauncher, .quickToggles, .colorPicker,
              .screenOCR, .cleaningMode, .mediaTools, .cleaner, .uninstaller, .homebrew, .screenshot,
+<<<<<<< HEAD
              .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .fanControl,
              .diskImageInstaller, .killProcess, .portManager, .menuBarDate:
+=======
+             .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .wallpaper, .fanControl,
+             .diskImageInstaller, .killProcess, .portManager:
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
             return .idle
         case .appUpdates:
             // The list is on demand; only a background schedule keeps a timer.

@@ -131,7 +131,11 @@ private extension PanelSectionID {
         case .utilities: return text.sectionUtilities
         case .controls: return text.sectionControls
         case .toggles: return text.sectionToggles
+<<<<<<< HEAD
         case .calendar: return text.sectionCalendar
+=======
+        case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).panelDescription
+>>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 }
