@@ -165,7 +165,6 @@ struct UpdateSupportIntroView: View {
     var onFinish: () -> Void
 
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.openURL) private var openURL
     @State private var step: SupportUpdateIntroStep
     @State private var isMovingForward = true
 
@@ -244,7 +243,7 @@ struct UpdateSupportIntroView: View {
                 .frame(maxWidth: 440)
 
             Button {
-                openURL(AppInfo.socialURL)
+                LinkOpener.open(AppInfo.socialURL)
             } label: {
                 HStack(spacing: 8) {
                     XLogoShape()
@@ -311,7 +310,6 @@ struct UpdateSupportIntroView: View {
 
 private struct UpdateSupportContent: View {
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 13) {
@@ -337,7 +335,7 @@ private struct UpdateSupportContent: View {
                 .frame(maxWidth: 440)
 
             Button {
-                openURL(AppInfo.coffeeURL)
+                LinkOpener.open(AppInfo.coffeeURL)
             } label: {
                 Label(l10n.s.supportIntroCoffeeButton,
                       systemImage: "cup.and.saucer.fill")
@@ -353,7 +351,7 @@ private struct UpdateSupportContent: View {
                 .padding(.top, 2)
 
             Button {
-                openURL(AppInfo.repositoryURL)
+                LinkOpener.open(AppInfo.repositoryURL)
             } label: {
                 Label(l10n.s.supportIntroStarButton, systemImage: "star.fill")
             }

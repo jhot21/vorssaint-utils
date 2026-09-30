@@ -516,7 +516,7 @@ private struct ScreenshotSharedLinksView: View {
             .buttonStyle(.borderless)
             .screenshotSafeHelp(strings.copyLink)
             Button {
-                NSWorkspace.shared.open(record.url)
+                LinkOpener.open(record.url)
             } label: {
                 Image(systemName: "arrow.up.forward.app")
             }

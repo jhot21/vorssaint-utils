@@ -2242,6 +2242,6 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                 return
             }
         }
-        NSWorkspace.shared.open(link.browserURL)
+        LinkOpener.open(link.browserURL)
     }
 }

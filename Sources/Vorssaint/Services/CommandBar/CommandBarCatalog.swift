@@ -1430,7 +1430,7 @@ enum CommandBarCatalog {
                                                                         allowFileScheme: allowFileScheme),
                               let url = URL(string: bookmark.url) else { return }
                         guard let appURL = InstalledApps.url(for: bundleID) else {
-                            NSWorkspace.shared.open(url)
+                            LinkOpener.open(url)
                             return
                         }
                         NSWorkspace.shared.open([url], withApplicationAt: appURL,
@@ -1475,7 +1475,7 @@ enum CommandBarCatalog {
                 QuickToolHUD.show(icon: "folder.badge.questionmark", message: link.name)
                 return
             }
-            NSWorkspace.shared.open(url)
+            LinkOpener.open(url)
         }
     }
 
@@ -1697,7 +1697,7 @@ enum CommandBarCatalog {
             subtitle: bar.openInBrowser,
             icon: .symbol("globe"),
             countsUsage: false,
-            run: { _ in NSWorkspace.shared.open(url) })
+            run: { _ in LinkOpener.open(url) })
     }
 
     // MARK: - Clipboard history
