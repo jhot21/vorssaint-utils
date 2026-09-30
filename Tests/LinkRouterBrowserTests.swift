@@ -5,6 +5,12 @@ import Foundation
 
 enum LinkRouterBrowserTests {
     static func run(_ suite: TestSuite) {
+        suite.expect(BrowserCatalogSupport.cleanName("Firefox.app") == "Firefox"
+                        && BrowserCatalogSupport.cleanName("Firefox.APP") == "Firefox"
+                        && BrowserCatalogSupport.cleanName("Safari") == "Safari"
+                        && BrowserCatalogSupport.cleanName("My.app Browser") == "My.app Browser"
+                        && BrowserCatalogSupport.cleanName(".app") == ".app",
+                     "a trailing .app is stripped from display names, case-insensitively, and only at the end")
         let safari = BrowserInfo(bundleID: "com.apple.Safari", name: "Safari")
         let chrome = BrowserInfo(bundleID: "com.google.Chrome", name: "Google Chrome")
         let firefox = BrowserInfo(bundleID: "org.mozilla.firefox", name: "Firefox")

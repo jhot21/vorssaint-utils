@@ -64,6 +64,12 @@ enum RuleEditing {
         rules.swapAt(index, index + offset)
     }
 
+    /// Applies a drag-reordered id list. Rules missing from `ids` (added elsewhere
+    /// meanwhile) keep their positions; ids no longer stored are ignored.
+    static func reorder(_ ids: [UUID], in rules: inout [RoutingRule]) {
+        rules = ReorderSupport.apply(order: ids.map(\.uuidString), to: rules) { $0.id.uuidString }
+    }
+
     /// Replaces the rule with the same id (keeping its stored enabled state, and
     /// its flag unless the pattern or kind changed) or appends a new one.
     static func save(_ rule: RoutingRule, in rules: inout [RoutingRule]) {

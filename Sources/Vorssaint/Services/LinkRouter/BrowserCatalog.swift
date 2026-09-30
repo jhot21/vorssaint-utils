@@ -19,6 +19,13 @@ enum BrowserCatalogSupport {
         bundleID.hasPrefix("com.vorssaint.utils")
     }
 
+    /// Finder shows some apps with their extension ("Firefox.app"); the list
+    /// reads better without it. Only a trailing ".app" is removed.
+    static func cleanName(_ name: String) -> String {
+        guard name.count > 4, name.lowercased().hasSuffix(".app") else { return name }
+        return String(name.dropLast(4))
+    }
+
     static func merge(discovered: [BrowserInfo], order: [String], hidden: Set<String>,
                       excluding selfBundleID: String) -> (all: [BrowserInfo], visible: [BrowserInfo]) {
         var unique: [BrowserInfo] = []
@@ -50,7 +57,7 @@ enum BrowserDiscovery {
                 guard let identifier = Bundle(url: appURL)?.bundleIdentifier,
                       !browsers.contains(where: { $0.bundleID == identifier }) else { continue }
                 browsers.append(BrowserInfo(bundleID: identifier,
-                                            name: FileManager.default.displayName(atPath: appURL.path)))
+                                            name: BrowserCatalogSupport.cleanName(FileManager.default.displayName(atPath: appURL.path))))
             }
         }
         return browsers

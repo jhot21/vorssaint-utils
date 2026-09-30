@@ -63,5 +63,10 @@ enum LinkRouterPickerTests {
         suite.expect(second.visible.contains(onOther), "an update resize clamps on the screen the panel is on")
         suite.expect(LinkPickerPlacement.resized(current, to: size, screens: []).size == size,
                      "resizing with no screens keeps the size and nothing crashes")
+
+        suite.expect(LinkPickerSupport.shouldActivateBrowser(waitingAfter: 0)
+                        && !LinkPickerSupport.shouldActivateBrowser(waitingAfter: 1)
+                        && !LinkPickerSupport.shouldActivateBrowser(waitingAfter: 3),
+                     "the chosen browser only activates when no more links are waiting")
     }
 }

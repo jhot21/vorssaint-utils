@@ -38,6 +38,30 @@ enum LinkRouterEditingTests {
         RuleEditing.move(c.id, by: -1, in: &list)
         suite.expect(list.map(\.id) == [a.id, c.id, b.id], "move swaps with the neighbour")
 
+        // Drag reorder
+        let ids = ["a", "b", "c", "d"]
+        suite.expect(ReorderSupport.move(ids: ids, moving: "a", onto: "c") == ["b", "c", "a", "d"],
+                     "dragging forward lands after the hovered row")
+        suite.expect(ReorderSupport.move(ids: ids, moving: "d", onto: "b") == ["a", "d", "b", "c"],
+                     "dragging backward lands before the hovered row")
+        suite.expect(ReorderSupport.move(ids: ids, moving: "b", onto: "b") == ids, "dropping on itself is a no-op")
+        suite.expect(ReorderSupport.move(ids: ids, moving: "x", onto: "b") == ids
+                        && ReorderSupport.move(ids: ids, moving: "b", onto: "x") == ids,
+                     "an unknown id is a no-op")
+        suite.expect(ReorderSupport.move(ids: ids, moving: "a", onto: "d") == ["b", "c", "d", "a"],
+                     "dragging onto the last row moves to the end")
+        var reordered = [a, b, c]
+        RuleEditing.reorder([c.id, a.id, b.id], in: &reordered)
+        suite.expect(reordered.map(\.id) == [c.id, a.id, b.id], "reorder applies the dragged order")
+        let added = RoutingRule(pattern: "new.test", browserBundleID: "b.one")
+        var concurrent = [added, a, b, c]
+        RuleEditing.reorder([c.id, b.id, a.id], in: &concurrent)
+        suite.expect(concurrent.map(\.id) == [added.id, c.id, b.id, a.id],
+                     "a rule added elsewhere keeps its position during a reorder")
+        var gone = [a, c]
+        RuleEditing.reorder([b.id, c.id, a.id], in: &gone)
+        suite.expect(gone.map(\.id) == [c.id, a.id], "a removed rule in the dragged copy is ignored")
+
         // Enabling clears the flag; disabling keeps it.
         var flagged = [RoutingRule(id: a.id, pattern: "x", browserBundleID: "b", isEnabled: false, flag: .tooSlow)]
         RuleEditing.setEnabled(a.id, false, in: &flagged)

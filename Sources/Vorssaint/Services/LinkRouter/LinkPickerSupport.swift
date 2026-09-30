@@ -24,6 +24,15 @@ enum LinkPickerKeys {
     }
 }
 
+enum LinkPickerSupport {
+    /// A chosen browser takes keyboard focus when it activates. While more
+    /// links are queued the next picker must keep focus, so the open is
+    /// background-only then.
+    static func shouldActivateBrowser(waitingAfter waiting: Int) -> Bool {
+        waiting <= 0
+    }
+}
+
 enum LinkPickerPlacement {
     private static let gap: CGFloat = 12
     private static let margin: CGFloat = 8
