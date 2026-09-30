@@ -150,6 +150,12 @@ final class FeatureRuntime: ObservableObject {
         for feature in AppFeature.allCases where feature.isAvailable {
             Self.bindings[feature]?()
         }
+        // The URL Apple event handler is installed unconditionally, so the
+        // router must become ready (draining anything buffered) and give the
+        // default browser back even when the feature is not installed.
+        if !AppFeature.linkRouter.isAvailable {
+            LinkRouterService.shared.syncWithPreferences()
+        }
     }
 
     /// Re-syncs a set of features (used by the permission sinks); skips

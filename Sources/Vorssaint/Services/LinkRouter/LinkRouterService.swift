@@ -19,6 +19,7 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
     private lazy var core = LinkRouterCore(environment: self, evaluator: RegexEvaluator(),
                                            selfBundleID: BrowserCatalog.ownBundleID)
     private var wasOn = false
+    private var isRestoring = false
 
     private override init() { super.init() }
 
@@ -59,15 +60,27 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         core.setReady()
         if !on {
             if wasOn { core.stopAll() }
-            restoreDefault { [weak self] result in
-                if result == .failed || result == .previousMissing {
-                    QuickToolHUD.show(icon: "exclamationmark.triangle",
-                                      message: FeatureStrings.linkRouter(L10n.shared.language).restoreFailed)
+            // One chain at a time: it can raise a system confirmation dialog,
+            // and a second sync must not stack another or re-prompt.
+            if !isRestoring {
+                isRestoring = true
+                restoreDefault { [weak self] result in
+                    DispatchQueue.main.async {
+                        self?.isRestoring = false
+                        self?.finishRestore(result)
+                    }
                 }
-                self?.refreshStatus()
             }
         }
         wasOn = on
+        refreshStatus()
+    }
+
+    private func finishRestore(_ result: DefaultBrowserManager.RestoreResult) {
+        if result == .failed || result == .previousMissing {
+            QuickToolHUD.show(icon: "exclamationmark.triangle",
+                              message: FeatureStrings.linkRouter(L10n.shared.language).restoreFailed)
+        }
         refreshStatus()
     }
 
