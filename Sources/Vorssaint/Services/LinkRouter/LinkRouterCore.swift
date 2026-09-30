@@ -128,13 +128,15 @@ final class LinkRouterCore {
         advance()
     }
 
+    /// Esc or a click outside the picker: the person declined to pick, so the
+    /// link is discarded (nothing is opened) and the next waiting one is shown.
     func pickerDidCancel(_ url: URL) {
         guard let current, current == url else { return }
-        openFallback(url)
         advance()
     }
 
-    /// The feature is going away: nothing pending may be lost.
+    /// The feature is going away: links still pending (current and waiting) that
+    /// never got their own decision go to the fallback browser.
     func stopAll() {
         generation += 1
         guard let environment else { return }  // nothing to deliver to; keep the queue

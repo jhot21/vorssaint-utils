@@ -94,7 +94,7 @@ enum LinkRouterCoreTests {
         suite.expect(coldEnv.events == ["picker:https://one.test/0", "picker:https://one.test/1"],
                      "buffered links are routed once ready, the second waiting behind the first")
 
-        // Picker queue: choose, then the next appears; cancel goes to fallback.
+        // Picker queue: choose, then the next appears; cancel discards the link.
         (env, core, _) = make()
         core.route(req("https://a.test"))
         core.route(req("https://b.test"))
@@ -106,8 +106,17 @@ enum LinkRouterCoreTests {
                      "choosing opens the link and brings up the next waiting one")
         env.events = []
         core.pickerDidCancel(URL(string: "https://b.test")!)
-        suite.expect(env.events == ["open:https://b.test@org.mozilla.firefox", "hide"],
-                     "cancelling sends the link to the fallback browser and closes the picker")
+        suite.expect(env.events == ["hide"],
+                     "cancelling discards the link (nothing is opened) and closes the picker")
+
+        // Cancelling the current link with one waiting shows the waiting one, opening nothing.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.route(req("https://b.test"))
+        env.events = []
+        core.pickerDidCancel(URL(string: "https://a.test")!)
+        suite.expect(env.events == ["picker:https://b.test/0"],
+                     "cancelling with a link waiting discards the current one and shows the next, with no open")
 
         // Saving a rule from the picker.
         (env, core, _) = make()
@@ -185,6 +194,18 @@ enum LinkRouterCoreTests {
         core.route(req("https://c.test"))
         suite.expect(env.events == ["picker:https://c.test/0"], "after stopping, a new link gets a fresh picker")
 
+        // After a cancel, stopping sends only the links still pending to the fallback.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.route(req("https://b.test"))
+        core.route(req("https://c.test"))
+        core.pickerDidCancel(URL(string: "https://a.test")!)
+        env.events = []
+        core.stopAll()
+        suite.expect(env.events == ["open:https://b.test@org.mozilla.firefox",
+                                    "open:https://c.test@org.mozilla.firefox", "hide"],
+                     "stopping after a cancel sends only the remaining pending links to the fallback, not the discarded one")
+
         // Late picker callbacks after stopAll do nothing.
         (env, core, _) = make()
         core.route(req("https://a.test"))
@@ -194,7 +215,7 @@ enum LinkRouterCoreTests {
         core.pickerDidChoose(URL(string: "https://a.test")!, bundleID: "com.apple.Safari", saveRule: true)
         suite.expect(env.events.isEmpty, "late picker callbacks after stopping are ignored")
 
-        // A late cancel after a choose neither reopens the link nor skips the next one.
+        // A late cancel after a choose neither acts on the link nor skips the next one.
         (env, core, _) = make()
         core.route(req("https://a.test"))
         core.route(req("https://b.test"))
@@ -203,8 +224,8 @@ enum LinkRouterCoreTests {
         core.pickerDidCancel(URL(string: "https://a.test")!)
         suite.expect(env.events.isEmpty, "a late cancel after a choose does nothing and does not advance")
         core.pickerDidCancel(URL(string: "https://b.test")!)
-        suite.expect(env.events == ["open:https://b.test@org.mozilla.firefox", "hide"],
-                     "the next waiting link is still current after the stale cancel")
+        suite.expect(env.events == ["hide"],
+                     "the next waiting link is still current after the stale cancel, and cancelling it discards it")
 
         // A late choose after a cancel does nothing.
         (env, core, _) = make()
