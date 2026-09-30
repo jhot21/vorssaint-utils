@@ -11,6 +11,16 @@ enum LinkRouterBrowserTests {
         let me = BrowserInfo(bundleID: "com.vorssaint.utils", name: "Vorssaint")
         let found = [safari, chrome, firefox, me]
 
+        let devBuild = BrowserInfo(bundleID: "com.vorssaint.utils.dev", name: "Vorssaint Dev")
+        let releaseSelf = BrowserCatalogSupport.merge(discovered: found + [devBuild], order: [], hidden: [],
+                                                      excluding: "com.vorssaint.utils")
+        suite.expect(!releaseSelf.all.contains(devBuild) && !releaseSelf.all.contains(me),
+                     "every Vorssaint build is excluded, not only the running one")
+        let devSelf = BrowserCatalogSupport.merge(discovered: found + [devBuild], order: [], hidden: [],
+                                                  excluding: "com.vorssaint.utils.dev")
+        suite.expect(!devSelf.all.contains(devBuild) && !devSelf.all.contains(me),
+                     "the release build is excluded when the dev build runs")
+
         let fresh = BrowserCatalogSupport.merge(discovered: found, order: [], hidden: [],
                                                 excluding: "com.vorssaint.utils")
         suite.expect(!fresh.all.contains(me) && fresh.all.count == 3,

@@ -11,12 +11,18 @@ struct BrowserInfo: Equatable, Identifiable {
 
 /// Ordering and visibility rules, free of AppKit discovery so they can be
 /// tested: saved order first, new browsers appended alphabetically,
-/// uninstalled ones dropped, Vorssaint itself never offered.
+/// uninstalled ones dropped, every Vorssaint build never offered.
 enum BrowserCatalogSupport {
+    /// Release, development and leftover copies all share this prefix, and
+    /// none of them may be offered as, or fall back to, a browser.
+    static func isVorssaint(_ bundleID: String) -> Bool {
+        bundleID.hasPrefix("com.vorssaint.utils")
+    }
+
     static func merge(discovered: [BrowserInfo], order: [String], hidden: Set<String>,
                       excluding selfBundleID: String) -> (all: [BrowserInfo], visible: [BrowserInfo]) {
         var unique: [BrowserInfo] = []
-        for browser in discovered where browser.bundleID != selfBundleID
+        for browser in discovered where browser.bundleID != selfBundleID && !isVorssaint(browser.bundleID)
             && !unique.contains(where: { $0.bundleID == browser.bundleID }) {
             unique.append(browser)
         }
