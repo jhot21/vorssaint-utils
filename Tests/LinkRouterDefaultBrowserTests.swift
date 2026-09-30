@@ -110,5 +110,27 @@ enum LinkRouterDefaultBrowserTests {
         dev.makeDefault { made = $0 }
         suite.expect(made == .unavailable && backend.sets.isEmpty,
                      "a development build refuses to become the default browser")
+
+        // Fallback browser: the live system handler beats the stored one.
+        (backend, manager) = fresh()
+        defaults.set("com.google.Chrome", forKey: DefaultsKey.linkRouterPreviousDefault)
+        suite.expect(manager.effectiveFallbackBundleID == "com.apple.Safari",
+                     "a live non-Vorssaint handler wins over a stale stored previous browser")
+        backend.handlers = ["http": "me", "https": "me"]
+        suite.expect(manager.effectiveFallbackBundleID == "com.google.Chrome",
+                     "when Vorssaint is the handler the stored previous browser is used")
+        backend.handlers = ["http": "com.vorssaint.utils.dev", "https": "com.vorssaint.utils.dev"]
+        suite.expect(manager.effectiveFallbackBundleID == "com.google.Chrome",
+                     "any Vorssaint build as the handler falls through to the stored browser")
+        defaults.removeObject(forKey: DefaultsKey.linkRouterPreviousDefault)
+        backend.handlers = ["http": "me", "https": "me"]
+        suite.expect(manager.effectiveFallbackBundleID == nil,
+                     "Vorssaint as handler with nothing stored gives no fallback")
+        defaults.set("com.google.Chrome", forKey: DefaultsKey.linkRouterPreviousDefault)
+        backend.handlers = ["http": "gone.browser", "https": "gone.browser"]
+        suite.expect(manager.effectiveFallbackBundleID == "com.google.Chrome",
+                     "a live handler that is not installed falls back to the stored browser")
+        defaults.set("gone.too", forKey: DefaultsKey.linkRouterPreviousDefault)
+        suite.expect(manager.effectiveFallbackBundleID == nil, "an uninstalled stored browser is not offered")
     }
 }

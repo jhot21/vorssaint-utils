@@ -75,6 +75,18 @@ final class DefaultBrowserManager {
         return value.isEmpty ? nil : value
     }
 
+    /// The browser in-app links should use when Vorssaint is not routing
+    /// them: the live https handler first, since that is what the person
+    /// really uses, then the one captured by "Make default". Never a
+    /// Vorssaint build, always installed.
+    var effectiveFallbackBundleID: String? {
+        let candidates = [backend.currentHandler(forScheme: "https"), previousBundleID]
+        return candidates.compactMap { $0 }.first {
+            !$0.isEmpty && $0 != selfBundleID && !BrowserCatalogSupport.isVorssaint($0)
+                && backend.isInstalled(bundleID: $0)
+        }
+    }
+
     var status: Status {
         let handlers = Self.schemes.map { backend.currentHandler(forScheme: $0) }
         if handlers.allSatisfy({ $0 == selfBundleID }) { return .isDefault }

@@ -126,7 +126,7 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
 
     var visibleBrowsers: [BrowserInfo] { BrowserCatalog.current(defaults: defaults).visible }
 
-    var previousDefaultBundleID: String? { manager.previousBundleID }
+    var previousDefaultBundleID: String? { manager.effectiveFallbackBundleID }
 
     var isScreenLocked: Bool {
         let locked = (CGSessionCopyCurrentDictionary() as? [String: Any])?["CGSSessionScreenIsLocked"] as? Bool ?? false
