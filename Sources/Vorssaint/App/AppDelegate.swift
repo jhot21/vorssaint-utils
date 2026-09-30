@@ -269,8 +269,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         return .terminateLater
     }
 
+    /// Documents (html, xhtml) sent to the app once it is the default for
+    /// them; web links arrive through the URL Apple event instead.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        LinkRouterService.shared.openDocuments(urls)
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         isTerminating = true
+        // Hands queued picker links back to the core instead of dropping them.
+        LinkRouterService.shared.stop()
         CommandBarService.shared.restoreBorrowedInputSource()
         if AppFeature.notch.isAvailable { NotchService.shared.stop(restoreCapture: false) }
         // Quitting properly means the start worked, whenever it happened.

@@ -47,6 +47,22 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         route(LinkRequest(urls: [url], senderBundleID: sender))
     }
 
+    /// Files handed to the app (html, xhtml). They open in an explicit
+    /// browser, never through a bare open, which LaunchServices would hand
+    /// straight back to Vorssaint.
+    func openDocuments(_ urls: [URL]) {
+        for url in urls {
+            guard url.isFileURL else { LinkOpener.open(url); continue }
+            guard let bundleID = core.fallbackBundleID(),
+                  let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+                NSSound.beep()
+                continue
+            }
+            NSWorkspace.shared.open([url], withApplicationAt: appURL,
+                                    configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+        }
+    }
+
     func route(_ request: LinkRequest) {
         core.route(request)
     }
