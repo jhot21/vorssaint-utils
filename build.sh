@@ -359,6 +359,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/LinkRouter/RuleStore.swift
         Sources/Vorssaint/Services/LinkRouter/BrowserCatalog.swift
         Sources/Vorssaint/Services/LinkRouter/DefaultBrowserManager.swift
+        Sources/Vorssaint/Services/LinkRouter/LinkRouterCore.swift
         Sources/Vorssaint/Core/LinkRouterStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift

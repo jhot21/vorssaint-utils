@@ -1,0 +1,173 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Vorssaint
+
+import Foundation
+
+enum LinkRouterCoreTests {
+    private final class FakeEnv: LinkRouterEnvironment {
+        var isFeatureOn = true
+        var rules: [RoutingRule] = []
+        var visibleBrowsers = [BrowserInfo(bundleID: "com.apple.Safari", name: "Safari"),
+                               BrowserInfo(bundleID: "org.mozilla.firefox", name: "Firefox")]
+        var previousDefaultBundleID: String? = "org.mozilla.firefox"
+        var isScreenLocked = false
+        var installed: Set<String> = ["com.apple.Safari", "org.mozilla.firefox", "com.work"]
+        var events: [String] = []
+        func isInstalled(bundleID: String) -> Bool { installed.contains(bundleID) }
+        func open(_ url: URL, inBundleID bundleID: String) { events.append("open:\(url.absoluteString)@\(bundleID)") }
+        func openNonWeb(_ url: URL) { events.append("nonweb:\(url.absoluteString)") }
+        func noBrowserAvailable(for url: URL) { events.append("none:\(url.absoluteString)") }
+        func showPicker(for url: URL, waiting: Int) { events.append("picker:\(url.absoluteString)/\(waiting)") }
+        func hidePicker() { events.append("hide") }
+        func addRule(_ rule: RoutingRule) { rules.append(rule); events.append("rule:\(rule.pattern)@\(rule.browserBundleID)") }
+        func flagRule(id: UUID, flag: RoutingRule.Flag) { events.append("flag:\(flag.rawValue)") }
+    }
+
+    private final class NeverRegex: RegexEvaluating {
+        var outcome: RegexOutcome = .noMatch
+        func evaluate(pattern: String, in text: String, completion: @escaping (RegexOutcome) -> Void) { completion(outcome) }
+    }
+
+    private static func make(_ configure: (FakeEnv) -> Void = { _ in }) -> (FakeEnv, LinkRouterCore, NeverRegex) {
+        let env = FakeEnv()
+        configure(env)
+        let regex = NeverRegex()
+        let core = LinkRouterCore(environment: env, evaluator: regex, selfBundleID: "me")
+        core.setReady()
+        env.events = []
+        return (env, core, regex)
+    }
+
+    private static func req(_ s: String, from sender: String? = nil) -> LinkRequest {
+        LinkRequest(urls: [URL(string: s)!], senderBundleID: sender)
+    }
+
+    static func run(_ suite: TestSuite) {
+        // Non-web links never enter the router.
+        var (env, core, _) = make()
+        core.route(req("mailto:a@b.c"))
+        suite.expect(env.events == ["nonweb:mailto:a@b.c"], "non-web links pass straight through")
+
+        // A rule hit opens silently.
+        (env, core, _) = make { $0.rules = [RoutingRule(pattern: "*.company.com", browserBundleID: "com.work")] }
+        core.route(req("https://a.company.com/x"))
+        suite.expect(env.events == ["open:https://a.company.com/x@com.work"], "a rule hit opens in the rule's browser with no picker")
+
+        // No match shows the picker.
+        (env, core, _) = make()
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["picker:https://example.com/0"], "no rule match shows the picker")
+
+        // A rule whose browser is gone falls back to the picker.
+        (env, core, _) = make {
+            $0.rules = [RoutingRule(pattern: "example.com", browserBundleID: "com.gone")]
+        }
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["picker:https://example.com/0"], "a rule for an uninstalled browser shows the picker")
+
+        // A rule pointing at Vorssaint itself is never followed (no self-loop).
+        (env, core, _) = make {
+            $0.rules = [RoutingRule(pattern: "example.com", browserBundleID: "me")]
+            $0.installed.insert("me")
+        }
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["picker:https://example.com/0"], "a rule targeting Vorssaint itself shows the picker")
+
+        // Feature off goes to the fallback browser, never a bare open.
+        (env, core, _) = make { $0.isFeatureOn = false }
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["open:https://example.com@org.mozilla.firefox"], "with the feature off links go to the previous default")
+
+        // Cold launch: requests before ready are buffered, then routed in order.
+        let coldEnv = FakeEnv()
+        let cold = LinkRouterCore(environment: coldEnv, evaluator: NeverRegex(), selfBundleID: "me")
+        cold.route(req("https://one.test"))
+        cold.route(req("https://two.test"))
+        suite.expect(coldEnv.events.isEmpty, "links arriving before the router is ready are not acted on yet")
+        cold.setReady()
+        suite.expect(coldEnv.events == ["picker:https://one.test/0", "picker:https://one.test/1"],
+                     "buffered links are routed once ready, the second waiting behind the first")
+
+        // Picker queue: choose, then the next appears; cancel goes to fallback.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.route(req("https://b.test"))
+        suite.expect(env.events == ["picker:https://a.test/0", "picker:https://a.test/1"],
+                     "a second link waits behind the open picker and the chip count updates")
+        env.events = []
+        core.pickerDidChoose(URL(string: "https://a.test")!, bundleID: "com.apple.Safari", saveRule: false)
+        suite.expect(env.events == ["open:https://a.test@com.apple.Safari", "picker:https://b.test/0"],
+                     "choosing opens the link and brings up the next waiting one")
+        env.events = []
+        core.pickerDidCancel(URL(string: "https://b.test")!)
+        suite.expect(env.events == ["open:https://b.test@org.mozilla.firefox", "hide"],
+                     "cancelling sends the link to the fallback browser and closes the picker")
+
+        // Saving a rule from the picker.
+        (env, core, _) = make()
+        core.route(req("https://www.Example.com/docs?x=1"))
+        env.events = []
+        core.pickerDidChoose(URL(string: "https://www.Example.com/docs?x=1")!, bundleID: "com.apple.Safari", saveRule: true)
+        suite.expect(env.events == ["open:https://www.Example.com/docs?x=1@com.apple.Safari",
+                                    "rule:www.example.com@com.apple.Safari", "hide"],
+                     "an option-pick opens the link and saves a host-only rule for the exact host")
+        suite.expect(GlobMatcher.matches(pattern: env.rules[0].pattern,
+                                         link: LinkCanonical.link(for: URL(string: "https://www.Example.com")!)!),
+                     "the rule saved from the picker matches the bare host it came from")
+
+        // Internal links (the repository, coffee or update page) never pop a picker.
+        (env, core, _) = make()
+        core.route(LinkRequest(urls: [URL(string: "https://github.com/x")!], senderBundleID: nil, allowsPicker: false))
+        suite.expect(env.events == ["open:https://github.com/x@org.mozilla.firefox"],
+                     "an in-app link with no matching rule opens in the fallback browser, not the picker")
+        (env, core, _) = make { $0.rules = [RoutingRule(pattern: "github.com", browserBundleID: "com.work")] }
+        core.route(LinkRequest(urls: [URL(string: "https://github.com/x")!], senderBundleID: nil, allowsPicker: false))
+        suite.expect(env.events == ["open:https://github.com/x@com.work"],
+                     "an in-app link still follows the person's rules")
+
+        // Overflow past the cap goes to the fallback without prompting.
+        (env, core, _) = make()
+        for i in 0...(LinkRouterCore.queueCap + 1) { core.route(req("https://q\(i).test")) }
+        let opened = env.events.filter { $0.hasPrefix("open:") }
+        suite.expect(opened == ["open:https://q\(LinkRouterCore.queueCap + 1).test@org.mozilla.firefox"],
+                     "links beyond the queue cap skip the picker and use the fallback browser")
+
+        // Locked screen and empty browser list skip the picker.
+        (env, core, _) = make { $0.isScreenLocked = true }
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["open:https://example.com@org.mozilla.firefox"], "a locked screen skips the picker")
+        (env, core, _) = make { $0.visibleBrowsers = [] }
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["open:https://example.com@org.mozilla.firefox"], "with no visible browsers the fallback is used")
+
+        // Fallback chain.
+        (env, core, _) = make { $0.previousDefaultBundleID = "me" }
+        suite.expect(core.fallbackBundleID() == "com.apple.Safari",
+                     "a previous default that is Vorssaint itself is skipped for the first visible browser")
+        (env, core, _) = make { $0.previousDefaultBundleID = nil; $0.visibleBrowsers = [] }
+        suite.expect(core.fallbackBundleID() == "com.apple.Safari", "Safari is the last resort when installed")
+        (env, core, _) = make { $0.previousDefaultBundleID = nil; $0.visibleBrowsers = []; $0.installed = [] }
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["none:https://example.com"],
+                     "with no browser at all the link is reported, never bare-opened")
+
+        // Regex failures are flagged.
+        let slowSetup = make { $0.rules = [RoutingRule(pattern: "(a+)+$", kind: .regex, browserBundleID: "com.work")] }
+        (env, core) = (slowSetup.0, slowSetup.1)
+        slowSetup.2.outcome = .timedOut
+        core.route(req("https://example.com"))
+        suite.expect(env.events == ["flag:tooSlow", "picker:https://example.com/0"],
+                     "a slow regex rule is flagged and routing continues to the picker")
+
+        // Stopping drains the picker into the fallback.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.route(req("https://b.test"))
+        env.events = []
+        core.stopAll()
+        suite.expect(env.events == ["open:https://a.test@org.mozilla.firefox",
+                                    "open:https://b.test@org.mozilla.firefox", "hide"],
+                     "stopping the router sends every pending link to the fallback browser")
+
+    }
+}
