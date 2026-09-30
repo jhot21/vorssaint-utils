@@ -53,6 +53,7 @@ struct MetricsTests {
                 LinkRouterStorageTests.run(suite)
                 LinkRouterStringsTests.run(suite)
                 LinkRouterBrowserTests.run(suite)
+                LinkRouterDefaultBrowserTests.run(suite)
             }),
             ("notch", {
                 NotchTests.run(suite)
