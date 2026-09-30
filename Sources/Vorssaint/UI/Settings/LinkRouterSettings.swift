@@ -18,7 +18,8 @@ struct LinkRouterSettings: View {
     @State private var editing: RoutingRule?
     @State private var testInput = ""
     @State private var testResult: String?
-    @State private var declined = false
+    @State private var restoreFailed = false
+    @State private var testToken = 0
     private let evaluator = RegexEvaluator()
 
     private var text: LinkRouterFeatureStrings { FeatureStrings.linkRouter(l10n.language) }
@@ -63,6 +64,7 @@ struct LinkRouterSettings: View {
                 }
                 TextField(text.testLabel, text: $testInput)
                     .onChange(of: testInput) { _, _ in runTest() }
+                    .onChange(of: rules) { _, _ in runTest() }
                 if let testResult { Text(testResult).font(.caption).foregroundStyle(.secondary) }
             }
             Section(text.pickerHeader) {
@@ -72,21 +74,24 @@ struct LinkRouterSettings: View {
         }
         .sheet(item: $editing) { rule in
             RuleEditor(rule: rule, browsers: browsers, text: text) { saved in
-                if let index = rules.firstIndex(where: { $0.id == saved.id }) { rules[index] = saved } else { rules.append(saved) }
-                RuleStore.save(rules)
-                rulesUnreadable = false
+                mutateRules { RuleEditing.save(saved, in: &$0) }
                 editing = nil
             } onCancel: { editing = nil }
         }
         .onAppear {
             loadBrowsers()
-            rules = RuleStore.load()
-            rulesUnreadable = RuleStore.isMalformed(UserDefaults.standard.string(forKey: DefaultsKey.linkRouterRules) ?? "")
+            reloadRules()
             router.refreshStatus()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            rules = RuleStore.load()
+            reloadRules()
             router.refreshStatus()
+        }
+        .onChange(of: router.status) { _, _ in restoreFailed = false }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            // The picker, the service and the undo toast write the rules while this page is open.
+            let stored = RuleStore.load()
+            if stored != rules { reloadRules() }
         }
     }
 
@@ -110,8 +115,14 @@ struct LinkRouterSettings: View {
             }
         }
         if router.status == .isDefault {
-            Button(text.restoreDefault) {
-                LinkRouterService.shared.restoreDefault { _ in }
+            VStack(alignment: .leading, spacing: 2) {
+                Button(text.restoreDefault) {
+                    restoreFailed = false
+                    LinkRouterService.shared.restoreDefault { result in
+                        restoreFailed = result == .failed || result == .previousMissing
+                    }
+                }
+                if restoreFailed { Text(text.restoreFailed).font(.caption).foregroundStyle(.secondary) }
             }
         }
     }
@@ -119,11 +130,11 @@ struct LinkRouterSettings: View {
     private var makeDefaultButton: some View {
         VStack(alignment: .leading, spacing: 2) {
             Button(text.makeDefault) {
-                LinkRouterService.shared.makeDefault { result in declined = result == .failed }
+                // The status row already says Vorssaint is not the default when this did not take.
+                LinkRouterService.shared.makeDefault { _ in router.refreshStatus() }
             }
             .disabled(!router.canMakeDefault)
             if !router.canMakeDefault { Text(text.makeDefaultDevNote).font(.caption).foregroundStyle(.secondary) }
-            if declined { Text(text.restoreFailed).font(.caption).foregroundStyle(.secondary) }
         }
     }
 
@@ -133,7 +144,7 @@ struct LinkRouterSettings: View {
         HStack {
             Toggle("", isOn: Binding(
                 get: { rule.isEnabled },
-                set: { rules[index].isEnabled = $0; rules[index].flag = $0 ? nil : rules[index].flag; RuleStore.save(rules) }))
+                set: { value in mutateRules { RuleEditing.setEnabled(rule.id, value, in: &$0) } }))
                 .labelsHidden()
             VStack(alignment: .leading, spacing: 2) {
                 Text(rule.pattern).font(.body.monospaced())
@@ -154,22 +165,31 @@ struct LinkRouterSettings: View {
                 }
             }
             Spacer()
-            Button { moveRule(index, by: -1) } label: { Image(systemName: "chevron.up") }
+            Button { moveRule(rule.id, by: -1) } label: { Image(systemName: "chevron.up") }
                 .buttonStyle(.borderless).disabled(index == 0)
-            Button { moveRule(index, by: 1) } label: { Image(systemName: "chevron.down") }
+            Button { moveRule(rule.id, by: 1) } label: { Image(systemName: "chevron.down") }
                 .buttonStyle(.borderless).disabled(index == rules.count - 1)
             Button { editing = rule } label: { Image(systemName: "pencil") }.buttonStyle(.borderless)
-            Button(role: .destructive) { rules.remove(at: index); RuleStore.save(rules) } label: {
+            Button(role: .destructive) { mutateRules { RuleEditing.remove(rule.id, from: &$0) } } label: {
                 Image(systemName: "trash")
             }.buttonStyle(.borderless)
         }
     }
 
-    private func moveRule(_ index: Int, by offset: Int) {
-        let target = index + offset
-        guard rules.indices.contains(target) else { return }
-        rules.swapAt(index, target)
-        RuleStore.save(rules)
+    /// Every change reloads the stored list first, so rules added elsewhere while
+    /// this page is open (picker, service, undo toast) are not overwritten.
+    private func mutateRules(_ change: (inout [RoutingRule]) -> Void) {
+        rules = RuleStore.mutate(.standard, change)
+        rulesUnreadable = false
+    }
+
+    private func reloadRules() {
+        rules = RuleStore.load()
+        rulesUnreadable = RuleStore.isMalformed(UserDefaults.standard.string(forKey: DefaultsKey.linkRouterRules) ?? "")
+    }
+
+    private func moveRule(_ id: UUID, by offset: Int) {
+        mutateRules { RuleEditing.move(id, by: offset, in: &$0) }
     }
 
     private func move(_ index: Int, by offset: Int) {
@@ -185,12 +205,18 @@ struct LinkRouterSettings: View {
     }
 
     /// Uses the same matcher the router uses; the typed URL is never stored.
+    /// Source-app-restricted rules cannot match here because the test has no source app.
     private func runTest() {
-        guard let url = URL(string: testInput.trimmingCharacters(in: .whitespaces)), LinkCanonical.isWeb(url) else {
+        testToken += 1
+        let token = testToken
+        var typed = testInput.trimmingCharacters(in: .whitespaces)
+        if !typed.isEmpty, !typed.contains("://") { typed = "https://" + typed }
+        guard let url = URL(string: typed), LinkCanonical.isWeb(url) else {
             testResult = nil
             return
         }
         RuleMatcher.firstMatch(url: url, sourceApp: nil, rules: rules, evaluator: evaluator) { result in
+            guard token == testToken else { return }
             testResult = result.rule.map { String(format: text.testMatchFormat, browserName($0.browserBundleID)) }
                 ?? text.testNoMatch
         }
@@ -217,6 +243,7 @@ private struct RuleEditor: View {
     let onSave: (RoutingRule) -> Void
     let onCancel: () -> Void
     @State private var advanced = false
+    @State private var showInvalid = false
     @State private var sourceApps: [BrowserInfo] = []
 
     var body: some View {
@@ -228,26 +255,28 @@ private struct RuleEditor: View {
             }
             DisclosureGroup(text.advancedLabel, isExpanded: $advanced) {
                 Toggle(text.regexToggle, isOn: Binding(get: { rule.kind == .regex },
-                                                       set: { rule.kind = $0 ? .regex : .glob; rule.flag = nil }))
+                                                       set: { rule.kind = $0 ? .regex : .glob; showInvalid = false }))
                 Picker(text.sourceAppLabel, selection: Binding(get: { rule.sourceAppBundleID ?? "" },
                                                                set: { rule.sourceAppBundleID = $0.isEmpty ? nil : $0 })) {
                     Text(text.anySourceApp).tag("")
                     ForEach(sourceApps) { Text($0.name).tag($0.bundleID) }
                 }
             }
+            if showInvalid { Text(text.invalidRegex).font(.caption).foregroundStyle(.red) }
             HStack {
                 Spacer()
                 Button(text.cancel, action: onCancel).keyboardShortcut(.cancelAction)
                 Button(text.save) {
                     var saved = rule
                     saved.pattern = saved.pattern.trimmingCharacters(in: .whitespacesAndNewlines)
-                    saved.isEnabled = true
+                    guard RuleEditing.canSave(saved) else { showInvalid = true; return }
                     onSave(saved)
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(rule.pattern.trimmingCharacters(in: .whitespaces).isEmpty || rule.browserBundleID.isEmpty)
             }
         }
+        .onChange(of: rule.pattern) { _, _ in showInvalid = false }
         .padding(20)
         .frame(minWidth: 420)
         .onAppear {
