@@ -511,6 +511,13 @@ enum DefaultsKey {
     static let meetingJoinTeamsNative = "meetingJoinTeamsNative" // open Teams links in the Teams app when installed
     static let meetingJoinNotifyOffset = "meetingJoinNotifyOffset" // MeetingJoinNotifyOffset raw value
     static let meetingJoinGoogleMeetBrowser = "meetingJoinGoogleMeetBrowser" // bundle identifier of the preferred browser; "" means system default
+    static let linkRouterEnabled = "linkRouterEnabled"
+    static let linkRouterRules = "linkRouterRules"                     // String: [RoutingRule] JSON
+    static let linkRouterBrowserOrder = "linkRouterBrowserOrder"       // [String] bundle ids, this Mac's picker order
+    static let linkRouterBrowserHidden = "linkRouterBrowserHidden"     // [String] bundle ids hidden from the picker
+    static let linkRouterPreviousDefault = "linkRouterPreviousDefault" // bundle id of the browser that was default before Vorssaint
+    static let linkRouterShowURLLine = "linkRouterShowURLLine"
+    static let linkRouterShowUndoToast = "linkRouterShowUndoToast"
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
@@ -1450,6 +1457,13 @@ enum Defaults {
         DefaultsKey.meetingJoinTeamsNative: true,
         DefaultsKey.meetingJoinNotifyOffset: MeetingJoinNotifyOffset.atStart.rawValue,
         DefaultsKey.meetingJoinGoogleMeetBrowser: "",
+        DefaultsKey.linkRouterEnabled: false,
+        DefaultsKey.linkRouterRules: "[]",
+        DefaultsKey.linkRouterBrowserOrder: [String](),
+        DefaultsKey.linkRouterBrowserHidden: [String](),
+        DefaultsKey.linkRouterPreviousDefault: "",
+        DefaultsKey.linkRouterShowURLLine: true,
+        DefaultsKey.linkRouterShowUndoToast: true,
         DefaultsKey.menuBarNextMeetingWindowMinutes: Defaults.defaultNextMeetingWindowMinutes,
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,

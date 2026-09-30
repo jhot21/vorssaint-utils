@@ -356,6 +356,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/LinkRouter/RoutingRule.swift
         Sources/Vorssaint/Services/LinkRouter/RuleMatcher.swift
         Sources/Vorssaint/Services/LinkRouter/RegexEvaluator.swift
+        Sources/Vorssaint/Services/LinkRouter/RuleStore.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift
         Sources/Vorssaint/Core/Defaults.swift

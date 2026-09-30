@@ -50,6 +50,7 @@ struct MetricsTests {
             ("command-bar", { CommandBarFeatureTests.run(suite) }),
             ("link-router", {
                 LinkRouterMatcherTests.run(suite)
+                LinkRouterStorageTests.run(suite)
             }),
             ("notch", {
                 NotchTests.run(suite)
