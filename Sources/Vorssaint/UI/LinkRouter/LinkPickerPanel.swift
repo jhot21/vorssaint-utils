@@ -161,6 +161,9 @@ final class LinkPickerController {
 
     private func handle(_ event: NSEvent) -> Bool {
         guard let model else { return false }
+        // A held key must not choose the next queued link the moment the
+        // first repeat arrives; swallow repeats so they do not beep either.
+        if event.isARepeat { return true }
         switch LinkPickerKeys.action(keyCode: event.keyCode, browserCount: model.browsers.count) {
         case .choose(let index)?:
             model.choose(model.browsers[index], event.modifierFlags.contains(.option))
