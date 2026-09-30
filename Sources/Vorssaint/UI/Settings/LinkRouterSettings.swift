@@ -20,6 +20,8 @@ struct LinkRouterSettings: View {
     @State private var testResult: String?
     @State private var restoreFailed = false
     @State private var testToken = 0
+    @State private var draggingBrowser: String?
+    @State private var draggingRule: String?
     private let evaluator = RegexEvaluator()
 
     private var text: LinkRouterFeatureStrings { FeatureStrings.linkRouter(l10n.language) }
@@ -33,21 +35,13 @@ struct LinkRouterSettings: View {
             }
             Section(text.browsersHeader) {
                 if browsers.isEmpty { Text(text.noBrowsers).foregroundStyle(.secondary) }
-                ForEach(Array(browsers.enumerated()), id: \.element.id) { index, browser in
-                    HStack {
-                        Toggle(browser.name, isOn: Binding(
-                            get: { !hidden.contains(browser.bundleID) },
-                            set: { visible in
-                                if visible { hidden.remove(browser.bundleID) } else { hidden.insert(browser.bundleID) }
-                                BrowserCatalog.saveHidden(hidden)
-                            }))
-                        Spacer()
-                        Button { move(index, by: -1) } label: { Image(systemName: "chevron.up") }
-                            .buttonStyle(.borderless).disabled(index == 0)
-                        Button { move(index, by: 1) } label: { Image(systemName: "chevron.down") }
-                            .buttonStyle(.borderless).disabled(index == browsers.count - 1)
+                ForEach(browsers) { browser in
+                    ReorderableRow(item: browser, id: { $0.bundleID }, items: $browsers, dragging: $draggingBrowser,
+                                   onCommit: { BrowserCatalog.saveOrder(browsers.map(\.bundleID)) }) {
+                        browserRow(browser)
                     }
                 }
+                if !browsers.isEmpty { reorderHint }
                 Button(text.rescan) { loadBrowsers() }
             }
             Section(text.rulesHeader) {
@@ -56,13 +50,21 @@ struct LinkRouterSettings: View {
                 } else if rules.isEmpty {
                     Text(text.rulesEmpty).font(.caption).foregroundStyle(.secondary)
                 }
-                ForEach(Array(rules.enumerated()), id: \.element.id) { index, rule in
-                    ruleRow(rule, index: index)
+                ForEach(rules) { rule in
+                    ReorderableRow(item: rule, id: { $0.id.uuidString }, items: $rules, dragging: $draggingRule,
+                                   onCommit: {
+                                       let order = rules.map(\.id)
+                                       mutateRules { RuleEditing.reorder(order, in: &$0) }
+                                   }) {
+                        ruleRow(rule)
+                    }
                 }
+                if rules.count > 1 { reorderHint }
                 Button(text.addRule) {
                     editing = RoutingRule(pattern: "", browserBundleID: browsers.first?.bundleID ?? "")
                 }
-                TextField(text.testLabel, text: $testInput)
+                TextField("", text: $testInput, prompt: Text(text.testLabel))
+                    .labelsHidden()
                     .onChange(of: testInput) { _, _ in runTest() }
                     .onChange(of: rules) { _, _ in runTest() }
                 if let testResult { Text(testResult).font(.caption).foregroundStyle(.secondary) }
@@ -90,6 +92,8 @@ struct LinkRouterSettings: View {
         .onChange(of: router.status) { _, _ in restoreFailed = false }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             // The picker, the service and the undo toast write the rules while this page is open.
+            // A reload mid-drag would undo the live reorder before it is saved.
+            guard draggingRule == nil else { return }
             let stored = RuleStore.load()
             if stored != rules { reloadRules() }
         }
@@ -140,21 +144,46 @@ struct LinkRouterSettings: View {
 
     // MARK: Rules
 
-    private func ruleRow(_ rule: RoutingRule, index: Int) -> some View {
-        HStack {
+    private var reorderHint: some View {
+        Text(FeatureStrings.notchEditor(l10n.language).reorderHint).font(.caption).foregroundStyle(.secondary)
+    }
+
+    private func browserRow(_ browser: BrowserInfo) -> some View {
+        HStack(spacing: 8) {
+            PanelDragHandle()
+            Toggle(isOn: Binding(
+                get: { !hidden.contains(browser.bundleID) },
+                set: { visible in
+                    if visible { hidden.remove(browser.bundleID) } else { hidden.insert(browser.bundleID) }
+                    BrowserCatalog.saveHidden(hidden)
+                })) {
+                Text(browser.name).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .contextMenu {
+            Button(FeatureStrings.clipboard(l10n.language).moveUp) { moveBrowser(browser.bundleID, by: -1) }
+            Button(FeatureStrings.clipboard(l10n.language).moveDown) { moveBrowser(browser.bundleID, by: 1) }
+        }
+    }
+
+    private func ruleRow(_ rule: RoutingRule) -> some View {
+        HStack(spacing: 8) {
+            PanelDragHandle()
             Toggle("", isOn: Binding(
                 get: { rule.isEnabled },
                 set: { value in mutateRules { RuleEditing.setEnabled(rule.id, value, in: &$0) } }))
                 .labelsHidden()
+                .fixedSize()
             VStack(alignment: .leading, spacing: 2) {
-                Text(rule.pattern).font(.body.monospaced())
+                Text(rule.pattern).font(.body.monospaced()).lineLimit(1).truncationMode(.middle)
                 HStack(spacing: 6) {
-                    Text(browserName(rule.browserBundleID)).font(.caption)
+                    Text(browserName(rule.browserBundleID)).font(.caption).lineLimit(1)
                     if !installed(rule.browserBundleID) {
                         Text(text.browserMissing).font(.caption).foregroundStyle(.orange)
                     }
                     if let source = rule.sourceAppBundleID, !source.isEmpty {
-                        Text(appName(source)).font(.caption).foregroundStyle(.secondary)
+                        Text(appName(source)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                     if rule.kind == .regex { Text(text.regexToggle).font(.caption).foregroundStyle(.secondary) }
                     switch rule.flag {
@@ -164,15 +193,17 @@ struct LinkRouterSettings: View {
                     }
                 }
             }
-            Spacer()
-            Button { moveRule(rule.id, by: -1) } label: { Image(systemName: "chevron.up") }
-                .buttonStyle(.borderless).disabled(index == 0)
-            Button { moveRule(rule.id, by: 1) } label: { Image(systemName: "chevron.down") }
-                .buttonStyle(.borderless).disabled(index == rules.count - 1)
-            Button { editing = rule } label: { Image(systemName: "pencil") }.buttonStyle(.borderless)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Button { editing = rule } label: { Image(systemName: "pencil") }
+                .buttonStyle(.borderless).fixedSize()
             Button(role: .destructive) { mutateRules { RuleEditing.remove(rule.id, from: &$0) } } label: {
                 Image(systemName: "trash")
-            }.buttonStyle(.borderless)
+            }
+            .buttonStyle(.borderless).fixedSize()
+        }
+        .contextMenu {
+            Button(FeatureStrings.clipboard(l10n.language).moveUp) { moveRule(rule.id, by: -1) }
+            Button(FeatureStrings.clipboard(l10n.language).moveDown) { moveRule(rule.id, by: 1) }
         }
     }
 
@@ -192,10 +223,10 @@ struct LinkRouterSettings: View {
         mutateRules { RuleEditing.move(id, by: offset, in: &$0) }
     }
 
-    private func move(_ index: Int, by offset: Int) {
-        let target = index + offset
-        guard browsers.indices.contains(target) else { return }
-        browsers.swapAt(index, target)
+    private func moveBrowser(_ bundleID: String, by offset: Int) {
+        guard let index = browsers.firstIndex(where: { $0.bundleID == bundleID }),
+              browsers.indices.contains(index + offset) else { return }
+        browsers.swapAt(index, index + offset)
         BrowserCatalog.saveOrder(browsers.map(\.bundleID))
     }
 
@@ -246,20 +277,53 @@ private struct RuleEditor: View {
     @State private var showInvalid = false
     @State private var sourceApps: [BrowserInfo] = []
 
+    private static let labelWidth: CGFloat = 120
+
     var body: some View {
-        Form {
-            TextField(text.patternLabel, text: $rule.pattern, prompt: Text(verbatim: "github.com, *.example.com, docs.google.com/*"))
-                .font(.body.monospaced())
-            Picker(text.browserLabel, selection: $rule.browserBundleID) {
-                ForEach(browsers) { Text($0.name).tag($0.bundleID) }
+        VStack(alignment: .leading, spacing: 12) {
+            editorRow(text.patternLabel) {
+                TextField("", text: $rule.pattern, prompt: Text(verbatim: "github.com, *.example.com, docs.google.com/*"))
+                    .labelsHidden()
+                    .font(.body.monospaced())
             }
-            DisclosureGroup(text.advancedLabel, isExpanded: $advanced) {
-                Toggle(text.regexToggle, isOn: Binding(get: { rule.kind == .regex },
-                                                       set: { rule.kind = $0 ? .regex : .glob; showInvalid = false }))
-                Picker(text.sourceAppLabel, selection: Binding(get: { rule.sourceAppBundleID ?? "" },
-                                                               set: { rule.sourceAppBundleID = $0.isEmpty ? nil : $0 })) {
-                    Text(text.anySourceApp).tag("")
-                    ForEach(sourceApps) { Text($0.name).tag($0.bundleID) }
+            editorRow(text.browserLabel) {
+                Picker("", selection: $rule.browserBundleID) {
+                    ForEach(browsers) { Text($0.name).tag($0.bundleID) }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            // The disclosure sits in the same spot collapsed or expanded; the
+            // extra rows appear below it so nothing above moves.
+            Button {
+                advanced.toggle()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(advanced ? 90 : 0))
+                        .frame(width: 12)
+                    Text(text.advancedLabel)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if advanced {
+                editorRow(text.regexToggle) {
+                    Toggle("", isOn: Binding(get: { rule.kind == .regex },
+                                             set: { rule.kind = $0 ? .regex : .glob; showInvalid = false }))
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                editorRow(text.sourceAppLabel) {
+                    Picker("", selection: Binding(get: { rule.sourceAppBundleID ?? "" },
+                                                  set: { rule.sourceAppBundleID = $0.isEmpty ? nil : $0 })) {
+                        Text(text.anySourceApp).tag("")
+                        ForEach(sourceApps) { Text($0.name).tag($0.bundleID) }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             if showInvalid { Text(text.invalidRegex).font(.caption).foregroundStyle(.red) }
@@ -278,13 +342,22 @@ private struct RuleEditor: View {
         }
         .onChange(of: rule.pattern) { _, _ in showInvalid = false }
         .padding(20)
-        .frame(minWidth: 420)
+        .frame(width: 460)
         .onAppear {
             advanced = rule.kind == .regex || rule.sourceAppBundleID != nil
             sourceApps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular }
                 .compactMap { app in app.bundleIdentifier.map { BrowserInfo(bundleID: $0, name: app.localizedName ?? $0) } }
                 .sorted { $0.name < $1.name }
+        }
+    }
+
+    private func editorRow<Control: View>(_ label: String, @ViewBuilder control: () -> Control) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .frame(width: Self.labelWidth, alignment: .leading)
+            control()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
