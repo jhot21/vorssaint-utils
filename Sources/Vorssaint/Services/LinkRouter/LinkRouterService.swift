@@ -20,6 +20,8 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
                                            selfBundleID: BrowserCatalog.ownBundleID)
     private var wasOn = false
     private var isRestoring = false
+    /// Links still queued behind the picker on screen, as last reported to it.
+    private var pickerWaiting = 0
 
     private override init() { super.init() }
 
@@ -158,7 +160,11 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
             noBrowserAvailable(for: url)
             return
         }
-        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+        // While another picker is waiting it must keep keyboard focus, so the
+        // chosen browser opens in the background.
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = LinkPickerSupport.shouldActivateBrowser(waitingAfter: pickerWaiting)
+        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: configuration) { _, _ in }
     }
 
     func openNonWeb(_ url: URL) {
@@ -171,6 +177,7 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
 
     func showPicker(for url: URL, waiting: Int) {
         let browsers = visibleBrowsers
+        pickerWaiting = waiting
         picker.present(
             url: url, browsers: browsers, waiting: waiting,
             showURLLine: defaults.bool(forKey: DefaultsKey.linkRouterShowURLLine),
@@ -181,6 +188,7 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
     }
 
     func hidePicker() {
+        pickerWaiting = 0
         picker.dismiss()
     }
 
