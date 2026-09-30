@@ -48,8 +48,38 @@ enum SelfUninstall {
         DispatchQueue.main.async {
             // Links must not be stranded on a deleted app: give the default
             // browser back before anything else is torn down.
-            LinkRouterService.shared.restoreDefault { _ in
-                uninstallAfterRestoringLinks(onFailure: onFailure)
+            LinkRouterService.shared.restoreDefault { result in
+                DispatchQueue.main.async {
+                    guard linkRestoreNeedsConfirmation(result) else {
+                        uninstallAfterRestoringLinks(onFailure: onFailure)
+                        return
+                    }
+                    let text = FeatureStrings.linkRouter(L10n.shared.language)
+                    let alert = NSAlert()
+                    alert.messageText = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "Vorssaint"
+                    alert.informativeText = text.restoreFailed
+                    alert.addButton(withTitle: Bundle(for: NSApplication.self).localizedString(forKey: "OK", value: "OK", table: "Common"))
+                    alert.addButton(withTitle: text.cancel)
+                    NSApp.activate(ignoringOtherApps: true)
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        uninstallAfterRestoringLinks(onFailure: onFailure)
+                    } else {
+                        onFailure()
+                    }
+                }
+            }
+        }
+    }
+
+    /// The browser role could not be given back and Vorssaint still holds
+    /// it, so deleting the app would strand every link.
+    private static func linkRestoreNeedsConfirmation(_ result: DefaultBrowserManager.RestoreResult) -> Bool {
+        switch result {
+        case .restored, .notDefault: return false
+        case .failed, .previousMissing, .noPrevious:
+            switch LinkRouterService.shared.status {
+            case .isDefault, .partial: return true
+            case .other: return false
             }
         }
     }
