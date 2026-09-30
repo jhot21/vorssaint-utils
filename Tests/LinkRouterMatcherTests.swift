@@ -6,6 +6,8 @@ import Foundation
 enum LinkRouterMatcherTests {
     static func run(_ suite: TestSuite) {
         runGlob(suite)
+        runRules(suite)
+        runRegexEvaluator(suite)
     }
 
     private static func glob(_ pattern: String, _ url: String) -> Bool {
@@ -93,5 +95,124 @@ enum LinkRouterMatcherTests {
             let host = LinkCanonical.link(for: url)!.host
             suite.expect(glob(host, raw), "a rule created from \(raw) matches the URL it came from")
         }
+    }
+
+    /// Completes synchronously with a canned outcome per pattern.
+    private final class FakeRegex: RegexEvaluating {
+        var outcomes: [String: RegexOutcome] = [:]
+        private(set) var evaluated: [String] = []
+        func evaluate(pattern: String, in text: String, completion: @escaping (RegexOutcome) -> Void) {
+            evaluated.append(pattern)
+            completion(outcomes[pattern] ?? .noMatch)
+        }
+    }
+
+    private static func match(_ url: String, source: String? = nil, _ rules: [RoutingRule],
+                              _ regex: FakeRegex = FakeRegex()) -> RuleMatchResult {
+        var result: RuleMatchResult?
+        RuleMatcher.firstMatch(url: URL(string: url)!, sourceApp: source, rules: rules,
+                               evaluator: regex) { result = $0 }
+        return result ?? RuleMatchResult(rule: nil, failures: [])
+    }
+
+    private static func runRules(_ suite: TestSuite) {
+        let work = RoutingRule(pattern: "*.company.com", browserBundleID: "com.work")
+        let docs = RoutingRule(pattern: "docs.google.com/*", browserBundleID: "com.docs")
+        let all = RoutingRule(pattern: "*", browserBundleID: "com.catchall")
+
+        suite.expect(match("https://a.company.com/x", [work, docs]).rule?.id == work.id,
+                     "a matching glob rule is returned")
+        suite.expect(match("https://other.com", [work, docs]).rule == nil,
+                     "no rule matches an unrelated URL")
+        suite.expect(match("https://a.company.com/x", [all, work]).rule?.id == all.id,
+                     "the first matching rule in list order wins")
+
+        var disabled = work
+        disabled.isEnabled = false
+        suite.expect(match("https://a.company.com", [disabled]).rule == nil,
+                     "disabled rules never match")
+
+        let slack = RoutingRule(pattern: "github.com", browserBundleID: "com.slack",
+                                sourceAppBundleID: "com.tinyspeck.slackmacgap")
+        suite.expect(match("https://github.com", source: "com.tinyspeck.slackmacgap", [slack]).rule?.id == slack.id,
+                     "a source-app rule matches its sender")
+        suite.expect(match("https://github.com", source: "com.apple.mail", [slack]).rule == nil,
+                     "a source-app rule does not match another sender")
+        suite.expect(match("https://github.com", source: nil, [slack]).rule == nil,
+                     "a source-app rule does not match when the sender is unknown")
+
+        suite.expect(match("mailto:a@b.c", [all]).rule == nil,
+                     "non-web URLs never match a rule")
+
+        // Regex rules go through the evaluator, in list order.
+        let regex = FakeRegex()
+        regex.outcomes["^https://x\\.test/.*$"] = .match
+        let rx = RoutingRule(pattern: "^https://x\\.test/.*$", kind: .regex, browserBundleID: "com.rx")
+        suite.expect(match("https://x.test/a", [work, rx], regex).rule?.id == rx.id
+                        && regex.evaluated == ["^https://x\\.test/.*$"],
+                     "a regex rule matches through the evaluator")
+        suite.expect(match("https://x.test/a", [rx, work]).rule == nil
+                        && match("https://a.company.com", [rx, work]).rule?.id == work.id,
+                     "a regex that does not match falls through to later rules")
+
+        // Failures are reported and never block later rules.
+        let slow = RoutingRule(pattern: "(a+)+$", kind: .regex, browserBundleID: "com.slow")
+        let bad = RoutingRule(pattern: "([", kind: .regex, browserBundleID: "com.bad")
+        let failing = FakeRegex()
+        failing.outcomes["(a+)+$"] = .timedOut
+        failing.outcomes["(["] = .invalid
+        let outcome = match("https://a.company.com", [slow, bad, work], failing)
+        suite.expect(outcome.rule?.id == work.id
+                        && outcome.failures == [RuleFailure(id: slow.id, flag: .tooSlow),
+                                                RuleFailure(id: bad.id, flag: .invalidRegex)],
+                     "a timed-out or invalid regex is reported and routing continues")
+
+        // Length caps: an over-long pattern is invalid; over-long text just skips the regex rule.
+        let long = RoutingRule(pattern: String(repeating: "a", count: RuleMatcher.maxRegexPatternLength + 1),
+                               kind: .regex, browserBundleID: "com.long")
+        let longResult = match("https://a.company.com", [long, work])
+        suite.expect(longResult.failures == [RuleFailure(id: long.id, flag: .invalidRegex)]
+                        && longResult.rule?.id == work.id,
+                     "an over-long regex pattern is flagged invalid without being evaluated")
+        let longURL = "https://a.company.com/" + String(repeating: "p", count: RuleMatcher.maxRegexTextLength)
+        let skipped = FakeRegex()
+        suite.expect(match(longURL, [rx, work], skipped).rule?.id == work.id && skipped.evaluated.isEmpty,
+                     "an over-long URL skips regex rules instead of evaluating them")
+
+        // Codable: old JSON without `flag` still decodes.
+        let legacy = #"{"id":"8D6B1B0E-7C9B-4C75-9D0B-0F6E1B6A1E11","pattern":"a.com","kind":"glob","browserBundleID":"b","isEnabled":true}"#
+        let decoded = try? JSONDecoder().decode(RoutingRule.self, from: Data(legacy.utf8))
+        suite.expect(decoded?.pattern == "a.com" && decoded?.flag == nil && decoded?.sourceAppBundleID == nil,
+                     "a rule saved without optional fields decodes")
+    }
+
+    /// Runs the main run loop until `done` or a timeout, so main-queue
+    /// completions can be observed from a synchronous test.
+    private static func spin(timeout: TimeInterval = 5, until done: () -> Bool) {
+        let end = Date().addingTimeInterval(timeout)
+        while !done() && Date() < end { RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01)) }
+    }
+
+    private static func runRegexEvaluator(_ suite: TestSuite) {
+        func evaluate(_ evaluator: RegexEvaluator, _ pattern: String, _ text: String) -> RegexOutcome? {
+            var outcome: RegexOutcome?
+            evaluator.evaluate(pattern: pattern, in: text) { outcome = $0 }
+            spin { outcome != nil }
+            return outcome
+        }
+        let evaluator = RegexEvaluator(deadline: 0.25)
+        suite.expect(evaluate(evaluator, "^https://x\\.test/", "https://x.test/a") == .match,
+                     "the real evaluator reports a match")
+        suite.expect(evaluate(evaluator, "^https://x\\.test/", "https://y.test/a") == .noMatch,
+                     "the real evaluator reports no match")
+        suite.expect(evaluate(evaluator, "HTTPS://X\\.TEST", "https://x.test/a") == .match,
+                     "regex matching is case-insensitive")
+        suite.expect(evaluate(evaluator, "([", "https://x.test") == .invalid,
+                     "an unparsable expression is invalid")
+        let quick = RegexEvaluator(deadline: 0.05)
+        let started = Date()
+        let slow = evaluate(quick, "(a+)+$", String(repeating: "a", count: 34) + "b")
+        suite.expect(slow == .timedOut && Date().timeIntervalSince(started) < 2,
+                     "a catastrophic expression is reported as timed out near the deadline, not waited for")
     }
 }

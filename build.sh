@@ -353,6 +353,9 @@ if (( TEST )); then
     TEST_SOURCES=(
         Sources/Vorssaint/Services/Media/MediaSupport.swift
         Sources/Vorssaint/Services/LinkRouter/LinkCanonical.swift
+        Sources/Vorssaint/Services/LinkRouter/RoutingRule.swift
+        Sources/Vorssaint/Services/LinkRouter/RuleMatcher.swift
+        Sources/Vorssaint/Services/LinkRouter/RegexEvaluator.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift
         Sources/Vorssaint/Core/Defaults.swift
