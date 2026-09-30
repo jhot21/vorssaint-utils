@@ -67,6 +67,18 @@ enum LinkRouterEditingTests {
         RuleEditing.reorder([b.id, c.id, a.id], in: &gone)
         suite.expect(gone.map(\.id) == [c.id, a.id], "a removed rule in the dragged copy is ignored")
 
+        // Drag session: previews never persist, only a commit does, a cancel restores the snapshot.
+        var session = ReorderSession(snapshot: ids)
+        suite.expect(!session.changed && session.committed() == ids && session.cancelled() == ids,
+                     "a session with no previews is unchanged")
+        session.preview(["b", "c", "a", "d"])
+        session.preview(["b", "a", "c", "d"])
+        suite.expect(session.changed && session.committed() == ["b", "a", "c", "d"],
+                     "commit returns the latest previewed order")
+        suite.expect(session.cancelled() == ids, "cancel returns the snapshot regardless of previews")
+        session.preview(ids)
+        suite.expect(!session.changed, "a preview back to the snapshot order is not a change, so nothing is saved")
+
         // Enabling clears the flag; disabling keeps it.
         var flagged = [RoutingRule(id: a.id, pattern: "x", browserBundleID: "b", isEnabled: false, flag: .tooSlow)]
         RuleEditing.setEnabled(a.id, false, in: &flagged)

@@ -22,6 +22,9 @@ struct LinkRouterSettings: View {
     @State private var testToken = 0
     @State private var draggingBrowser: String?
     @State private var draggingRule: String?
+    @State private var browserSession: ReorderSession?
+    @State private var ruleSession: ReorderSession?
+    @State private var dragWatcher = ReorderReleaseWatcher()
     private let evaluator = RegexEvaluator()
 
     private var text: LinkRouterFeatureStrings { FeatureStrings.linkRouter(l10n.language) }
@@ -37,6 +40,7 @@ struct LinkRouterSettings: View {
                 if browsers.isEmpty { Text(text.noBrowsers).foregroundStyle(.secondary) }
                 ForEach(browsers) { browser in
                     ReorderableRow(item: browser, id: { $0.bundleID }, items: $browsers, dragging: $draggingBrowser,
+                                   session: $browserSession, onDragStart: watchDrag,
                                    onCommit: { BrowserCatalog.saveOrder($0) }) {
                         browserRow(browser)
                     }
@@ -52,6 +56,7 @@ struct LinkRouterSettings: View {
                 }
                 ForEach(rules) { rule in
                     ReorderableRow(item: rule, id: { $0.id.uuidString }, items: $rules, dragging: $draggingRule,
+                                   session: $ruleSession, onDragStart: watchDrag,
                                    onCommit: { ids in
                                        let order = ids.compactMap(UUID.init(uuidString:))
                                        mutateRules { RuleEditing.reorder(order, in: &$0) }
@@ -78,7 +83,7 @@ struct LinkRouterSettings: View {
         .formStyle(.grouped)
         .onDrop(of: [.text], delegate: ReorderDropZone(
             isDragging: { draggingBrowser != nil || draggingRule != nil },
-            finish: { draggingBrowser = nil; draggingRule = nil }))
+            finish: commitDrag))
         .sheet(item: $editing) { rule in
             RuleEditor(rule: rule, browsers: browsers, text: text) { saved in
                 mutateRules { RuleEditing.save(saved, in: &$0) }
@@ -91,16 +96,18 @@ struct LinkRouterSettings: View {
             router.refreshStatus()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            // Safety net: a drag that ended somewhere unexpected must not leave a row dimmed.
-            draggingBrowser = nil
-            draggingRule = nil
+            // Safety net: a drag that ended somewhere unexpected must not leave a row dimmed
+            // or a half-moved preview on screen.
+            cancelDrag()
             reloadRules()
             router.refreshStatus()
         }
         .onChange(of: router.status) { _, _ in restoreFailed = false }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             // The picker, the service and the undo toast write the rules while this page is open.
-            // Reorders are saved as they happen, so a reload never undoes one.
+            // A drag in progress is a preview that nothing has saved yet; reloading now would
+            // replace it, so an external write waits until the drag has ended.
+            guard draggingRule == nil else { return }
             let stored = RuleStore.load()
             if stored != rules { reloadRules() }
         }
@@ -223,8 +230,43 @@ struct LinkRouterSettings: View {
 
     private func reloadRules() {
         draggingRule = nil
+        ruleSession = nil
         rules = RuleStore.load()
         rulesUnreadable = RuleStore.isMalformed(UserDefaults.standard.string(forKey: DefaultsKey.linkRouterRules) ?? "")
+    }
+
+    private func watchDrag() {
+        dragWatcher.start(isActive: { draggingBrowser != nil || draggingRule != nil },
+                          onCancel: cancelDrag)
+    }
+
+    /// A drop in a gap or on a header accepts the preview order as it stands.
+    private func commitDrag() {
+        let browserDrop = browserSession, ruleDrop = ruleSession
+        clearDrag()
+        if let browserDrop, browserDrop.changed { BrowserCatalog.saveOrder(browserDrop.committed()) }
+        if let ruleDrop, ruleDrop.changed {
+            let order = ruleDrop.committed().compactMap(UUID.init(uuidString:))
+            mutateRules { RuleEditing.reorder(order, in: &$0) }
+        }
+    }
+
+    /// Nothing was saved during the drag, so cancelling puts the snapshot back on screen.
+    private func cancelDrag() {
+        let browserDrag = browserSession, ruleDrag = ruleSession
+        clearDrag()
+        if let browserDrag {
+            browsers = ReorderSupport.apply(order: browserDrag.cancelled(), to: browsers, id: { $0.bundleID })
+        }
+        if ruleDrag != nil { reloadRules() }
+    }
+
+    private func clearDrag() {
+        dragWatcher.stop()
+        draggingBrowser = nil
+        draggingRule = nil
+        browserSession = nil
+        ruleSession = nil
     }
 
     private func moveRule(_ id: UUID, by offset: Int) {
@@ -240,6 +282,7 @@ struct LinkRouterSettings: View {
 
     private func loadBrowsers() {
         draggingBrowser = nil
+        browserSession = nil
         browsers = BrowserCatalog.current().all
         hidden = Set(UserDefaults.standard.stringArray(forKey: DefaultsKey.linkRouterBrowserHidden) ?? [])
     }

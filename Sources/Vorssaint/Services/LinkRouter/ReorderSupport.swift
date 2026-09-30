@@ -47,3 +47,24 @@ enum ReorderSupport {
         }
     }
 }
+
+/// One drag-to-reorder gesture. The order at drag start is the snapshot; live
+/// moves only update the preview, so nothing reaches storage unless the drag is
+/// committed, and a cancelled drag simply returns the snapshot.
+struct ReorderSession: Equatable {
+    let snapshot: [String]
+    private(set) var current: [String]
+
+    init(snapshot: [String]) {
+        self.snapshot = snapshot
+        self.current = snapshot
+    }
+
+    mutating func preview(_ ids: [String]) { current = ids }
+
+    /// False when the preview is back at the snapshot order, so a no-op drag does not save.
+    var changed: Bool { current != snapshot }
+
+    func committed() -> [String] { current }
+    func cancelled() -> [String] { snapshot }
+}
