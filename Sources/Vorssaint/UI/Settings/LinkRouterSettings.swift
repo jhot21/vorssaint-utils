@@ -119,7 +119,7 @@ struct LinkRouterSettings: View {
                 Button(text.restoreDefault) {
                     restoreFailed = false
                     LinkRouterService.shared.restoreDefault { result in
-                        restoreFailed = result == .failed || result == .previousMissing
+                        restoreFailed = result == .failed || result == .previousMissing || result == .noPrevious
                     }
                 }
                 if restoreFailed { Text(text.restoreFailed).font(.caption).foregroundStyle(.secondary) }
@@ -133,7 +133,7 @@ struct LinkRouterSettings: View {
                 // The status row already says Vorssaint is not the default when this did not take.
                 LinkRouterService.shared.makeDefault { _ in router.refreshStatus() }
             }
-            .disabled(!router.canMakeDefault)
+            .disabled(!router.canMakeDefault || !enabled)
             if !router.canMakeDefault { Text(text.makeDefaultDevNote).font(.caption).foregroundStyle(.secondary) }
         }
     }
@@ -248,7 +248,7 @@ private struct RuleEditor: View {
 
     var body: some View {
         Form {
-            TextField(text.patternLabel, text: $rule.pattern, prompt: Text("github.com, *.example.com, docs.google.com/*"))
+            TextField(text.patternLabel, text: $rule.pattern, prompt: Text(verbatim: "github.com, *.example.com, docs.google.com/*"))
                 .font(.body.monospaced())
             Picker(text.browserLabel, selection: $rule.browserBundleID) {
                 ForEach(browsers) { Text($0.name).tag($0.bundleID) }
