@@ -41,7 +41,8 @@ struct LinkRouterSettings: View {
                 ForEach(browsers) { browser in
                     ReorderableRow(item: browser, id: { $0.bundleID }, items: $browsers, dragging: $draggingBrowser,
                                    session: $browserSession, onDragStart: watchDrag,
-                                   onCommit: { BrowserCatalog.saveOrder($0) }) {
+                                   onCommit: { BrowserCatalog.saveOrder($0) },
+                                   onDragEnd: resyncRules) {
                         browserRow(browser)
                     }
                 }
@@ -60,7 +61,8 @@ struct LinkRouterSettings: View {
                                    onCommit: { ids in
                                        let order = ids.compactMap(UUID.init(uuidString:))
                                        mutateRules { RuleEditing.reorder(order, in: &$0) }
-                                   }) {
+                                   },
+                                   onDragEnd: resyncRules) {
                         ruleRow(rule)
                     }
                 }
@@ -102,6 +104,7 @@ struct LinkRouterSettings: View {
             reloadRules()
             router.refreshStatus()
         }
+        .onDisappear { cancelDrag() }
         .onChange(of: router.status) { _, _ in restoreFailed = false }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             // The picker, the service and the undo toast write the rules while this page is open.
@@ -249,6 +252,7 @@ struct LinkRouterSettings: View {
             let order = ruleDrop.committed().compactMap(UUID.init(uuidString:))
             mutateRules { RuleEditing.reorder(order, in: &$0) }
         }
+        resyncRules()
     }
 
     /// Nothing was saved during the drag, so cancelling puts the snapshot back on screen.
@@ -259,6 +263,13 @@ struct LinkRouterSettings: View {
             browsers = ReorderSupport.apply(order: browserDrag.cancelled(), to: browsers, id: { $0.bundleID })
         }
         if ruleDrag != nil { reloadRules() }
+        resyncRules()
+    }
+
+    /// External writes (picker, undo toast) are skipped while a drag is active, so every
+    /// drag end re-reads storage, after any commit has saved, and picks up what was missed.
+    private func resyncRules() {
+        if RuleStore.load() != rules { reloadRules() }
     }
 
     private func clearDrag() {

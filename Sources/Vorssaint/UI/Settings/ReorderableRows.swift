@@ -17,6 +17,7 @@ struct ReorderableRow<Item, Content: View>: View {
     @Binding var session: ReorderSession?
     let onDragStart: () -> Void
     let onCommit: ([String]) -> Void
+    let onDragEnd: () -> Void
     let content: () -> Content
 
     var body: some View {
@@ -24,13 +25,13 @@ struct ReorderableRow<Item, Content: View>: View {
             .opacity(dragging == id(item) ? 0.4 : 1)
             .onDrag {
                 dragging = id(item)
-                session = ReorderSession(snapshot: items.map(id))
+                if session == nil { session = ReorderSession(snapshot: items.map(id)) }
                 onDragStart()
                 return NSItemProvider(object: id(item) as NSString)
             }
             .onDrop(of: [UTType.text], delegate: ReorderDropDelegate(target: id(item), id: id,
                                                                       items: $items, dragging: $dragging,
-                                                                      session: $session, onCommit: onCommit))
+                                                                      session: $session, onCommit: onCommit, onDragEnd: onDragEnd))
     }
 }
 
@@ -41,6 +42,7 @@ private struct ReorderDropDelegate<Item>: DropDelegate {
     @Binding var dragging: String?
     @Binding var session: ReorderSession?
     let onCommit: ([String]) -> Void
+    let onDragEnd: () -> Void
 
     private var operation: ReorderSupport.DropOperation {
         ReorderSupport.dropOperation(dragging: dragging, ids: items.map(id))
@@ -63,6 +65,7 @@ private struct ReorderDropDelegate<Item>: DropDelegate {
         dragging = nil
         session = nil
         if let finished, finished.changed { onCommit(finished.committed()) }
+        onDragEnd()
         return true
     }
 
