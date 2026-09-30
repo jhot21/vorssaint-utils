@@ -60,12 +60,12 @@ struct LinkRouterSettings: View {
                     }
                 }
                 if rules.count > 1 { reorderHint }
-                Button(text.addRule) {
+                Button {
                     editing = RoutingRule(pattern: "", browserBundleID: browsers.first?.bundleID ?? "")
+                } label: {
+                    Label(text.addRule, systemImage: "plus")
                 }
-                TextField("", text: $testInput, prompt: Text(text.testLabel))
-                    .labelsHidden()
-                    .accessibilityLabel(text.testLabel)
+                TextField(text.testLabel, text: $testInput)
                     .onChange(of: testInput) { _, _ in runTest() }
                     .onChange(of: rules) { _, _ in runTest() }
                 if let testResult { Text(testResult).font(.caption).foregroundStyle(.secondary) }
@@ -75,6 +75,7 @@ struct LinkRouterSettings: View {
                 Toggle(text.showUndoToast, isOn: $showUndoToast)
             }
         }
+        .formStyle(.grouped)
         .onDrop(of: [.text], delegate: ReorderDropZone(
             isDragging: { draggingBrowser != nil || draggingRule != nil },
             finish: { draggingBrowser = nil; draggingRule = nil }))
