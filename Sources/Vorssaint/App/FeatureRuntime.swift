@@ -306,6 +306,7 @@ final class FeatureRuntime: ObservableObject {
                 Notifier.requestPermission()
             }
         },
+        .linkRouter: { LinkRouterService.shared.syncWithPreferences() },
         .cleaner: {
             CleanerScheduler.shared.syncWithPreferences()
             WhatsAppDownloadScheduler.shared.syncWithPreferences()

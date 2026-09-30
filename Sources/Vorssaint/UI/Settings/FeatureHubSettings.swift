@@ -880,6 +880,7 @@ extension AppFeature {
         case .portManager: return FeatureStrings.portManager(L10n.shared.language).title
         case .calendar: return FeatureStrings.calendar(L10n.shared.language).title
         case .meetingJoin: return FeatureStrings.calendar(L10n.shared.language).meetingJoinTitle
+        case .linkRouter: return FeatureStrings.linkRouter(L10n.shared.language).title
         case .homebrew: return s.homebrewName
         case .appUpdates: return FeatureStrings.appUpdates(L10n.shared.language).pageTitle
         case .monitorCPU: return s.monitorShowCPU
@@ -966,6 +967,7 @@ extension AppFeature {
         case .portManager: return FeatureStrings.portManager(L10n.shared.language).hubDescription
         case .calendar: return FeatureStrings.calendar(L10n.shared.language).hubDescription
         case .meetingJoin: return FeatureStrings.calendar(L10n.shared.language).meetingJoinHubDescription
+        case .linkRouter: return FeatureStrings.linkRouter(L10n.shared.language).hubDescription
         case .homebrew: return hub.descHomebrew
         case .appUpdates: return FeatureStrings.appUpdates(L10n.shared.language).hubDescription
         case .monitorCPU: return hub.descMonitorCPU

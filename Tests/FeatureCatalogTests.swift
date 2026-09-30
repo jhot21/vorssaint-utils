@@ -287,7 +287,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 73, "feature catalog has 73 features")
+        suite.expect(AppFeature.allCases.count == 74, "feature catalog has 74 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -300,7 +300,7 @@ enum FeatureCatalogTests {
             "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "calendar", "meetingJoin", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads",
+            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "calendar", "meetingJoin", "linkRouter", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads",
             "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
             "fanControl", "menuBarDate", "menuBarNextMeeting",
         ], "feature ids are stable (they persist inside availability keys)")
@@ -430,10 +430,12 @@ enum FeatureCatalogTests {
                 && (AppFeature.availabilityDefaults[AppFeature.menuBarDate.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.meetingJoin.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.menuBarNextMeeting.availabilityKey] as? Bool) == false
+                && (AppFeature.availabilityDefaults[AppFeature.linkRouter.availabilityKey] as? Bool) == false
                 && AppFeature.allCases.filter {
                     $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
                         && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .calendar
                         && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting
+                        && $0 != .linkRouter
                 }.allSatisfy {
                     (AppFeature.availabilityDefaults[$0.availabilityKey] as? Bool) == true
                 },

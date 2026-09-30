@@ -28,7 +28,7 @@ enum AppFeature: String, CaseIterable {
     // Tools
     case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
          cleaner, uninstaller, homebrew, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
-         commandBar, screenRecorder, killProcess, portManager, calendar, meetingJoin
+         commandBar, screenRecorder, killProcess, portManager, calendar, meetingJoin, linkRouter
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
          notchQueue, notchLiveEqualizer, notchDownloads
@@ -113,7 +113,7 @@ extension AppFeature {
             return .energyDisplay
         case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
-             .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .calendar, .meetingJoin:
+             .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .calendar, .meetingJoin, .linkRouter:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .notchLiveEqualizer, .notchDownloads:
@@ -193,6 +193,7 @@ extension AppFeature {
         case .portManager: return "network"
         case .calendar: return "calendar"
         case .meetingJoin: return "video"
+        case .linkRouter: return "arrow.triangle.branch"
         case .monitorCPU: return "cpu"
         case .monitorGPU: return "rectangle.connected.to.line.below"
         case .monitorMemory: return "memorychip"
@@ -278,6 +279,7 @@ extension AppFeature {
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
              .fanControl:
             return []
+        case .linkRouter: return [DefaultsKey.linkRouterEnabled]
         case .menuBarDate: return [DefaultsKey.menuBarDate]
         case .menuBarNextMeeting: return [DefaultsKey.menuBarNextMeeting]
         }
@@ -343,7 +345,7 @@ extension AppFeature {
              .soundOutputSwitcher,
              .extraBrightness, .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
              .scratchpad, .monitorGPU, .monitorNetwork, .fanControl, .killProcess, .portManager,
-             .menuBarDate:
+             .menuBarDate, .linkRouter:
             return []
         }
     }
@@ -380,7 +382,8 @@ extension AppFeature {
             ($0.availabilityKey,
              $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
                 && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager
-                && $0 != .calendar && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting)
+                && $0 != .calendar && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting
+                && $0 != .linkRouter)
         })
     }
 
