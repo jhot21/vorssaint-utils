@@ -49,5 +49,19 @@ enum LinkRouterPickerTests {
                      "a cursor over the menu bar still picks that screen and clamps below it")
         suite.expect(LinkPickerPlacement.frame(size: size, cursor: .zero, screens: []).size == size,
                      "with no screens the size is kept and nothing crashes")
+
+        // Resizing in place keeps the top edge and horizontal center
+        let current = CGRect(x: 350, y: 300, width: 300, height: 100)
+        let grown = LinkPickerPlacement.resized(current, to: CGSize(width: 400, height: 130), screens: [screen])
+        suite.expect(grown.midX == current.midX && grown.maxY == current.maxY && grown.size == CGSize(width: 400, height: 130),
+                     "an update resize keeps the top edge and center instead of following the cursor")
+        let nearEdge = LinkPickerPlacement.resized(CGRect(x: 690, y: 10, width: 300, height: 100),
+                                                   to: CGSize(width: 400, height: 130), screens: [screen])
+        suite.expect(screen.visible.contains(nearEdge), "an update resize is re-clamped into the visible frame")
+        let onOther = LinkPickerPlacement.resized(CGRect(x: 1500, y: 300, width: 300, height: 100),
+                                                  to: CGSize(width: 400, height: 130), screens: [screen, second])
+        suite.expect(second.visible.contains(onOther), "an update resize clamps on the screen the panel is on")
+        suite.expect(LinkPickerPlacement.resized(current, to: size, screens: []).size == size,
+                     "resizing with no screens keeps the size and nothing crashes")
     }
 }

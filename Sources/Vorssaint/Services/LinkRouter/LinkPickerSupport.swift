@@ -43,4 +43,20 @@ enum LinkPickerPlacement {
         y = min(max(y, area.minY + margin), area.maxY - size.height - margin)
         return CGRect(x: x, y: y, width: size.width, height: size.height)
     }
+
+    /// Resizes an already-placed panel without moving it to the cursor: the top
+    /// edge and horizontal center stay put, then the result is clamped into the
+    /// visible frame of the screen the panel is on.
+    static func resized(_ current: CGRect, to size: CGSize, screens: [(frame: CGRect, visible: CGRect)]) -> CGRect {
+        let center = CGPoint(x: current.midX, y: current.midY)
+        guard let screen = screens.first(where: { $0.frame.contains(center) }) ?? screens.first else {
+            return CGRect(origin: current.origin, size: size)
+        }
+        let area = screen.visible
+        var x = current.midX - size.width / 2
+        var y = current.maxY - size.height
+        x = min(max(x, area.minX + margin), area.maxX - size.width - margin)
+        y = min(max(y, area.minY + margin), area.maxY - size.height - margin)
+        return CGRect(x: x, y: y, width: size.width, height: size.height)
+    }
 }

@@ -60,7 +60,7 @@ struct LinkPickerView: View {
             if model.showURLLine {
                 Text(Self.summary(of: model.url))
                     .font(.caption).foregroundStyle(.secondary)
-                    .lineLimit(1).truncationMode(.middle).frame(maxWidth: 360)
+                    .lineLimit(1).truncationMode(.tail).frame(maxWidth: 360)
             }
             if model.waiting > 0 {
                 Text(String(format: FeatureStrings.linkRouter(l10n.language).waitingFormat, model.waiting))
@@ -84,7 +84,7 @@ struct LinkPickerView: View {
     /// Host plus the start of the path; never the query string, which can
     /// carry tokens that do not belong on screen.
     private static func summary(of url: URL) -> String {
-        (url.host ?? url.absoluteString) + (url.path == "/" ? "" : url.path)
+        (url.host ?? "") + (url.path == "/" ? "" : url.path)
     }
 }
 
@@ -100,7 +100,10 @@ final class LinkPickerController {
         if let model {
             model.url = url; model.browsers = browsers; model.waiting = waiting; model.showURLLine = showURLLine
             model.choose = onChoose
-            resize()
+            panel?.makeKeyAndOrderFront(nil)
+            // The hosting view has not re-evaluated the body yet, so its
+            // fitting size is stale; measure on the next turn instead.
+            DispatchQueue.main.async { [weak self] in self?.resizeInPlace() }
             return
         }
         let model = LinkPickerModel(url: url, browsers: browsers, waiting: waiting, showURLLine: showURLLine)
@@ -118,7 +121,7 @@ final class LinkPickerController {
         panel.contentView = NSHostingView(rootView: LinkPickerView(model: model))
         panel.keyHandler = { [weak self] event in self?.handle(event) ?? false }
         self.panel = panel
-        resize()
+        placeAtCursor()
         panel.makeKeyAndOrderFront(nil)
         // Clicking anywhere outside (another app's window) cancels. The
         // global monitor never sees clicks inside this panel.
@@ -133,13 +136,26 @@ final class LinkPickerController {
         panel?.orderOut(nil)
         panel = nil
         model = nil
+        onCancel = {}
     }
 
-    private func resize() {
+    private var screens: [(frame: CGRect, visible: CGRect)] {
+        NSScreen.screens.map { (frame: $0.frame, visible: $0.visibleFrame) }
+    }
+
+    /// First present: the body is evaluated on creation, so the size is right.
+    private func placeAtCursor() {
         guard let panel, let content = panel.contentView else { return }
-        let size = content.fittingSize
-        let screens = NSScreen.screens.map { (frame: $0.frame, visible: $0.visibleFrame) }
-        panel.setFrame(LinkPickerPlacement.frame(size: size, cursor: NSEvent.mouseLocation, screens: screens),
+        content.layoutSubtreeIfNeeded()
+        panel.setFrame(LinkPickerPlacement.frame(size: content.fittingSize, cursor: NSEvent.mouseLocation,
+                                                 screens: screens), display: true)
+    }
+
+    /// Update: keep the panel where the user is aiming and only re-fit it.
+    private func resizeInPlace() {
+        guard let panel, let content = panel.contentView else { return }
+        content.layoutSubtreeIfNeeded()
+        panel.setFrame(LinkPickerPlacement.resized(panel.frame, to: content.fittingSize, screens: screens),
                        display: true)
     }
 
