@@ -46,6 +46,16 @@ enum SelfUninstall {
     /// bundle to the Trash and quits. Used by "Uninstall Vorssaint completely".
     static func uninstallCompletely(onFailure: @escaping () -> Void) {
         DispatchQueue.main.async {
+            // Links must not be stranded on a deleted app: give the default
+            // browser back before anything else is torn down.
+            LinkRouterService.shared.restoreDefault { _ in
+                uninstallAfterRestoringLinks(onFailure: onFailure)
+            }
+        }
+    }
+
+    private static func uninstallAfterRestoringLinks(onFailure: @escaping () -> Void) {
+        DispatchQueue.main.async {
             guard suspendInputInterceptors() else {
                 BrightnessService.shared.resumeInputTaps()
                 onFailure()
