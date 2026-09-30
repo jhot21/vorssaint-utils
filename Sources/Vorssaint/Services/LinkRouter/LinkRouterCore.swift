@@ -36,6 +36,8 @@ final class LinkRouterCore {
     static let queueCap = 10
     private static let lastResortBundleID = "com.apple.Safari"
 
+    /// Weak on purpose: the owner (the LinkRouterService singleton) outlives the
+    /// core, so a nil environment only happens during teardown.
     private weak var environment: LinkRouterEnvironment?
     private let evaluator: RegexEvaluating
     private let selfBundleID: String
@@ -44,6 +46,9 @@ final class LinkRouterCore {
     private var buffered: [(url: URL, sender: String?, allowsPicker: Bool)] = []
     private var current: URL?
     private var waiting: [URL] = []
+    /// Bumped by stopAll() so regex completions already in flight can tell the
+    /// router was stopped while they ran.
+    private var generation = 0
 
     init(environment: LinkRouterEnvironment, evaluator: RegexEvaluating, selfBundleID: String) {
         self.environment = environment
@@ -52,7 +57,8 @@ final class LinkRouterCore {
     }
 
     /// Called once settings and services are loaded; drains links that
-    /// arrived earlier (a click can launch the app).
+    /// arrived earlier (a click can launch the app). A one-time launch event:
+    /// stopAll() deliberately does not reset it.
     func setReady() {
         isReady = true
         let pending = buffered
@@ -69,10 +75,18 @@ final class LinkRouterCore {
         guard LinkCanonical.isWeb(url) else { environment.openNonWeb(url); return }
         guard isReady else { buffered.append((url, sender, allowsPicker)); return }
         guard environment.isFeatureOn else { openFallback(url); return }
+        let startedIn = generation
+        // With regex rules completions may arrive out of order, which only
+        // affects the order links are queued in.
         RuleMatcher.firstMatch(url: url, sourceApp: sender, rules: environment.rules,
                                evaluator: evaluator) { [weak self] result in
             guard let self, let environment = self.environment else { return }
             for failure in result.failures { environment.flagRule(id: failure.id, flag: failure.flag) }
+            // Stopped or switched off while the match was running: do not queue or follow rules.
+            guard self.generation == startedIn, environment.isFeatureOn else {
+                self.openFallback(url)
+                return
+            }
             if let rule = result.rule,
                rule.browserBundleID != self.selfBundleID,
                environment.isInstalled(bundleID: rule.browserBundleID) {
@@ -105,7 +119,8 @@ final class LinkRouterCore {
     }
 
     func pickerDidChoose(_ url: URL, bundleID: String, saveRule: Bool) {
-        guard let environment else { return }
+        // Identity by URL value; identical duplicate URLs in the queue are a known limitation.
+        guard let environment, let current, current == url else { return }
         environment.open(url, inBundleID: bundleID)
         if saveRule, let host = LinkCanonical.link(for: url)?.host {
             environment.addRule(RoutingRule(pattern: host, browserBundleID: bundleID))
@@ -114,17 +129,20 @@ final class LinkRouterCore {
     }
 
     func pickerDidCancel(_ url: URL) {
+        guard let current, current == url else { return }
         openFallback(url)
         advance()
     }
 
     /// The feature is going away: nothing pending may be lost.
     func stopAll() {
+        generation += 1
+        guard let environment else { return }  // nothing to deliver to; keep the queue
         let pending = [current].compactMap { $0 } + waiting
         current = nil
         waiting = []
         for url in pending { openFallback(url) }
-        environment?.hidePicker()
+        environment.hidePicker()
     }
 
     private func advance() {

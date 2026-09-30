@@ -28,6 +28,12 @@ enum LinkRouterCoreTests {
         func evaluate(pattern: String, in text: String, completion: @escaping (RegexOutcome) -> Void) { completion(outcome) }
     }
 
+    private final class DeferredRegex: RegexEvaluating {
+        var pending: [(RegexOutcome) -> Void] = []
+        func evaluate(pattern: String, in text: String, completion: @escaping (RegexOutcome) -> Void) { pending.append(completion) }
+        func complete(_ outcome: RegexOutcome) { let p = pending; pending = []; p.forEach { $0(outcome) } }
+    }
+
     private static func make(_ configure: (FakeEnv) -> Void = { _ in }) -> (FakeEnv, LinkRouterCore, NeverRegex) {
         let env = FakeEnv()
         configure(env)
@@ -141,9 +147,16 @@ enum LinkRouterCoreTests {
         suite.expect(env.events == ["open:https://example.com@org.mozilla.firefox"], "with no visible browsers the fallback is used")
 
         // Fallback chain.
-        (env, core, _) = make { $0.previousDefaultBundleID = "me" }
+        (env, core, _) = make { $0.previousDefaultBundleID = "me"; $0.installed.insert("me") }
         suite.expect(core.fallbackBundleID() == "com.apple.Safari",
                      "a previous default that is Vorssaint itself is skipped for the first visible browser")
+        (env, core, _) = make {
+            $0.previousDefaultBundleID = "me"
+            $0.installed.insert("me")
+            $0.visibleBrowsers = [BrowserInfo(bundleID: "me", name: "Me"), BrowserInfo(bundleID: "org.mozilla.firefox", name: "Firefox")]
+        }
+        suite.expect(core.fallbackBundleID() == "org.mozilla.firefox",
+                     "a visible browser that is Vorssaint itself is skipped too")
         (env, core, _) = make { $0.previousDefaultBundleID = nil; $0.visibleBrowsers = [] }
         suite.expect(core.fallbackBundleID() == "com.apple.Safari", "Safari is the last resort when installed")
         (env, core, _) = make { $0.previousDefaultBundleID = nil; $0.visibleBrowsers = []; $0.installed = [] }
@@ -168,6 +181,69 @@ enum LinkRouterCoreTests {
         suite.expect(env.events == ["open:https://a.test@org.mozilla.firefox",
                                     "open:https://b.test@org.mozilla.firefox", "hide"],
                      "stopping the router sends every pending link to the fallback browser")
+        env.events = []
+        core.route(req("https://c.test"))
+        suite.expect(env.events == ["picker:https://c.test/0"], "after stopping, a new link gets a fresh picker")
+
+        // Late picker callbacks after stopAll do nothing.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.stopAll()
+        env.events = []
+        core.pickerDidCancel(URL(string: "https://a.test")!)
+        core.pickerDidChoose(URL(string: "https://a.test")!, bundleID: "com.apple.Safari", saveRule: true)
+        suite.expect(env.events.isEmpty, "late picker callbacks after stopping are ignored")
+
+        // A late cancel after a choose neither reopens the link nor skips the next one.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.route(req("https://b.test"))
+        core.pickerDidChoose(URL(string: "https://a.test")!, bundleID: "com.apple.Safari", saveRule: false)
+        env.events = []
+        core.pickerDidCancel(URL(string: "https://a.test")!)
+        suite.expect(env.events.isEmpty, "a late cancel after a choose does nothing and does not advance")
+        core.pickerDidCancel(URL(string: "https://b.test")!)
+        suite.expect(env.events == ["open:https://b.test@org.mozilla.firefox", "hide"],
+                     "the next waiting link is still current after the stale cancel")
+
+        // A late choose after a cancel does nothing.
+        (env, core, _) = make()
+        core.route(req("https://a.test"))
+        core.pickerDidCancel(URL(string: "https://a.test")!)
+        env.events = []
+        core.pickerDidChoose(URL(string: "https://a.test")!, bundleID: "com.apple.Safari", saveRule: true)
+        suite.expect(env.events.isEmpty, "a late choose after a cancel does nothing")
+
+        // In-flight regex completions are reconciled with stopAll and the feature toggle.
+        let rx = DeferredRegex()
+        let regexRule = RoutingRule(pattern: "a", kind: .regex, browserBundleID: "com.work")
+        let asyncEnv = FakeEnv()
+        asyncEnv.rules = [regexRule]
+        let asyncCore = LinkRouterCore(environment: asyncEnv, evaluator: rx, selfBundleID: "me")
+        asyncCore.setReady()
+        asyncCore.route(req("https://a.test"))
+        asyncCore.stopAll()
+        asyncEnv.events = []
+        rx.complete(.match)
+        suite.expect(asyncEnv.events == ["open:https://a.test@org.mozilla.firefox"],
+                     "a regex completing after stopping sends the link to the fallback, no picker, rule not followed")
+
+        asyncCore.route(req("https://b.test"))
+        asyncEnv.isFeatureOn = false
+        asyncEnv.events = []
+        rx.complete(.noMatch)
+        suite.expect(asyncEnv.events == ["open:https://b.test@org.mozilla.firefox"],
+                     "a regex completing after the feature is turned off uses the fallback")
+
+        asyncEnv.isFeatureOn = true
+        asyncCore.route(req("https://c.test"))
+        asyncEnv.events = []
+        rx.complete(.match)
+        suite.expect(asyncEnv.events == ["open:https://c.test@com.work"], "a normal regex completion still follows the rule")
+        asyncCore.route(req("https://d.test"))
+        asyncEnv.events = []
+        rx.complete(.noMatch)
+        suite.expect(asyncEnv.events == ["picker:https://d.test/0"], "a normal regex non-match still shows the picker")
 
     }
 }
