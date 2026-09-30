@@ -48,6 +48,9 @@ struct MetricsTests {
                 RecorderExportRenderingTests.run(suite)
             }),
             ("command-bar", { CommandBarFeatureTests.run(suite) }),
+            ("link-router", {
+                LinkRouterMatcherTests.run(suite)
+            }),
             ("notch", {
                 NotchTests.run(suite)
                 NotchCompactTests.run(suite)
