@@ -45,7 +45,8 @@ enum LinkRouterGuardTests {
                     let window = lines[index..<min(index + 3, lines.count)].joined(separator: " ")
                     if !window.contains("withApplicationAt") { bare[relative, default: 0] += 1 }
                 }
-                if line.contains("@Environment(\\.openURL)") || line.contains("Link(destination") {
+                if line.contains("@Environment(\\.openURL)")
+                    || line.range(of: #"\bLink\("#, options: .regularExpression) != nil {
                     openURLUses.append(relative)
                 }
             }
@@ -55,6 +56,6 @@ enum LinkRouterGuardTests {
                         + "\(bare.filter { allowedBareOpens[$0.key] != $0.value }) versus "
                         + "\(allowedBareOpens.filter { bare[$0.key] != $0.value })")
         suite.expect(openURLUses.isEmpty,
-                     "no SwiftUI openURL or Link(destination:) remains, they resolve to the default browser: \(openURLUses)")
+                     "no SwiftUI openURL or Link( remains, they resolve to the default browser: \(openURLUses)")
     }
 }

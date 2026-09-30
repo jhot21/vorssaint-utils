@@ -512,7 +512,10 @@ struct HomebrewSettings: View {
                 }
                 if let homepage = package.homepage,
                    let url = URL(string: homepage) {
-                    Link(l10n.s.homebrewHomepage, destination: url)
+                    Button(l10n.s.homebrewHomepage) {
+                        LinkOpener.open(url)
+                    }
+                    .buttonStyle(.link)
                 }
             }
             .font(.caption)

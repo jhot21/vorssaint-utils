@@ -543,7 +543,10 @@ struct AboutSettings: View {
                 Button(l10n.s.reviewHighlights) {
                     appDelegate()?.showUpdateHighlights()
                 }
-                Link(l10n.s.viewOnGitHub, destination: AppInfo.repositoryURL)
+                Button(l10n.s.viewOnGitHub) {
+                    LinkOpener.open(AppInfo.repositoryURL)
+                }
+                .buttonStyle(.link)
             }
             Text(AppInfo.copyright)
                 .font(.caption2)
