@@ -27,10 +27,11 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
 
     // MARK: Apple event
 
-    /// Registered before `app.run()` (see main.swift): a click that launches
-    /// the app delivers its event before applicationDidFinishLaunching, and
-    /// installing our own handler is also what keeps AppKit's internal one
-    /// from forwarding the same URL to the app delegate (no double open).
+    /// Installed from main.swift before `app.run()` so a click that launches
+    /// the app is caught (its event arrives before applicationDidFinishLaunching).
+    /// AppKit replaces the handler during finishLaunching because AppDelegate
+    /// implements application(_:open:), so it is installed again in
+    /// applicationDidFinishLaunching.
     func installEventHandler() {
         NSAppleEventManager.shared().setEventHandler(
             self, andSelector: #selector(handleGetURL(_:withReplyEvent:)),

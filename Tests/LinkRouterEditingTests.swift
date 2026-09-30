@@ -50,6 +50,11 @@ enum LinkRouterEditingTests {
                      "an unknown id is a no-op")
         suite.expect(ReorderSupport.move(ids: ids, moving: "a", onto: "d") == ["b", "c", "d", "a"],
                      "dragging onto the last row moves to the end")
+        suite.expect(ReorderSupport.dropOperation(dragging: "a", ids: ids) == .move, "an own-list drag is accepted")
+        suite.expect(ReorderSupport.dropOperation(dragging: nil, ids: ids) == .forbidden,
+                     "a foreign drag (no drag in progress) is refused")
+        suite.expect(ReorderSupport.dropOperation(dragging: "x", ids: ids) == .forbidden,
+                     "a drag from another list is refused")
         var reordered = [a, b, c]
         RuleEditing.reorder([c.id, a.id, b.id], in: &reordered)
         suite.expect(reordered.map(\.id) == [c.id, a.id, b.id], "reorder applies the dragged order")

@@ -37,7 +37,7 @@ struct LinkRouterSettings: View {
                 if browsers.isEmpty { Text(text.noBrowsers).foregroundStyle(.secondary) }
                 ForEach(browsers) { browser in
                     ReorderableRow(item: browser, id: { $0.bundleID }, items: $browsers, dragging: $draggingBrowser,
-                                   onCommit: { BrowserCatalog.saveOrder(browsers.map(\.bundleID)) }) {
+                                   onCommit: { BrowserCatalog.saveOrder($0) }) {
                         browserRow(browser)
                     }
                 }
@@ -52,8 +52,8 @@ struct LinkRouterSettings: View {
                 }
                 ForEach(rules) { rule in
                     ReorderableRow(item: rule, id: { $0.id.uuidString }, items: $rules, dragging: $draggingRule,
-                                   onCommit: {
-                                       let order = rules.map(\.id)
+                                   onCommit: { ids in
+                                       let order = ids.compactMap(UUID.init(uuidString:))
                                        mutateRules { RuleEditing.reorder(order, in: &$0) }
                                    }) {
                         ruleRow(rule)
@@ -65,6 +65,7 @@ struct LinkRouterSettings: View {
                 }
                 TextField("", text: $testInput, prompt: Text(text.testLabel))
                     .labelsHidden()
+                    .accessibilityLabel(text.testLabel)
                     .onChange(of: testInput) { _, _ in runTest() }
                     .onChange(of: rules) { _, _ in runTest() }
                 if let testResult { Text(testResult).font(.caption).foregroundStyle(.secondary) }
@@ -74,6 +75,9 @@ struct LinkRouterSettings: View {
                 Toggle(text.showUndoToast, isOn: $showUndoToast)
             }
         }
+        .onDrop(of: [.text], delegate: ReorderDropZone(
+            isDragging: { draggingBrowser != nil || draggingRule != nil },
+            finish: { draggingBrowser = nil; draggingRule = nil }))
         .sheet(item: $editing) { rule in
             RuleEditor(rule: rule, browsers: browsers, text: text) { saved in
                 mutateRules { RuleEditing.save(saved, in: &$0) }
@@ -86,14 +90,16 @@ struct LinkRouterSettings: View {
             router.refreshStatus()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // Safety net: a drag that ended somewhere unexpected must not leave a row dimmed.
+            draggingBrowser = nil
+            draggingRule = nil
             reloadRules()
             router.refreshStatus()
         }
         .onChange(of: router.status) { _, _ in restoreFailed = false }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             // The picker, the service and the undo toast write the rules while this page is open.
-            // A reload mid-drag would undo the live reorder before it is saved.
-            guard draggingRule == nil else { return }
+            // Reorders are saved as they happen, so a reload never undoes one.
             let stored = RuleStore.load()
             if stored != rules { reloadRules() }
         }
@@ -187,8 +193,8 @@ struct LinkRouterSettings: View {
                     }
                     if rule.kind == .regex { Text(text.regexToggle).font(.caption).foregroundStyle(.secondary) }
                     switch rule.flag {
-                    case .tooSlow?: Text(text.tooSlow).font(.caption).foregroundStyle(.red)
-                    case .invalidRegex?: Text(text.invalidRegex).font(.caption).foregroundStyle(.red)
+                    case .tooSlow?: Text(text.tooSlow).font(.caption).foregroundStyle(.red).lineLimit(1)
+                    case .invalidRegex?: Text(text.invalidRegex).font(.caption).foregroundStyle(.red).lineLimit(1)
                     case nil: EmptyView()
                     }
                 }
@@ -215,6 +221,7 @@ struct LinkRouterSettings: View {
     }
 
     private func reloadRules() {
+        draggingRule = nil
         rules = RuleStore.load()
         rulesUnreadable = RuleStore.isMalformed(UserDefaults.standard.string(forKey: DefaultsKey.linkRouterRules) ?? "")
     }
@@ -231,6 +238,7 @@ struct LinkRouterSettings: View {
     }
 
     private func loadBrowsers() {
+        draggingBrowser = nil
         browsers = BrowserCatalog.current().all
         hidden = Set(UserDefaults.standard.stringArray(forKey: DefaultsKey.linkRouterBrowserHidden) ?? [])
     }
@@ -273,9 +281,19 @@ private struct RuleEditor: View {
     let text: LinkRouterFeatureStrings
     let onSave: (RoutingRule) -> Void
     let onCancel: () -> Void
-    @State private var advanced = false
+    @State private var advanced: Bool
     @State private var showInvalid = false
     @State private var sourceApps: [BrowserInfo] = []
+
+    init(rule: RoutingRule, browsers: [BrowserInfo], text: LinkRouterFeatureStrings,
+         onSave: @escaping (RoutingRule) -> Void, onCancel: @escaping () -> Void) {
+        _rule = State(initialValue: rule)
+        self.browsers = browsers
+        self.text = text
+        self.onSave = onSave
+        self.onCancel = onCancel
+        _advanced = State(initialValue: rule.kind == .regex || rule.sourceAppBundleID != nil)
+    }
 
     private static let labelWidth: CGFloat = 120
 
@@ -344,7 +362,6 @@ private struct RuleEditor: View {
         .padding(20)
         .frame(width: 460)
         .onAppear {
-            advanced = rule.kind == .regex || rule.sourceAppBundleID != nil
             sourceApps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular }
                 .compactMap { app in app.bundleIdentifier.map { BrowserInfo(bundleID: $0, name: app.localizedName ?? $0) } }
@@ -357,6 +374,7 @@ private struct RuleEditor: View {
             Text(label)
                 .frame(width: Self.labelWidth, alignment: .leading)
             control()
+                .accessibilityLabel(label)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

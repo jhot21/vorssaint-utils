@@ -5,6 +5,16 @@ import Foundation
 
 /// Pure id-list reordering for drag-to-reorder rows.
 enum ReorderSupport {
+    enum DropOperation { case move, forbidden }
+
+    /// A list accepts a drop only when the drag in progress is one of its own
+    /// rows; a foreign drag (text from another app, a row of the other list)
+    /// is refused so it can never be treated as a move.
+    static func dropOperation(dragging: String?, ids: [String]) -> DropOperation {
+        guard let dragging, ids.contains(dragging) else { return .forbidden }
+        return .move
+    }
+
     /// Moves `moving` to the position `target` currently holds, the same live
     /// behaviour as the panel layout editor: dragging forward lands after the
     /// hovered row, dragging backward lands before it. An unknown id or the
