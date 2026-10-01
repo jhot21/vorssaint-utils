@@ -353,6 +353,11 @@ if (( TEST )); then
     TEST_SOURCES=(
         Sources/Vorssaint/Services/Media/MediaSupport.swift
         Sources/Vorssaint/Services/LinkRouter/LinkCanonical.swift
+        Sources/Vorssaint/Services/LinkRouter/RedirectWrappers.swift
+        Sources/Vorssaint/Services/LinkRouter/LinkTransform.swift
+        Sources/Vorssaint/Services/LinkRouter/RewriteRule.swift
+        Sources/Vorssaint/Services/LinkRouter/LinkTransformPrefs.swift
+        Sources/Vorssaint/Services/LinkRouter/TransformChips.swift
         Sources/Vorssaint/Services/LinkRouter/RoutingRule.swift
         Sources/Vorssaint/Services/LinkRouter/RuleMatcher.swift
         Sources/Vorssaint/Services/LinkRouter/RegexEvaluator.swift
@@ -361,8 +366,11 @@ if (( TEST )); then
         Sources/Vorssaint/Services/LinkRouter/DefaultBrowserManager.swift
         Sources/Vorssaint/Services/LinkRouter/LinkRouterCore.swift
         Sources/Vorssaint/Services/LinkRouter/LinkPickerSupport.swift
+        Sources/Vorssaint/Services/LinkRouter/LinkPickerState.swift
+        Sources/Vorssaint/Services/LinkRouter/LinkPickerModel.swift
         Sources/Vorssaint/Services/LinkRouter/ReorderSupport.swift
         Sources/Vorssaint/Core/LinkRouterStrings.swift
+        Sources/Vorssaint/Core/LinkTransformStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift
         Sources/Vorssaint/Core/Defaults.swift

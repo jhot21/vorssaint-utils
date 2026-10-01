@@ -11,6 +11,15 @@ protocol RegexEvaluating: AnyObject {
     func evaluate(pattern: String, in text: String, completion: @escaping (RegexOutcome) -> Void)
 }
 
+enum RegexReplaceOutcome: Equatable { case replaced(String), noMatch, invalid, timedOut }
+
+/// Separate from `RegexEvaluating` so matching fakes need not implement
+/// substitution. Completions arrive on the main queue, exactly once.
+protocol RegexReplacing: AnyObject {
+    func replace(pattern: String, in text: String, template: String,
+                 completion: @escaping (RegexReplaceOutcome) -> Void)
+}
+
 struct RuleFailure: Equatable {
     let id: UUID
     let flag: RoutingRule.Flag

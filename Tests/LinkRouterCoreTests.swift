@@ -21,6 +21,15 @@ enum LinkRouterCoreTests {
         func hidePicker() { events.append("hide") }
         func addRule(_ rule: RoutingRule) { rules.append(rule); events.append("rule:\(rule.pattern)@\(rule.browserBundleID)") }
         func flagRule(id: UUID, flag: RoutingRule.Flag) { events.append("flag:\(flag.rawValue)") }
+        var transformPrefs = LinkTransformPrefs(defaultChips: [], settings: TransformSettings(), rewrites: [])
+        func flagRewrite(id: UUID, flag: RoutingRule.Flag) { events.append("flagRewrite:\(flag.rawValue)") }
+    }
+
+    private final class DeferredReplacer: RegexReplacing {
+        var pending: [(RegexReplaceOutcome) -> Void] = []
+        func replace(pattern: String, in text: String, template: String,
+                     completion: @escaping (RegexReplaceOutcome) -> Void) { pending.append(completion) }
+        func complete(_ outcome: RegexReplaceOutcome) { let p = pending; pending = []; p.forEach { $0(outcome) } }
     }
 
     private final class NeverRegex: RegexEvaluating {
@@ -266,5 +275,85 @@ enum LinkRouterCoreTests {
         rx.complete(.noMatch)
         suite.expect(asyncEnv.events == ["picker:https://d.test/0"], "a normal regex non-match still shows the picker")
 
+        runTransforms(suite)
+    }
+
+    private static func runTransforms(_ suite: TestSuite) {
+        // Auto-open applies the rule's chips; unset chips use the global default.
+        do {
+            let env = FakeEnv()
+            env.rules = [RoutingRule(pattern: "example.com", browserBundleID: "com.work", chips: [.clean])]
+            let core = LinkRouterCore(environment: env, evaluator: NeverRegex(), selfBundleID: "me")
+            core.setReady(); env.events = []
+            core.route(req("https://example.com/p?id=1&utm_source=x"))
+            suite.expect(env.events == ["open:https://example.com/p?id=1@com.work"],
+                         "an auto-open rule applies its own chips before opening")
+        }
+        do {
+            let env = FakeEnv()
+            env.transformPrefs.defaultChips = [.clean]
+            env.rules = [RoutingRule(pattern: "example.com", browserBundleID: "com.work"),
+                         RoutingRule(pattern: "other.com", browserBundleID: "com.work", chips: [])]
+            let core = LinkRouterCore(environment: env, evaluator: NeverRegex(), selfBundleID: "me")
+            core.setReady(); env.events = []
+            core.route(req("https://example.com/p?utm_source=x"))
+            core.route(req("https://other.com/p?utm_source=x"))
+            suite.expect(env.events == ["open:https://example.com/p@com.work", "open:https://other.com/p?utm_source=x@com.work"],
+                         "unset rule chips follow the global default and an empty set overrides it")
+        }
+        // Auto-open with a rewrite: waits for the result, falls back if the router stopped meanwhile.
+        do {
+            let env = FakeEnv()
+            let rewrite = RewriteRule(name: "R", find: "x", replacement: "y", key: "r")
+            env.transformPrefs.rewrites = [rewrite]
+            env.rules = [RoutingRule(pattern: "example.com", browserBundleID: "com.work", rewriteID: rewrite.id)]
+            let replacer = DeferredReplacer()
+            let core = LinkRouterCore(environment: env, evaluator: NeverRegex(), selfBundleID: "me", replacer: replacer)
+            core.setReady(); env.events = []
+            core.route(req("https://example.com/a"))
+            suite.expect(env.events.isEmpty, "nothing opens while the rewrite is pending")
+            replacer.complete(.replaced("https://front.test/a"))
+            suite.expect(env.events == ["open:https://front.test/a@com.work"],
+                         "the rewritten link opens in the rule's browser")
+
+            env.events = []
+            core.route(req("https://example.com/b"))
+            core.stopAll()
+            env.events = []
+            replacer.complete(.replaced("https://front.test/b"))
+            suite.expect(env.events == ["open:https://example.com/b@org.mozilla.firefox"],
+                         "a router stopped while a rewrite was pending opens the original link once via the fallback")
+
+            env.events = []
+            core.route(req("https://example.com/c"))
+            replacer.complete(.timedOut)
+            suite.expect(env.events == ["flagRewrite:tooSlow", "open:https://example.com/c@com.work"],
+                         "a failed rewrite flags the rule and still opens the unmodified link")
+
+            env.events = []
+            core.route(req("https://example.com/d"))
+            replacer.complete(.noMatch)
+            suite.expect(env.events == ["open:https://example.com/d@com.work"],
+                         "a rewrite that changes nothing opens the edited link")
+        }
+        // Picker choice opens the transformed link; remembering saves the original host.
+        do {
+            let (env, core, _) = make()
+            let wrapper = URL(string: "https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.org%2F")!
+            core.route(LinkRequest(urls: [wrapper], senderBundleID: nil))
+            core.pickerDidChoose(wrapper, bundleID: "com.apple.Safari", saveRule: true,
+                                 opening: URL(string: "https://example.org/")!, chips: [.extract])
+            suite.expect(env.events.contains("open:https://example.org/@com.apple.Safari")
+                            && env.events.contains("rule:l.facebook.com@com.apple.Safari")
+                            && env.rules.first?.chips == [.extract],
+                         "the picker opens the final link, saves the rule for the original host, and keeps the chips")
+        }
+        do {
+            let (env, core, _) = make()
+            env.transformPrefs.defaultChips = [.clean]
+            core.route(req("https://a.test/"))
+            core.pickerDidChoose(URL(string: "https://a.test/")!, bundleID: "com.apple.Safari", saveRule: true, chips: [.clean])
+            suite.expect(env.rules.first?.chips == nil, "chips equal to the global default are saved as unset")
+        }
     }
 }
