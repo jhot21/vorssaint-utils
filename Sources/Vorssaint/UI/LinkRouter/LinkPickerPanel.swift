@@ -2,114 +2,367 @@
 // Copyright (C) 2026 Vorssaint
 
 import AppKit
+import Combine
 import SwiftUI
 
 /// Borderless panels refuse key status by default; the picker needs it for
-/// the number keys, Return and Escape. Non-activating, so the app the link
-/// came from keeps focus and nothing has to be restored afterwards.
+/// its search field. Non-activating, so the app the link came from keeps
+/// focus and nothing has to be restored afterwards.
 private final class KeyablePickerPanel: NSPanel {
-    var keyHandler: ((NSEvent) -> Bool)?
     override var canBecomeKey: Bool { true }
-    override func keyDown(with event: NSEvent) {
-        if keyHandler?(event) != true { super.keyDown(with: event) }
-    }
 }
 
 final class LinkPickerModel: ObservableObject {
-    @Published var url: URL
-    @Published var browsers: [BrowserInfo]
+    enum RewriteStatus: Equatable { case idle, pending, applied, failed }
+
+    /// The clicked link. A queued link gets a new model, so this never changes.
+    let url: URL
+    let prefs: LinkTransformPrefs
+    let mode: LinkURLLineMode
+    /// New for every model, so the view can tell "another link" from "an
+    /// update" and refocus its field.
+    let instanceID = UUID()
+    @Published var state: LinkPickerState
     @Published var waiting: Int
-    @Published var showURLLine: Bool
-    /// The row Return chooses. Arrow keys and hover move it.
-    @Published var selectedIndex = 0
-    var choose: (BrowserInfo, Bool) -> Void = { _, _ in }
-    init(url: URL, browsers: [BrowserInfo], waiting: Int, showURLLine: Bool) {
-        self.url = url; self.browsers = browsers; self.waiting = waiting; self.showURLLine = showURLLine
+    @Published private(set) var result: TransformResult
+    @Published private(set) var rewritten: URL?
+    @Published private(set) var rewriteStatus: RewriteStatus = .idle
+    @Published private(set) var availableChips: TransformChips = []
+    /// Set once a browser is chosen; later keys and clicks are ignored so one
+    /// link can never open twice.
+    private(set) var isCommitting = false
+    var choose: (BrowserInfo, Bool, URL, TransformChips, UUID?) -> Void = { _, _, _, _, _ in }
+
+    private let replacer: RegexReplacing
+    private let flagRewrite: (UUID, RoutingRule.Flag) -> Void
+    private var rewriteToken = 0
+    private var pendingCommit: (browser: BrowserInfo, remember: Bool)?
+
+    init(url: URL, browsers: [BrowserInfo], prefs: LinkTransformPrefs, mode: LinkURLLineMode,
+         waiting: Int, replacer: RegexReplacing, flagRewrite: @escaping (UUID, RoutingRule.Flag) -> Void) {
+        self.url = url
+        self.prefs = prefs
+        self.mode = mode
+        self.waiting = waiting
+        self.replacer = replacer
+        self.flagRewrite = flagRewrite
+        self.state = LinkPickerState(browsers: browsers, rewrites: LinkRewrite.applicable(prefs.rewrites, to: url),
+                                     chips: prefs.defaultChips)
+        self.result = TransformResult(url: url, beforeClean: url)
+        recompute()
+    }
+
+    var finalURL: URL { rewritten ?? result.url }
+    var keyMap: LinkPickerKeyMap { LinkPickerKeyMap.make(rewrites: state.rewrites) }
+
+    func setQuery(_ text: String) { state.setQuery(text) }
+    func move(_ delta: Int) { state.move(delta) }
+    func select(row: Int) { state.select(row: row) }
+
+    func toggleChip(_ chip: TransformChips) {
+        state.toggleChip(chip)
+        recompute()
+    }
+
+    func toggleRewrite(_ id: UUID) {
+        state.toggleRewrite(id)
+        recompute()
+    }
+
+    func activate() -> LinkPickerState.Activation {
+        let activation = state.activate()
+        if activation == .toggledRewrite { recompute() }
+        return activation
+    }
+
+    func escape() -> LinkPickerState.EscapeResult { state.escape() }
+
+    /// A rewrite still running when a browser is chosen is waited for; the
+    /// evaluator's own deadline bounds the wait, after which the link opens
+    /// without the rewrite.
+    func commit(_ browser: BrowserInfo, remember: Bool) {
+        guard !isCommitting else { return }
+        isCommitting = true
+        if rewriteStatus == .pending {
+            pendingCommit = (browser, remember)
+        } else {
+            choose(browser, remember, finalURL, state.chips, state.activeRewrite)
+        }
+    }
+
+    private func recompute() {
+        result = LinkTransform.apply(url, chips: state.chips, settings: prefs.settings)
+        availableChips = LinkTransform.available(for: url, selected: state.chips, settings: prefs.settings)
+        rewriteToken += 1
+        let token = rewriteToken
+        rewritten = nil
+        guard let id = state.activeRewrite, let rule = state.rewrites.first(where: { $0.id == id }) else {
+            rewriteStatus = .idle
+            return
+        }
+        rewriteStatus = .pending
+        LinkRewrite.apply(rule, to: result.url, replacer: replacer) { [weak self] outcome in
+            guard let self, self.rewriteToken == token else { return }
+            switch outcome {
+            case .rewritten(let link):
+                self.rewritten = link
+                self.rewriteStatus = .applied
+            case .unchanged:
+                self.rewriteStatus = .idle
+            case .failed(let failure):
+                self.rewriteStatus = .failed
+                if let flag = LinkRouterCore.flag(for: failure) { self.flagRewrite(rule.id, flag) }
+            }
+            if let pending = self.pendingCommit {
+                self.pendingCommit = nil
+                self.choose(pending.browser, pending.remember, self.finalURL, self.state.chips, self.state.activeRewrite)
+            }
+        }
     }
 }
 
 struct LinkPickerView: View {
     @ObservedObject var model: LinkPickerModel
     @ObservedObject private var l10n = L10n.shared
+    @FocusState private var searchFocused: Bool
 
     private static let rowHeight: CGFloat = 36
     private static let rowSpacing: CGFloat = 2
+    private static let headerHeight: CGFloat = 24
+
+    private var text: LinkTransformFeatureStrings { FeatureStrings.linkTransform(l10n.language) }
 
     var body: some View {
-        let rows = LinkPickerSupport.visibleRows(count: model.browsers.count)
-        VStack(alignment: .leading, spacing: 8) {
-            if model.showURLLine {
-                Text(Self.summary(of: model.url))
-                    .font(.caption).foregroundStyle(.secondary)
-                    .lineLimit(1).truncationMode(.tail)
-                    .padding(.horizontal, 9)
+        let browsers = model.state.visibleBrowsers
+        let rewrites = model.state.visibleRewrites
+        VStack(spacing: 0) {
+            searchBar
+            if model.mode != .off {
+                Divider()
+                urlLine
             }
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: Self.rowSpacing) {
-                        ForEach(Array(model.browsers.enumerated()), id: \.element.id) { index, browser in
-                            row(browser, index: index)
-                                .id(browser.id)
-                        }
-                    }
-                }
-                .frame(height: CGFloat(rows) * Self.rowHeight + CGFloat(max(rows - 1, 0)) * Self.rowSpacing)
-                .onChange(of: model.selectedIndex) { _, index in
-                    guard model.browsers.indices.contains(index) else { return }
-                    proxy.scrollTo(model.browsers[index].id)
-                }
+            if !model.availableChips.isEmpty {
+                Divider()
+                chipRow
+            }
+            if !browsers.isEmpty || !rewrites.isEmpty {
+                Divider()
+                list(browsers: browsers, rewrites: rewrites)
             }
             if model.waiting > 0 {
                 Text(String(format: FeatureStrings.linkRouter(l10n.language).waitingFormat, model.waiting))
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 8).padding(.vertical, 2)
                     .background(.thinMaterial, in: Capsule())
-                    .padding(.horizontal, 9)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16).padding(.bottom, 8)
             }
         }
-        .padding(8)
-        .frame(width: 260)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(width: LinkPickerSupport.barWidth)
+        .background(HUDBackdrop(cornerRadius: 22, contrast: .high))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .fixedSize()
+        .id(model.instanceID)
+        .onAppear { DispatchQueue.main.async { searchFocused = true } }
     }
 
-    private func row(_ browser: BrowserInfo, index: Int) -> some View {
-        let isSelected = index == model.selectedIndex
-        return Button {
-            model.choose(browser, NSEvent.modifierFlags.contains(.option))
-        } label: {
-            HStack(spacing: 10) {
-                Image(nsImage: Self.icon(for: browser))
-                    .resizable().frame(width: 24, height: 24)
-                Text(browser.name).font(.system(size: 13)).lineLimit(1)
-                Spacer(minLength: 8)
-                if index < 9 {
-                    Text("\(index + 1)")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6).padding(.vertical, 2.5)
-                        .background(RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(Color.primary.opacity(0.06)))
+    // MARK: Field and link
+
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "link")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+            TextField(text.searchPlaceholder,
+                      text: Binding(get: { model.state.query }, set: { model.setQuery($0) }))
+                .textFieldStyle(.plain)
+                .font(.system(size: 16))
+                .focused($searchFocused)
+                .disableAutocorrection(true)
+            if !model.state.query.isEmpty {
+                Button { model.setQuery("") } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
                 }
-                Image(systemName: "return")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    // Always laid out, only drawn on the selected row, so the
-                    // rows do not shift as the highlight moves.
-                    .opacity(isSelected ? 1 : 0)
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 9)
-            .frame(height: Self.rowHeight)
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.14) : .clear))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    private var urlLine: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(Self.attributed(LinkURLPreview.segments(mode: model.mode, result: model.result,
+                                                          rewritten: model.rewritten)))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            switch model.rewriteStatus {
+            case .pending:
+                Text(text.rewritePending).font(.caption2).foregroundStyle(.secondary)
+            case .failed:
+                Label(text.rewriteFailed, systemImage: "exclamationmark.triangle")
+                    .font(.caption2).foregroundStyle(.orange)
+            case .idle, .applied:
+                EmptyView()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    private static func attributed(_ segments: [URLSegment]) -> AttributedString {
+        var output = AttributedString()
+        for segment in segments {
+            var part = AttributedString(segment.text)
+            switch segment.style {
+            case .plain:
+                break
+            case .removed:
+                part.strikethroughStyle = .single
+                part.foregroundColor = Color.secondary.opacity(0.7)
+            case .changed:
+                part.foregroundColor = Color.accentColor
+            }
+            output.append(part)
+        }
+        return output
+    }
+
+    // MARK: Chips
+
+    private var chipRow: some View {
+        HStack(spacing: 5) {
+            if model.availableChips.contains(.extract) {
+                chip(.extract, label: text.extractChip, key: RewriteKeys.extractKey)
+            }
+            if model.availableChips.contains(.clean) {
+                chip(.clean, label: text.cleanChip, key: RewriteKeys.cleanKey)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+    }
+
+    private func chip(_ chip: TransformChips, label: String, key: String) -> some View {
+        let isOn = model.state.chips.contains(chip)
+        return Button { model.toggleChip(chip) } label: {
+            HStack(spacing: 5) {
+                Text(label).font(.system(size: 10, weight: isOn ? .semibold : .regular))
+                Text("\u{2318}\(key.uppercased())")
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .opacity(0.7)
+            }
+            // Tinted, never filled, like the Command Bar's category chips.
+            .foregroundStyle(isOn ? Color.accentColor : Color.secondary)
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(Capsule().fill(isOn ? Color.accentColor.opacity(0.18) : Color.primary.opacity(0.06)))
+            .overlay(Capsule().strokeBorder(Color.accentColor.opacity(isOn ? 0.45 : 0), lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .onHover { hovering in
-            if hovering { model.selectedIndex = index }
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+    }
+
+    // MARK: Rows
+
+    private func list(browsers: [BrowserInfo], rewrites: [RewriteRule]) -> some View {
+        let rows = LinkPickerSupport.visibleRows(count: browsers.count + rewrites.count)
+        let header = rewrites.isEmpty ? 0 : Self.headerHeight
+        return ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: Self.rowSpacing) {
+                    ForEach(Array(browsers.enumerated()), id: \.element.id) { index, browser in
+                        browserRow(browser, index: index).id("b-\(browser.id)")
+                    }
+                    if !rewrites.isEmpty {
+                        Text(text.rewritesHeader.uppercased())
+                            .font(.system(size: 9, weight: .bold)).tracking(0.5)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(height: Self.headerHeight - Self.rowSpacing, alignment: .bottom)
+                            .padding(.horizontal, 8)
+                        ForEach(Array(rewrites.enumerated()), id: \.element.id) { index, rule in
+                            rewriteRow(rule, row: browsers.count + index).id("r-\(rule.id)")
+                        }
+                    }
+                }
+                .padding(8)
+            }
+            .frame(height: CGFloat(rows) * Self.rowHeight + CGFloat(max(rows - 1, 0)) * Self.rowSpacing + header + 16)
+            .onChange(of: model.state.selected) { _, row in
+                if row < browsers.count {
+                    proxy.scrollTo("b-\(browsers[row].id)")
+                } else if rewrites.indices.contains(row - browsers.count) {
+                    proxy.scrollTo("r-\(rewrites[row - browsers.count].id)")
+                }
+            }
         }
+    }
+
+    private func browserRow(_ browser: BrowserInfo, index: Int) -> some View {
+        let isSelected = index == model.state.selected
+        return Button {
+            model.commit(browser, remember: NSEvent.modifierFlags.contains(.option))
+        } label: {
+            HStack(spacing: 10) {
+                Image(nsImage: Self.icon(for: browser)).resizable().frame(width: 24, height: 24)
+                Text(browser.name).font(.system(size: 13)).lineLimit(1)
+                Spacer(minLength: 8)
+                if index < 9, model.state.query.isEmpty { badge("\(index + 1)") }
+                returnGlyph(visible: isSelected)
+            }
+            .rowChrome(isSelected: isSelected)
+        }
+        .buttonStyle(.plain)
+        .onHover { if $0 { model.select(row: index) } }
         .accessibilityLabel(browser.name)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func rewriteRow(_ rule: RewriteRule, row: Int) -> some View {
+        let isSelected = row == model.state.selected
+        let isActive = model.state.activeRewrite == rule.id
+        return Button { model.toggleRewrite(rule.id) } label: {
+            HStack(spacing: 10) {
+                Image(systemName: isActive ? "checkmark.circle.fill" : "arrow.triangle.branch")
+                    .font(.system(size: 15))
+                    .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                    .frame(width: 24)
+                Text(rule.name).font(.system(size: 13)).lineLimit(1)
+                Spacer(minLength: 8)
+                badge("\u{2318}\(rule.key.uppercased())")
+                returnGlyph(visible: isSelected)
+            }
+            .rowChrome(isSelected: isSelected)
+        }
+        .buttonStyle(.plain)
+        .onHover { if $0 { model.select(row: row) } }
+        .accessibilityLabel(rule.name)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func badge(_ label: String) -> some View {
+        Text(label)
+            .font(.system(size: 10, weight: .semibold, design: .rounded))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6).padding(.vertical, 2.5)
+            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.primary.opacity(0.06)))
+    }
+
+    private func returnGlyph(visible: Bool) -> some View {
+        Image(systemName: "return")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.tertiary)
+            // Always laid out, only drawn on the selected row, so the rows do
+            // not shift as the highlight moves.
+            .opacity(visible ? 1 : 0)
     }
 
     private static func icon(for browser: BrowserInfo) -> NSImage {
@@ -118,37 +371,47 @@ struct LinkPickerView: View {
         }
         return NSWorkspace.shared.icon(forFile: url.path)
     }
+}
 
-    /// Host plus the start of the path; never the query string, which can
-    /// carry tokens that do not belong on screen.
-    private static func summary(of url: URL) -> String {
-        (url.host ?? "") + (url.path == "/" ? "" : url.path)
+private extension View {
+    func rowChrome(isSelected: Bool) -> some View {
+        self
+            .padding(.horizontal, 9)
+            .frame(height: 36)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.14) : .clear))
     }
 }
 
 final class LinkPickerController {
     private var panel: KeyablePickerPanel?
     private var model: LinkPickerModel?
+    private var hosting: NSHostingView<LinkPickerView>?
     private var clickMonitor: Any?
+    private var keyMonitor: Any?
+    private var changes: AnyCancellable?
     private var onCancel: () -> Void = {}
 
-    func present(url: URL, browsers: [BrowserInfo], waiting: Int, showURLLine: Bool,
-                 onChoose: @escaping (BrowserInfo, Bool) -> Void, onCancel: @escaping () -> Void) {
+    func present(url: URL, browsers: [BrowserInfo], prefs: LinkTransformPrefs, urlLineMode: LinkURLLineMode,
+                 replacer: RegexReplacing, waiting: Int, flagRewrite: @escaping (UUID, RoutingRule.Flag) -> Void,
+                 onChoose: @escaping (BrowserInfo, Bool, URL, TransformChips, UUID?) -> Void,
+                 onCancel: @escaping () -> Void) {
         self.onCancel = onCancel
-        if let model {
-            model.url = url; model.browsers = browsers; model.waiting = waiting; model.showURLLine = showURLLine
-            // A queued link is a new decision: start from the top again.
-            model.selectedIndex = 0
-            model.choose = onChoose
-            panel?.makeKeyAndOrderFront(nil)
+        let model = LinkPickerModel(url: url, browsers: browsers, prefs: prefs, mode: urlLineMode,
+                                    waiting: waiting, replacer: replacer, flagRewrite: flagRewrite)
+        model.choose = onChoose
+        self.model = model
+        observe(model)
+        if let panel, let hosting {
+            // A queued link is a new decision: a fresh model, field and highlight.
+            hosting.rootView = LinkPickerView(model: model)
+            panel.makeKeyAndOrderFront(nil)
             // The hosting view has not re-evaluated the body yet, so its
             // fitting size is stale; measure on the next turn instead.
             DispatchQueue.main.async { [weak self] in self?.resizeInPlace() }
             return
         }
-        let model = LinkPickerModel(url: url, browsers: browsers, waiting: waiting, showURLLine: showURLLine)
-        model.choose = onChoose
-        self.model = model
         let panel = KeyablePickerPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                        backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
@@ -158,23 +421,24 @@ final class LinkPickerController {
         panel.isOpaque = false
         panel.hasShadow = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        panel.contentView = NSHostingView(rootView: LinkPickerView(model: model))
-        panel.keyHandler = { [weak self] event in self?.handle(event) ?? false }
+        let hosting = NSHostingView(rootView: LinkPickerView(model: model))
+        panel.contentView = hosting
+        self.hosting = hosting
         self.panel = panel
-        placeAtCursor()
+        placeBar()
         panel.makeKeyAndOrderFront(nil)
-        // Clicking anywhere outside (another app's window) cancels. The
-        // global monitor never sees clicks inside this panel.
-        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.onCancel()
-        }
+        installMonitors(for: panel)
     }
 
     func dismiss() {
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         clickMonitor = nil
+        keyMonitor = nil
+        changes = nil
         panel?.orderOut(nil)
         panel = nil
+        hosting = nil
         model = nil
         onCancel = {}
     }
@@ -183,15 +447,24 @@ final class LinkPickerController {
         NSScreen.screens.map { (frame: $0.frame, visible: $0.visibleFrame) }
     }
 
-    /// First present: the body is evaluated on creation, so the size is right.
-    private func placeAtCursor() {
-        guard let panel, let content = panel.contentView else { return }
-        content.layoutSubtreeIfNeeded()
-        panel.setFrame(LinkPickerPlacement.frame(size: content.fittingSize, cursor: NSEvent.mouseLocation,
-                                                 screens: screens), display: true)
+    /// The panel's height follows what is shown (filtering, chips, a rewrite
+    /// note), so every model change re-fits it.
+    private func observe(_ model: LinkPickerModel) {
+        changes = model.objectWillChange.sink { [weak self] _ in
+            // Two turns: the first lets the published value land, the second
+            // lets SwiftUI lay the new body out before it is measured.
+            DispatchQueue.main.async { DispatchQueue.main.async { self?.resizeInPlace() } }
+        }
     }
 
-    /// Update: keep the panel where the user is aiming and only re-fit it.
+    private func placeBar() {
+        guard let panel, let content = panel.contentView else { return }
+        content.layoutSubtreeIfNeeded()
+        panel.setFrame(LinkPickerPlacement.barFrame(size: content.fittingSize, pointer: NSEvent.mouseLocation,
+                                                    screens: screens), display: true)
+    }
+
+    /// Keeps the panel where it is and only re-fits it.
     private func resizeInPlace() {
         guard let panel, let content = panel.contentView else { return }
         content.layoutSubtreeIfNeeded()
@@ -199,26 +472,51 @@ final class LinkPickerController {
                        display: true)
     }
 
-    private func handle(_ event: NSEvent) -> Bool {
-        guard let model else { return false }
-        // A held key must not choose the next queued link the moment the
-        // first repeat arrives; swallow repeats so they do not beep either.
-        if event.isARepeat { return true }
-        switch LinkPickerKeys.action(keyCode: event.keyCode, browserCount: model.browsers.count) {
-        case .choose(let index)?:
-            model.choose(model.browsers[index], event.modifierFlags.contains(.option))
-        case .chooseSelected?:
-            let index = LinkPickerSupport.clamped(selected: model.selectedIndex, count: model.browsers.count)
-            model.choose(model.browsers[index], event.modifierFlags.contains(.option))
-        case .move(let delta)?:
-            model.selectedIndex = LinkPickerSupport.moved(selected: model.selectedIndex, by: delta,
-                                                          count: model.browsers.count)
-        case .cancel?:
-            onCancel()
-        case nil:
-            return false
+    private func installMonitors(for panel: KeyablePickerPanel) {
+        // Clicking anywhere outside (another app's window) cancels. The
+        // global monitor never sees clicks inside this panel.
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.onCancel()
         }
-        return true
+        // The search field takes key events before the panel does, so the
+        // shortcuts are intercepted here, ahead of it.
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self, weak panel] event in
+            guard let self, let panel, event.window === panel, let model = self.model else { return event }
+            // While a language composes a character, Return confirms the
+            // candidate and the arrows walk it; composition always wins.
+            if (panel.firstResponder as? NSTextView)?.hasMarkedText() == true { return event }
+            if model.isCommitting { return nil }
+            let command = event.modifierFlags.contains(.command)
+            let characters = event.modifierFlags.contains(.option)
+                ? event.charactersIgnoringModifiers : event.characters
+            guard let action = LinkPickerKeys.action(
+                keyCode: event.keyCode, command: command, characters: characters,
+                fieldIsEmpty: model.state.query.isEmpty, keyMap: model.keyMap,
+                rowCount: model.state.rowCount, browserCount: model.state.visibleBrowsers.count)
+            else { return event }
+            // A held key must not choose the next queued link the moment the
+            // first repeat arrives; swallow repeats so they do not beep either.
+            if event.isARepeat { return nil }
+            self.perform(action, option: event.modifierFlags.contains(.option), model: model)
+            return nil
+        }
+    }
+
+    private func perform(_ action: LinkPickerAction, option: Bool, model: LinkPickerModel) {
+        switch action {
+        case .chooseDigit(let index):
+            if let browser = model.state.browser(atDigit: index) { model.commit(browser, remember: option) }
+        case .activateSelected:
+            if case .open(let browser) = model.activate() { model.commit(browser, remember: option) }
+        case .move(let delta):
+            model.move(delta)
+        case .escape:
+            if model.escape() == .cancel { onCancel() }
+        case .toggleChip(let chip):
+            model.toggleChip(chip)
+        case .toggleRewrite(let id):
+            model.toggleRewrite(id)
+        }
     }
 }
 

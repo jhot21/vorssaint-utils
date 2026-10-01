@@ -181,10 +181,12 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         let browsers = visibleBrowsers
         pickerWaiting = waiting
         picker.present(
-            url: url, browsers: browsers, waiting: waiting,
-            showURLLine: defaults.bool(forKey: DefaultsKey.linkRouterShowURLLine),
-            onChoose: { [weak self] browser, saveRule in
-                self?.core.pickerDidChoose(url, bundleID: browser.bundleID, saveRule: saveRule)
+            url: url, browsers: browsers, prefs: transformPrefs, urlLineMode: LinkURLLineMode.current(defaults),
+            replacer: evaluator, waiting: waiting,
+            flagRewrite: { [weak self] id, flag in self?.flagRewrite(id: id, flag: flag) },
+            onChoose: { [weak self] browser, saveRule, finalURL, chips, rewriteID in
+                self?.core.pickerDidChoose(url, bundleID: browser.bundleID, saveRule: saveRule,
+                                           opening: finalURL, chips: chips, rewriteID: rewriteID)
             },
             onCancel: { [weak self] in self?.core.pickerDidCancel(url) })
     }
@@ -200,12 +202,31 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         RuleStore.save(all, to: defaults)
         guard defaults.bool(forKey: DefaultsKey.linkRouterShowUndoToast) else { return }
         let text = FeatureStrings.linkRouter(L10n.shared.language)
-        toast.show(message: String(format: text.ruleAddedFormat, rule.pattern), undoTitle: text.undo) { [weak self] in
+        let edits = Self.editNames(of: rule, defaults: defaults, language: L10n.shared.language)
+        let message = edits.isEmpty
+            ? String(format: text.ruleAddedFormat, rule.pattern)
+            : String(format: FeatureStrings.linkTransform(L10n.shared.language).ruleAddedWithFormat,
+                     rule.pattern, edits.joined(separator: ", "))
+        toast.show(message: message, undoTitle: text.undo) { [weak self] in
             self?.removeRule(id: rule.id)
         }
     }
 
     var transformPrefs: LinkTransformPrefs { LinkTransformPrefs.load(defaults) }
+
+    /// What a remembered rule will do besides choosing a browser, for the toast.
+    private static func editNames(of rule: RoutingRule, defaults: UserDefaults, language: AppLanguage) -> [String] {
+        let text = FeatureStrings.linkTransform(language)
+        var names: [String] = []
+        if let chips = rule.chips {
+            if chips.contains(.extract) { names.append(text.extractChip) }
+            if chips.contains(.clean) { names.append(text.cleanChip) }
+        }
+        if let id = rule.rewriteID, let rewrite = RewriteStore.load(defaults).first(where: { $0.id == id }) {
+            names.append(rewrite.name)
+        }
+        return names
+    }
 
     func flagRewrite(id: UUID, flag: RoutingRule.Flag) {
         var all = RewriteStore.load(defaults)
