@@ -20,6 +20,8 @@ final class LinkPickerModel: ObservableObject {
     @Published var browsers: [BrowserInfo]
     @Published var waiting: Int
     @Published var showURLLine: Bool
+    /// The row Return chooses. Arrow keys and hover move it.
+    @Published var selectedIndex = 0
     var choose: (BrowserInfo, Bool) -> Void = { _, _ in }
     init(url: URL, browsers: [BrowserInfo], waiting: Int, showURLLine: Bool) {
         self.url = url; self.browsers = browsers; self.waiting = waiting; self.showURLLine = showURLLine
@@ -30,48 +32,84 @@ struct LinkPickerView: View {
     @ObservedObject var model: LinkPickerModel
     @ObservedObject private var l10n = L10n.shared
 
+    private static let rowHeight: CGFloat = 36
+    private static let rowSpacing: CGFloat = 2
+
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 10) {
-                ForEach(Array(model.browsers.enumerated()), id: \.element.id) { index, browser in
-                    Button {
-                        model.choose(browser, NSEvent.modifierFlags.contains(.option))
-                    } label: {
-                        VStack(spacing: 4) {
-                            ZStack(alignment: .topLeading) {
-                                Image(nsImage: Self.icon(for: browser))
-                                    .resizable().frame(width: 44, height: 44)
-                                if index < 9 {
-                                    Text("\(index + 1)")
-                                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                                        .padding(.horizontal, 4)
-                                        .background(.thinMaterial, in: Capsule())
-                                        .offset(x: -4, y: -4)
-                                }
-                            }
-                            Text(browser.name).font(.caption2).lineLimit(1).frame(maxWidth: 64)
-                        }
-                        .padding(6)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(browser.name)
-                }
-            }
+        let rows = LinkPickerSupport.visibleRows(count: model.browsers.count)
+        VStack(alignment: .leading, spacing: 8) {
             if model.showURLLine {
                 Text(Self.summary(of: model.url))
                     .font(.caption).foregroundStyle(.secondary)
-                    .lineLimit(1).truncationMode(.tail).frame(maxWidth: 360)
+                    .lineLimit(1).truncationMode(.tail)
+                    .padding(.horizontal, 9)
+            }
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: Self.rowSpacing) {
+                        ForEach(Array(model.browsers.enumerated()), id: \.element.id) { index, browser in
+                            row(browser, index: index)
+                                .id(browser.id)
+                        }
+                    }
+                }
+                .frame(height: CGFloat(rows) * Self.rowHeight + CGFloat(max(rows - 1, 0)) * Self.rowSpacing)
+                .onChange(of: model.selectedIndex) { _, index in
+                    guard model.browsers.indices.contains(index) else { return }
+                    proxy.scrollTo(model.browsers[index].id)
+                }
             }
             if model.waiting > 0 {
                 Text(String(format: FeatureStrings.linkRouter(l10n.language).waitingFormat, model.waiting))
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 8).padding(.vertical, 2)
                     .background(.thinMaterial, in: Capsule())
+                    .padding(.horizontal, 9)
             }
         }
-        .padding(12)
+        .padding(8)
+        .frame(width: 260)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .fixedSize()
+    }
+
+    private func row(_ browser: BrowserInfo, index: Int) -> some View {
+        let isSelected = index == model.selectedIndex
+        return Button {
+            model.choose(browser, NSEvent.modifierFlags.contains(.option))
+        } label: {
+            HStack(spacing: 10) {
+                Image(nsImage: Self.icon(for: browser))
+                    .resizable().frame(width: 24, height: 24)
+                Text(browser.name).font(.system(size: 13)).lineLimit(1)
+                Spacer(minLength: 8)
+                if index < 9 {
+                    Text("\(index + 1)")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6).padding(.vertical, 2.5)
+                        .background(RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Color.primary.opacity(0.06)))
+                }
+                Image(systemName: "return")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    // Always laid out, only drawn on the selected row, so the
+                    // rows do not shift as the highlight moves.
+                    .opacity(isSelected ? 1 : 0)
+            }
+            .padding(.horizontal, 9)
+            .frame(height: Self.rowHeight)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.14) : .clear))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            if hovering { model.selectedIndex = index }
+        }
+        .accessibilityLabel(browser.name)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private static func icon(for browser: BrowserInfo) -> NSImage {
@@ -99,6 +137,8 @@ final class LinkPickerController {
         self.onCancel = onCancel
         if let model {
             model.url = url; model.browsers = browsers; model.waiting = waiting; model.showURLLine = showURLLine
+            // A queued link is a new decision: start from the top again.
+            model.selectedIndex = 0
             model.choose = onChoose
             panel?.makeKeyAndOrderFront(nil)
             // The hosting view has not re-evaluated the body yet, so its
@@ -167,8 +207,12 @@ final class LinkPickerController {
         switch LinkPickerKeys.action(keyCode: event.keyCode, browserCount: model.browsers.count) {
         case .choose(let index)?:
             model.choose(model.browsers[index], event.modifierFlags.contains(.option))
-        case .chooseFirst?:
-            model.choose(model.browsers[0], event.modifierFlags.contains(.option))
+        case .chooseSelected?:
+            let index = LinkPickerSupport.clamped(selected: model.selectedIndex, count: model.browsers.count)
+            model.choose(model.browsers[index], event.modifierFlags.contains(.option))
+        case .move(let delta)?:
+            model.selectedIndex = LinkPickerSupport.moved(selected: model.selectedIndex, by: delta,
+                                                          count: model.browsers.count)
         case .cancel?:
             onCancel()
         case nil:

@@ -19,11 +19,30 @@ enum LinkRouterPickerTests {
         }
         suite.expect(LinkPickerKeys.action(keyCode: 20, browserCount: 2) == nil,
                      "a number beyond the browser count does nothing")
-        suite.expect(LinkPickerKeys.action(keyCode: 36, browserCount: 3) == .chooseFirst
-                        && LinkPickerKeys.action(keyCode: 76, browserCount: 3) == .chooseFirst,
-                     "Return and keypad Enter choose the first browser")
+        suite.expect(LinkPickerKeys.action(keyCode: 36, browserCount: 3) == .chooseSelected
+                        && LinkPickerKeys.action(keyCode: 76, browserCount: 3) == .chooseSelected,
+                     "Return and keypad Enter choose the highlighted browser")
         suite.expect(LinkPickerKeys.action(keyCode: 36, browserCount: 0) == nil,
                      "Return with no browsers does nothing")
+        suite.expect(LinkPickerKeys.action(keyCode: 125, browserCount: 3) == .move(1)
+                        && LinkPickerKeys.action(keyCode: 126, browserCount: 3) == .move(-1),
+                     "down and up arrows move the highlight")
+        suite.expect(LinkPickerKeys.action(keyCode: 125, browserCount: 0) == nil,
+                     "arrows with no browsers do nothing")
+
+        suite.expect(LinkPickerSupport.moved(selected: 0, by: 1, count: 3) == 1
+                        && LinkPickerSupport.moved(selected: 2, by: 1, count: 3) == 0
+                        && LinkPickerSupport.moved(selected: 0, by: -1, count: 3) == 2,
+                     "the highlight wraps around at both ends")
+        suite.expect(LinkPickerSupport.moved(selected: 0, by: 1, count: 0) == 0,
+                     "moving with no browsers stays at zero")
+        suite.expect(LinkPickerSupport.clamped(selected: 5, count: 3) == 2
+                        && LinkPickerSupport.clamped(selected: -1, count: 3) == 0
+                        && LinkPickerSupport.clamped(selected: 1, count: 0) == 0,
+                     "a stale highlight is clamped into the current list")
+        suite.expect(LinkPickerSupport.visibleRows(count: 4) == 4
+                        && LinkPickerSupport.visibleRows(count: 30) == LinkPickerSupport.maxVisibleRows,
+                     "a long list is capped so the panel scrolls instead of growing off screen")
         suite.expect(LinkPickerKeys.action(keyCode: 53, browserCount: 3) == .cancel, "Escape cancels")
         suite.expect(LinkPickerKeys.action(keyCode: 0, browserCount: 3) == nil, "other keys are ignored")
 

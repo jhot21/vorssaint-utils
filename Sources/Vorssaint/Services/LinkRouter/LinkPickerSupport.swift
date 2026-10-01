@@ -5,7 +5,8 @@ import CoreGraphics
 
 enum LinkPickerKey: Equatable {
     case choose(index: Int)
-    case chooseFirst
+    case chooseSelected
+    case move(Int)
     case cancel
 }
 
@@ -17,7 +18,8 @@ enum LinkPickerKeys {
 
     static func action(keyCode: UInt16, browserCount: Int) -> LinkPickerKey? {
         if keyCode == 53 { return .cancel }
-        if keyCode == 36 || keyCode == 76 { return browserCount > 0 ? .chooseFirst : nil }
+        if keyCode == 36 || keyCode == 76 { return browserCount > 0 ? .chooseSelected : nil }
+        if keyCode == 125 || keyCode == 126 { return browserCount > 0 ? .move(keyCode == 125 ? 1 : -1) : nil }
         let index = numberRow.firstIndex(of: keyCode) ?? keypad.firstIndex(of: keyCode)
         guard let index, index < browserCount else { return nil }
         return .choose(index: index)
@@ -25,6 +27,25 @@ enum LinkPickerKeys {
 }
 
 enum LinkPickerSupport {
+    /// Rows shown before the list scrolls; keeps the panel on screen however
+    /// many browsers are installed.
+    static let maxVisibleRows = 9
+
+    static func visibleRows(count: Int) -> Int { min(count, maxVisibleRows) }
+
+    /// Arrow keys wrap, so a short list never needs a second press to loop.
+    static func moved(selected: Int, by delta: Int, count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        return ((selected + delta) % count + count) % count
+    }
+
+    /// The browser list can change under a held highlight (a queued link
+    /// brings its own matches), so it is re-fitted instead of trusted.
+    static func clamped(selected: Int, count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        return min(max(selected, 0), count - 1)
+    }
+
     /// A chosen browser takes keyboard focus when it activates. While more
     /// links are queued the next picker must keep focus, so the open is
     /// background-only then.
