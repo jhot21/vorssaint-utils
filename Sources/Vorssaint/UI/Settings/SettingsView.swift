@@ -553,6 +553,7 @@ struct SettingsView: View {
         case .killProcess: KillProcessView()
         case .portManager: PortManagerView()
         case .calendar: CalendarSettings()
+        case .linkRouter: LinkRouterSettings()
         case .urlCleaner: URLCleanerSettings()
         case .cleaner: CleanerSettings()
         case .homebrew: HomebrewSettings()
@@ -722,7 +723,10 @@ struct AboutSettings: View {
                 Button(l10n.s.reviewHighlights) {
                     appDelegate()?.showUpdateHighlights(isReview: true)
                 }
-                Link(l10n.s.viewOnGitHub, destination: AppInfo.repositoryURL)
+                Button(l10n.s.viewOnGitHub) {
+                    LinkOpener.open(AppInfo.repositoryURL)
+                }
+                .buttonStyle(.link)
             }
             Text(AppInfo.copyright)
                 .font(.caption2)
@@ -872,7 +876,6 @@ struct ReleaseNotesSettings: View {
 
 struct SupportSettings: View {
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ScrollView {
@@ -899,7 +902,7 @@ struct SupportSettings: View {
                 }
 
                 Button {
-                    openURL(AppInfo.coffeeURL)
+                    LinkOpener.open(AppInfo.coffeeURL)
                 } label: {
                     Label(l10n.s.donateButton, systemImage: "cup.and.saucer.fill")
                 }
@@ -919,7 +922,7 @@ struct SupportSettings: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         Button {
-                            openURL(AppInfo.repositoryURL)
+                            LinkOpener.open(AppInfo.repositoryURL)
                         } label: {
                             Label(l10n.s.supportIntroStarButton, systemImage: "star.fill")
                         }
@@ -996,7 +999,7 @@ struct SupportSettings: View {
 
     private var discordButton: some View {
         Button {
-            openURL(AppInfo.discordURL)
+            LinkOpener.open(AppInfo.discordURL)
         } label: {
             HStack(spacing: 8) {
                 DiscordMark(width: 19)
@@ -1010,7 +1013,7 @@ struct SupportSettings: View {
 
     private var socialButton: some View {
         Button {
-            openURL(AppInfo.socialURL)
+            LinkOpener.open(AppInfo.socialURL)
         } label: {
             HStack(spacing: 7) {
                 XLogoShape()

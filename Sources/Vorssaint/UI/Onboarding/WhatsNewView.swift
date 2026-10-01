@@ -191,7 +191,6 @@ struct UpdateSupportIntroView: View {
 
 private struct UpdateSupportContent: View {
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 13) {
@@ -217,7 +216,7 @@ private struct UpdateSupportContent: View {
                 .frame(maxWidth: 440)
 
             Button {
-                openURL(AppInfo.coffeeURL)
+                LinkOpener.open(AppInfo.coffeeURL)
             } label: {
                 Label(l10n.s.supportIntroCoffeeButton,
                       systemImage: "cup.and.saucer.fill")

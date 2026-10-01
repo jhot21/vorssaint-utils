@@ -175,6 +175,11 @@ enum SettingsBackupSupport {
         // a Mac that still holds its own stale verdicts.
         DefaultsKey.brightnessDDCWriteOnlyPathsRechecked,
         DefaultsKey.brightnessForcedSoftwarePaths,
+        // The browser that was default on this Mac, and which installed
+        // browsers it shows or hides, mean nothing on another Mac.
+        DefaultsKey.linkRouterPreviousDefault,
+        DefaultsKey.linkRouterBrowserOrder,
+        DefaultsKey.linkRouterBrowserHidden,
         DefaultsKey.brightnessExtendedDimmingPaths,
     ]
 

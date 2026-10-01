@@ -54,6 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // AppKit installs its own kAEGetURL handler during finishLaunching
+        // (because application(_:open:) exists), replacing the one main.swift
+        // set. Install ours again now that AppKit is done; idempotent.
+        LinkRouterService.shared.installEventHandler()
         NSApp.setActivationPolicy(.accessory)
         // Before any window exists, so nothing is ever built with the wrong
         // appearance and then repainted.
@@ -278,8 +282,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         return .terminateLater
     }
 
+    /// Documents (html, xhtml) sent to the app once it is the default for
+    /// them; web links arrive through the URL Apple event instead.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        // Implementing this method makes AppKit deliver clicked web links here
+        // as well, so they are routed as external links (picker allowed, no
+        // sender), exactly like the Apple-event path. Files open explicitly.
+        let files = urls.filter(\.isFileURL)
+        let links = urls.filter { !$0.isFileURL }
+        if !files.isEmpty { LinkRouterService.shared.openDocuments(files) }
+        if !links.isEmpty {
+            LinkRouterService.shared.route(LinkRequest(urls: links, senderBundleID: nil))
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         isTerminating = true
+        // Hands queued picker links back to the core instead of dropping them.
+        LinkRouterService.shared.stop()
         CommandBarService.shared.restoreBorrowedInputSource()
         if AppFeature.notch.isAvailable { NotchService.shared.stop(restoreCapture: false) }
         // Quitting properly means the start worked, whenever it happened.
@@ -2454,6 +2474,6 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                 return
             }
         }
-        NSWorkspace.shared.open(link.browserURL)
+        LinkOpener.open(link.browserURL)
     }
 }

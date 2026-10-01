@@ -72,7 +72,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Швидкість вентиляторів і власна крива їхньої роботи.",
         sectionUtilities: "Знімки екрана, очищення, оновлення та інші інструменти.",
         sectionControls: "Перемикачі функцій миші, клавіатури й вікон.",
-        sectionToggles: "Дії одним натисканням, як-от темний режим і вимкнення мікрофона."
+        sectionToggles: "Дії одним натисканням, як-от темний режим і вимкнення мікрофона.",
+        sectionCalendar: "Перегляд місяця та ваші найближчі події."
     )
 
     static let enUS = GeneralSettingsStrings(
@@ -215,7 +216,8 @@ extension GeneralSettingsStrings {
         sectionFanControl: "Rýchlosť ventilátorov a vlastná krivka ventilátora.",
         sectionUtilities: "Snímky obrazovky, čistenie, aktualizácie a ďalšie nástroje.",
         sectionControls: "Prepínače pre funkcie myši, klávesnice a okien.",
-        sectionToggles: "Akcie na jedno kliknutie, napríklad tmavý režim a stlmenie mikrofónu."
+        sectionToggles: "Akcie na jedno kliknutie, napríklad tmavý režim a stlmenie mikrofónu.",
+        sectionCalendar: "Mesačný prehľad a vaše nadchádzajúce stretnutia."
     )
 
     static let de = GeneralSettingsStrings(

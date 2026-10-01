@@ -527,12 +527,9 @@ enum DefaultsKey {
     static let clipboardHistoryIncludeImagesFiles = "clipboardHistoryIncludeImagesFiles" // capture copied images and files too
     static let clipboardHistoryIgnoredApps = "clipboardHistoryIgnoredApps" // apps whose copies are never saved
     static let clipboardHistoryQuickPreview = "clipboardHistoryQuickPreview"
-<<<<<<< HEAD
     static let clipboardHistoryPasteAfterSelect = "clipboardHistoryPasteAfterSelect" // false: selecting an entry only copies it
-=======
     static let clipboardHistoryWindowWidth = "clipboardHistoryWindowWidth"
     static let clipboardHistoryWindowHeight = "clipboardHistoryWindowHeight"
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
     static let clipboardHistoryMenuBarPreview = "clipboardHistoryMenuBarPreview" // show latest copy next to the menu bar icon
     static let clipboardHistoryMenuBarPreviewLength = "clipboardHistoryMenuBarPreviewLength" // characters shown before truncating
 
@@ -551,6 +548,13 @@ enum DefaultsKey {
     static let meetingJoinTeamsNative = "meetingJoinTeamsNative" // open Teams links in the Teams app when installed
     static let meetingJoinNotifyOffset = "meetingJoinNotifyOffset" // MeetingJoinNotifyOffset raw value
     static let meetingJoinGoogleMeetBrowser = "meetingJoinGoogleMeetBrowser" // bundle identifier of the preferred browser; "" means system default
+    static let linkRouterEnabled = "linkRouterEnabled"
+    static let linkRouterRules = "linkRouterRules"                     // String: [RoutingRule] JSON
+    static let linkRouterBrowserOrder = "linkRouterBrowserOrder"       // [String] bundle ids, this Mac's picker order
+    static let linkRouterBrowserHidden = "linkRouterBrowserHidden"     // [String] bundle ids hidden from the picker
+    static let linkRouterPreviousDefault = "linkRouterPreviousDefault" // bundle id of the browser that was default before Vorssaint
+    static let linkRouterShowURLLine = "linkRouterShowURLLine"
+    static let linkRouterShowUndoToast = "linkRouterShowUndoToast"
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
@@ -1597,12 +1601,9 @@ enum Defaults {
         DefaultsKey.clipboardHistoryIgnoredApps: [String](),
         DefaultsKey.windowLayoutIgnoredApps: [String](),
         DefaultsKey.clipboardHistoryQuickPreview: false,
-<<<<<<< HEAD
         DefaultsKey.clipboardHistoryPasteAfterSelect: true,
-=======
         DefaultsKey.clipboardHistoryWindowWidth: 0.0,
         DefaultsKey.clipboardHistoryWindowHeight: 0.0,
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         DefaultsKey.clipboardHistoryMenuBarPreview: false,
         DefaultsKey.clipboardHistoryMenuBarPreviewLength: Defaults.defaultClipboardMenuBarPreviewLength,
         DefaultsKey.clipboardAutoClearOnDelay: false,
@@ -1618,6 +1619,13 @@ enum Defaults {
         DefaultsKey.meetingJoinTeamsNative: true,
         DefaultsKey.meetingJoinNotifyOffset: MeetingJoinNotifyOffset.atStart.rawValue,
         DefaultsKey.meetingJoinGoogleMeetBrowser: "",
+        DefaultsKey.linkRouterEnabled: false,
+        DefaultsKey.linkRouterRules: "[]",
+        DefaultsKey.linkRouterBrowserOrder: [String](),
+        DefaultsKey.linkRouterBrowserHidden: [String](),
+        DefaultsKey.linkRouterPreviousDefault: "",
+        DefaultsKey.linkRouterShowURLLine: true,
+        DefaultsKey.linkRouterShowUndoToast: true,
         DefaultsKey.menuBarNextMeetingWindowMinutes: Defaults.defaultNextMeetingWindowMinutes,
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,

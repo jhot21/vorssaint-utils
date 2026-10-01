@@ -17,16 +17,8 @@
 "NSDownloadsFolderUsageDescription" = "Vorssaint controlla i metadati locali in Download per esaminare, organizzare o spostare nel Cestino solo i file WhatsApp confermati scelti da te. La Pulizia cerca anche gli screenshot dimenticati se li salvi qui.";
 
 /* macOS user-selected organizer destination prompts. */
-<<<<<<< HEAD
-"NSDesktopFolderUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te.";
-"NSDocumentsFolderUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te.";
-"NSNetworkVolumesUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te.";
-"NSRemovableVolumesUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te.";
-"NSCalendarsFullAccessUsageDescription" = "Mostra i tuoi prossimi appuntamenti nella barra dei menu e nel Dynamic Island. Gli eventi del calendario restano su questo Mac.";
-=======
 "NSDesktopFolderUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te. La Pulizia cerca anche gli screenshot dimenticati se li salvi qui.";
 "NSDocumentsFolderUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te. La Pulizia cerca anche gli screenshot dimenticati se li salvi qui.";
 "NSNetworkVolumesUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te. La Pulizia cerca anche gli screenshot dimenticati se li salvi qui.";
 "NSRemovableVolumesUsageDescription" = "Vorssaint organizza i download WhatsApp confermati in una cartella di destinazione scelta esplicitamente da te. La Pulizia cerca anche gli screenshot dimenticati se li salvi qui.";
-"NSCalendarsFullAccessUsageDescription" = "Mostra i tuoi prossimi appuntamenti nella parte superiore dello schermo. Gli eventi del calendario restano su questo Mac.";
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+"NSCalendarsFullAccessUsageDescription" = "Mostra i tuoi prossimi appuntamenti nella barra dei menu e nel Dynamic Island. Gli eventi del calendario restano su questo Mac.";

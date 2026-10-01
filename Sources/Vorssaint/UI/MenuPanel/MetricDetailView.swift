@@ -118,13 +118,10 @@ extension MenuBarMetric {
             return .power
         case .fanSpeed:
             return .fan
-<<<<<<< HEAD
         case .date, .nextMeeting:
             return nil
-=======
         case .connectedDevices:
             return .connectedDevices
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 }

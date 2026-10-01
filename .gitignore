@@ -26,3 +26,6 @@ xcuserdata/
 
 # subagent-driven-development scratch workspaces
 .superpowers/
+
+# Local design specs and plans (never committed)
+docs/superpowers/

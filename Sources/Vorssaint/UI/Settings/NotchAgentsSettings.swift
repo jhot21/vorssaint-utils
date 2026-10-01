@@ -158,7 +158,7 @@ struct NotchAgentsSettingsControls: View {
                 Image(systemName: "info.circle.fill").foregroundStyle(.secondary)
                 Text(text.claudeLimitsNoApp)
                 Spacer(minLength: 8)
-                Button(text.getClaude) { NSWorkspace.shared.open(AgentClaudeAppUsage.downloadURL) }
+                Button(text.getClaude) { LinkOpener.open(AgentClaudeAppUsage.downloadURL) }
             } else {
                 Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 4) {

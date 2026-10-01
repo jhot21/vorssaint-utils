@@ -386,7 +386,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 73, "feature catalog has 73 features")
+        suite.expect(AppFeature.allCases.count == 78, "feature catalog has 78 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -399,15 +399,9 @@ enum FeatureCatalogTests {
             "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
-<<<<<<< HEAD
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "calendar", "meetingJoin", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads",
+            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "wallpaper", "killProcess", "portManager", "calendar", "meetingJoin", "linkRouter", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents",
             "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
-            "fanControl", "menuBarDate", "menuBarNextMeeting",
-=======
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "wallpaper", "killProcess", "portManager", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents",
-            "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
-            "connectedDevices", "fanControl",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+            "connectedDevices", "fanControl", "menuBarDate", "menuBarNextMeeting",
         ], "feature ids are stable (they persist inside availability keys)")
         suite.expect(MouseAccelerationSupport.validatedRegistryID(nil) == nil
                 && MouseAccelerationSupport.validatedRegistryID(0) == nil
@@ -571,23 +565,18 @@ enum FeatureCatalogTests {
                 && (AppFeature.availabilityDefaults[AppFeature.focusFollowsMouse.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.killProcess.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.portManager.availabilityKey] as? Bool) == false
-<<<<<<< HEAD
                 && (AppFeature.availabilityDefaults[AppFeature.calendar.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.menuBarDate.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.meetingJoin.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.menuBarNextMeeting.availabilityKey] as? Bool) == false
-                && AppFeature.allCases.filter {
-                    $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
-                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .calendar
-                        && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting
-=======
+                && (AppFeature.availabilityDefaults[AppFeature.linkRouter.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.wallpaper.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.audioPriority.availabilityKey] as? Bool) == false
                 && AppFeature.allCases.filter {
                     $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
-                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .wallpaper
-                        && $0 != .audioPriority
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .calendar
+                        && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting
+                        && $0 != .linkRouter && $0 != .wallpaper && $0 != .audioPriority
                 }.allSatisfy {
                     (AppFeature.availabilityDefaults[$0.availabilityKey] as? Bool) == true
                 },

@@ -154,14 +154,11 @@ struct CommandBarFeatureStrings {
     let linkKindScript: String
     let scriptHint: String
     let scriptRunsWithoutArgument: String
-<<<<<<< HEAD
     let scriptSplitsArgument: String
     let scriptDefaultArgumentsLabel: String
     let scriptDefaultArgumentsBefore: String
     let scriptDefaultArgumentsAfter: String
-=======
     let scriptRunsDirectly: String
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
     let scriptRunFailed: String
     let scriptSearchHint: String
     let scriptBareSearchHint: String
@@ -359,14 +356,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Script",
         scriptHint: "Choose an executable file. Type its name followed by what you want to send. It runs when you pause and shows the result here.",
         scriptRunsWithoutArgument: "Also run when its name is typed on its own",
-<<<<<<< HEAD
         scriptSplitsArgument: "Split what’s typed into separate arguments",
         scriptDefaultArgumentsLabel: "Default arguments",
         scriptDefaultArgumentsBefore: "Before",
         scriptDefaultArgumentsAfter: "After",
-=======
         scriptRunsDirectly: "Run from its global shortcut without opening the bar",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Couldn’t run this file",
         scriptSearchHint: "Type what to send after the name",
         scriptBareSearchHint: "Runs on its own, or type what to send",
@@ -540,14 +534,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Script",
         scriptHint: "Escolha um arquivo executável. Digite o nome seguido do que deseja enviar. Ele roda quando você para e mostra o resultado aqui.",
         scriptRunsWithoutArgument: "Executar também quando o nome for digitado sozinho",
-<<<<<<< HEAD
         scriptSplitsArgument: "Dividir o texto digitado em argumentos separados",
         scriptDefaultArgumentsLabel: "Argumentos padrão",
         scriptDefaultArgumentsBefore: "Antes",
         scriptDefaultArgumentsAfter: "Depois",
-=======
         scriptRunsDirectly: "Executar pelo atalho global sem abrir a barra",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Não foi possível executar este arquivo",
         scriptSearchHint: "Digite o que enviar depois do nome",
         scriptBareSearchHint: "Roda sozinho, ou digite o que enviar",
@@ -721,14 +712,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Betik",
         scriptHint: "Çalıştırılabilir bir dosya seçin. Adını ve ardından göndermek istediğiniz metni yazın. Durduğunuzda çalışır ve sonucu burada gösterir.",
         scriptRunsWithoutArgument: "Adı tek başına yazıldığında da çalıştır",
-<<<<<<< HEAD
         scriptSplitsArgument: "Yazılan metni ayrı bağımsız değişkenlere ayır",
         scriptDefaultArgumentsLabel: "Varsayılan bağımsız değişkenler",
         scriptDefaultArgumentsBefore: "Önce",
         scriptDefaultArgumentsAfter: "Sonra",
-=======
         scriptRunsDirectly: "Genel kısayolundan, alanı açmadan çalıştır",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Bu dosya çalıştırılamadı",
         scriptSearchHint: "Addan sonra göndermek istediğinizi yazın",
         scriptBareSearchHint: "Tek başına çalışır, ya da göndereceğinizi yazın",
@@ -902,14 +890,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Скрипт",
         scriptHint: "Выберите исполняемый файл. Введите имя и затем то, что хотите передать. После паузы файл запустится и покажет результат здесь.",
         scriptRunsWithoutArgument: "Запускать и тогда, когда введено только имя",
-<<<<<<< HEAD
         scriptSplitsArgument: "Разбивать введённый текст на отдельные аргументы",
         scriptDefaultArgumentsLabel: "Аргументы по умолчанию",
         scriptDefaultArgumentsBefore: "До",
         scriptDefaultArgumentsAfter: "После",
-=======
         scriptRunsDirectly: "Запускать глобальным сочетанием, не открывая панель",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Не удалось запустить этот файл",
         scriptSearchHint: "После имени введите то, что нужно передать",
         scriptBareSearchHint: "Запускается сам, или введите то, что нужно передать",
@@ -1083,14 +1068,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Script",
         scriptHint: "Elige un archivo ejecutable. Escribe su nombre seguido de lo que quieras enviar. Se ejecuta al hacer una pausa y muestra el resultado aquí.",
         scriptRunsWithoutArgument: "Ejecutar también cuando se escriba solo el nombre",
-<<<<<<< HEAD
         scriptSplitsArgument: "Dividir el texto escrito en argumentos separados",
         scriptDefaultArgumentsLabel: "Argumentos predeterminados",
         scriptDefaultArgumentsBefore: "Antes",
         scriptDefaultArgumentsAfter: "Después",
-=======
         scriptRunsDirectly: "Ejecutar con su atajo global sin abrir la barra",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "No se pudo ejecutar este archivo",
         scriptSearchHint: "Escribe lo que quieras enviar después del nombre",
         scriptBareSearchHint: "Se ejecuta solo, o escribe lo que quieras enviar",
@@ -1222,6 +1204,13 @@ extension CommandBarFeatureStrings {
         kindLink: "Vaša skratka",
         linkSearchHint: "Za názov napíšte, čo hľadať",
         linksTitle: "Vaše skratky",
+        sourceChromeBookmarks: "Záložky Chrome",
+        kindBookmark: "Záložka",
+        chromeBookmarksNotInstalled: "Chrome nie je na tomto Macu nainštalovaný.",
+        sourceFirefoxBookmarks: "Záložky Firefoxu",
+        firefoxBookmarksNotInstalled: "Firefox nie je na tomto Macu nainštalovaný.",
+        sourceSafariBookmarks: "Záložky Safari",
+        safariBookmarksFDAReason: "Príkazová lišta potrebuje plný prístup na disk, aby mohla prehľadávať vaše záložky Safari.",
         linksEmpty: "Zatiaľ nič nie je uložené. Pridajte stránku, priečinok, vyhľadávanie alebo skript, ktorý používate každý deň.",
         linkDestinationLabel: "Kam vedie",
         linkKindLink: "Stránka alebo odkaz",
@@ -1257,6 +1246,10 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Skript",
         scriptHint: "Vyberte spustiteľný súbor. Napíšte jeho názov a za ním to, čo chcete odoslať. Po prestávke sa spustí a výsledok sa zobrazí tu.",
         scriptRunsWithoutArgument: "Spustiť aj vtedy, keď sa napíše samotný názov",
+        scriptSplitsArgument: "Rozdeliť zadaný text na samostatné argumenty",
+        scriptDefaultArgumentsLabel: "Predvolené argumenty",
+        scriptDefaultArgumentsBefore: "Pred",
+        scriptDefaultArgumentsAfter: "Po",
         scriptRunsDirectly: "Spustiť globálnou skratkou bez otvorenia lišty",
         scriptRunFailed: "Tento súbor sa nepodarilo spustiť",
         scriptSearchHint: "Za názov napíšte, čo odoslať",
@@ -1431,14 +1424,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Skript",
         scriptHint: "Wählen Sie eine ausführbare Datei. Geben Sie den Namen und danach den gewünschten Text ein. Nach einer Pause wird das Ergebnis hier angezeigt.",
         scriptRunsWithoutArgument: "Auch ausführen, wenn nur der Name eingegeben wird",
-<<<<<<< HEAD
         scriptSplitsArgument: "Eingegebenen Text in einzelne Argumente aufteilen",
         scriptDefaultArgumentsLabel: "Standardargumente",
         scriptDefaultArgumentsBefore: "Davor",
         scriptDefaultArgumentsAfter: "Danach",
-=======
         scriptRunsDirectly: "Über den globalen Kurzbefehl ausführen, ohne die Leiste zu öffnen",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Diese Datei konnte nicht ausgeführt werden",
         scriptSearchHint: "Geben Sie nach dem Namen ein, was gesendet werden soll",
         scriptBareSearchHint: "Läuft von selbst, oder geben Sie ein, was gesendet werden soll",
@@ -1612,14 +1602,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Script",
         scriptHint: "Choisissez un fichier exécutable. Saisissez son nom suivi du texte à envoyer. Après une pause, le résultat s’affiche ici.",
         scriptRunsWithoutArgument: "Exécuter aussi lorsque le nom est saisi seul",
-<<<<<<< HEAD
         scriptSplitsArgument: "Diviser le texte saisi en arguments distincts",
         scriptDefaultArgumentsLabel: "Arguments par défaut",
         scriptDefaultArgumentsBefore: "Avant",
         scriptDefaultArgumentsAfter: "Après",
-=======
         scriptRunsDirectly: "Lancer par son raccourci global sans ouvrir la barre",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Impossible d’exécuter ce fichier",
         scriptSearchHint: "Saisissez ce qui sera envoyé après le nom",
         scriptBareSearchHint: "S’exécute seul, ou saisissez ce qui sera envoyé",
@@ -1793,14 +1780,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Script",
         scriptHint: "Scegli un file eseguibile. Digita il nome seguito dal testo da inviare. Dopo una pausa, il risultato appare qui.",
         scriptRunsWithoutArgument: "Esegui anche quando il nome è digitato da solo",
-<<<<<<< HEAD
         scriptSplitsArgument: "Dividi il testo digitato in argomenti separati",
         scriptDefaultArgumentsLabel: "Argomenti predefiniti",
         scriptDefaultArgumentsBefore: "Prima",
         scriptDefaultArgumentsAfter: "Dopo",
-=======
         scriptRunsDirectly: "Esegui con la sua abbreviazione globale senza aprire la barra",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "Impossibile eseguire questo file",
         scriptSearchHint: "Digita cosa inviare dopo il nome",
         scriptBareSearchHint: "Si esegue da solo, o digita cosa inviare",
@@ -1974,14 +1958,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "スクリプト",
         scriptHint: "実行可能なファイルを選びます。名前に続けて渡したい内容を入力すると、入力を止めた後に結果がここへ表示されます。",
         scriptRunsWithoutArgument: "名前だけを入力したときにも実行する",
-<<<<<<< HEAD
         scriptSplitsArgument: "入力したテキストを個別の引数に分割する",
         scriptDefaultArgumentsLabel: "デフォルトの引数",
         scriptDefaultArgumentsBefore: "前",
         scriptDefaultArgumentsAfter: "後",
-=======
         scriptRunsDirectly: "グローバルショートカットでバーを開かずに実行",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "このファイルを実行できませんでした",
         scriptSearchHint: "名前の後に渡したい内容を入力",
         scriptBareSearchHint: "そのまま実行、または渡したい内容を入力",
@@ -2155,14 +2136,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "스크립트",
         scriptHint: "실행 가능한 파일을 선택하세요. 이름 뒤에 전달할 내용을 입력하면 멈춘 뒤 결과가 여기에 표시됩니다.",
         scriptRunsWithoutArgument: "이름만 입력했을 때도 실행",
-<<<<<<< HEAD
         scriptSplitsArgument: "입력한 텍스트를 개별 인수로 분할",
         scriptDefaultArgumentsLabel: "기본 인수",
         scriptDefaultArgumentsBefore: "앞",
         scriptDefaultArgumentsAfter: "뒤",
-=======
         scriptRunsDirectly: "전역 단축키로 막대를 열지 않고 실행",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "이 파일을 실행할 수 없습니다",
         scriptSearchHint: "이름 뒤에 전달할 내용을 입력하세요",
         scriptBareSearchHint: "이름만으로 실행되거나, 전달할 내용을 입력하세요",
@@ -2294,6 +2272,13 @@ extension CommandBarFeatureStrings {
         kindLink: "Швидка дія",
         linkSearchHint: "Після назви введіть що шукати",
         linksTitle: "Ваші швидкі дії",
+        sourceChromeBookmarks: "Закладки Chrome",
+        kindBookmark: "Закладка",
+        chromeBookmarksNotInstalled: "Chrome не встановлено на цьому Mac.",
+        sourceFirefoxBookmarks: "Закладки Firefox",
+        firefoxBookmarksNotInstalled: "Firefox не встановлено на цьому Mac.",
+        sourceSafariBookmarks: "Закладки Safari",
+        safariBookmarksFDAReason: "Панелі команд потрібен повний доступ до диска, щоб шукати у ваших закладках Safari.",
         linksEmpty: "Поки порожньо. Додайте сайт, папку, пошук або скрипт, що використовуєте щодня.",
         linkDestinationLabel: "Куди йти",
         linkKindLink: "Сайт або посилання",
@@ -2329,6 +2314,10 @@ extension CommandBarFeatureStrings {
         linkKindScript: "Скрипт",
         scriptHint: "Виберіть виконуваний файл. Введіть назву, потім вміст для надсилання. Результати з’являться тут, щойно ви припините введення.",
         scriptRunsWithoutArgument: "Виконувати й при введенні лише назви",
+        scriptSplitsArgument: "Розбивати введений текст на окремі аргументи",
+        scriptDefaultArgumentsLabel: "Аргументи за замовчуванням",
+        scriptDefaultArgumentsBefore: "До",
+        scriptDefaultArgumentsAfter: "Після",
         scriptRunsDirectly: "Запускати глобальним скороченням, не відкриваючи панель команд",
         scriptRunFailed: "Не вдалося виконати цей файл",
         scriptSearchHint: "Після назви введіть вміст для надсилання",
@@ -2503,14 +2492,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "脚本",
         scriptHint: "选择一个可执行文件。输入名称，再输入要传递的内容。停止输入后会在这里显示结果。",
         scriptRunsWithoutArgument: "仅输入名称时也运行",
-<<<<<<< HEAD
         scriptSplitsArgument: "将输入的文本拆分为多个参数",
         scriptDefaultArgumentsLabel: "默认参数",
         scriptDefaultArgumentsBefore: "之前",
         scriptDefaultArgumentsAfter: "之后",
-=======
         scriptRunsDirectly: "按全局快捷键直接运行，不打开命令栏",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "无法运行此文件",
         scriptSearchHint: "在名称后输入要传递的内容",
         scriptBareSearchHint: "可直接运行，或输入要传递的内容",
@@ -2684,14 +2670,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "腳本",
         scriptHint: "選擇一個可執行檔案。輸入名稱，再輸入要傳送的內容。停止輸入後會在這裡顯示結果。",
         scriptRunsWithoutArgument: "僅輸入名稱時也執行",
-<<<<<<< HEAD
         scriptSplitsArgument: "將輸入的文字拆分為多個參數",
         scriptDefaultArgumentsLabel: "預設參數",
         scriptDefaultArgumentsBefore: "之前",
         scriptDefaultArgumentsAfter: "之後",
-=======
         scriptRunsDirectly: "按全域快速鍵直接執行，不開啟指令列",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "無法執行此檔案",
         scriptSearchHint: "在名稱後輸入要傳送的內容",
         scriptBareSearchHint: "可直接執行，或輸入要傳送的內容",
@@ -2865,14 +2848,11 @@ extension CommandBarFeatureStrings {
         linkKindScript: "腳本",
         scriptHint: "選擇一個可執行檔案。輸入名稱，再輸入要傳送的內容。停止輸入後會在這裡顯示結果。",
         scriptRunsWithoutArgument: "僅輸入名稱時也執行",
-<<<<<<< HEAD
         scriptSplitsArgument: "將輸入的文字拆分為多個參數",
         scriptDefaultArgumentsLabel: "預設參數",
         scriptDefaultArgumentsBefore: "之前",
         scriptDefaultArgumentsAfter: "之後",
-=======
         scriptRunsDirectly: "按全域快速鍵直接執行，不開啟指令列",
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         scriptRunFailed: "無法執行此檔案",
         scriptSearchHint: "在名稱後輸入要傳送的內容",
         scriptBareSearchHint: "可直接執行，或輸入要傳送的內容",

@@ -340,6 +340,10 @@ enum SettingsDirectory {
                                       title: FeatureStrings.calendar(language).title,
                                       icon: "calendar",
                                       keywords: ["calendar", "agenda", "month", "appointments", "events", "itsycal"]),
+                SettingsDirectoryItem(page: .linkRouter,
+                                      title: FeatureStrings.linkRouter(language).title,
+                                      icon: "arrow.triangle.branch",
+                                      keywords: ["links", "browser", "default browser", "url", "route", "picker"]),
             ]),
             (categories.utilities, [
                 SettingsDirectoryItem(page: .notch,

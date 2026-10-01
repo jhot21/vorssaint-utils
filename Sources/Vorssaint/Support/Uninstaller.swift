@@ -16,6 +16,15 @@ enum Uninstaller {
         // The fan helper is a daemon service of its own, so unregistering the
         // main app as a login item never reaches it. Without this its root
         // registration outlives the bundle that carried its executable.
+        switch DefaultBrowserManager().status {
+        case .isDefault, .partial:
+            // No run loop here, so the browser role cannot be handed back
+            // asynchronously; say so instead of stranding links silently.
+            FileHandle.standardError.write(Data(("UNINSTALL: Vorssaint is still the default browser; choose another in "
+                + "System Settings > Desktop & Dock.\n").utf8))
+        case .other:
+            break
+        }
         let detached = FanControlService.restoreAndUnregisterForRemoval()
         print(detached
               ? "UNINSTALL: fan helper daemon unregistered"

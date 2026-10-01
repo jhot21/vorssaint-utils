@@ -11,11 +11,7 @@ protocol PanelOrderItem: RawRepresentable, CaseIterable, Hashable where RawValue
 /// renaming a case would orphan a user's stored layout — keep them stable.
 enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
     case keepAwake, brightness, mixer, system, network, disk, power, fanControl, utilities, controls,
-<<<<<<< HEAD
-         toggles, calendar
-=======
-         toggles, wallpaper
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+         toggles, calendar, wallpaper
 
     var id: String { rawValue }
 
@@ -33,11 +29,8 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .utilities: return s.utilitiesSection
         case .controls: return s.quickControlsSection
         case .toggles: return FeatureStrings.quickToggles(L10n.shared.language).pageTitle
-<<<<<<< HEAD
         case .calendar: return FeatureStrings.calendar(L10n.shared.language).title
-=======
         case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).pageTitle
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 
@@ -54,11 +47,8 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .utilities: return "wrench.and.screwdriver.fill"
         case .controls: return "switch.2"
         case .toggles: return "togglepower"
-<<<<<<< HEAD
         case .calendar: return "calendar"
-=======
         case .wallpaper: return "photo.on.rectangle"
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 
@@ -78,11 +68,8 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .utilities: return DefaultsKey.panelShowUtilities
         case .controls: return DefaultsKey.panelShowControls
         case .toggles: return DefaultsKey.panelShowToggles
-<<<<<<< HEAD
         case .calendar: return DefaultsKey.panelShowCalendar
-=======
         case .wallpaper: return DefaultsKey.panelShowWallpaper
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 
@@ -113,11 +100,8 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
                                 .shelf, .windowMaximizer, .dockPreview, .keyboardDebounce, .dockClick,
                                 .middleClick, .textSnippets, .superKey, .radialMenu, .mouseClickDebounce, .notch]
         case .toggles: return [.quickToggles, .micMute]
-<<<<<<< HEAD
         case .calendar: return [.calendar]
-=======
         case .wallpaper: return [.wallpaper]
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 

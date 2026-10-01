@@ -127,6 +127,49 @@ enum SelfUninstall {
         }
     }
 
+    /// Uninstalls after giving the default browser back, so no link is left
+    /// pointing at a deleted app. Kept apart from `uninstallCompletely`, which
+    /// the unit tests compile on its own. Used by "Uninstall Vorssaint completely".
+    static func uninstallRestoringLinks(onFailure: @escaping (String) -> Void) {
+        DispatchQueue.main.async {
+            // Links must not be stranded on a deleted app: give the default
+            // browser back before anything else is torn down.
+            LinkRouterService.shared.restoreDefault { result in
+                DispatchQueue.main.async {
+                    guard linkRestoreNeedsConfirmation(result) else {
+                        uninstallCompletely(onFailure: onFailure)
+                        return
+                    }
+                    let text = FeatureStrings.linkRouter(L10n.shared.language)
+                    let alert = NSAlert()
+                    alert.messageText = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "Vorssaint"
+                    alert.informativeText = text.restoreFailed
+                    alert.addButton(withTitle: Bundle(for: NSApplication.self).localizedString(forKey: "OK", value: "OK", table: "Common"))
+                    alert.addButton(withTitle: text.cancel)
+                    NSApp.activate(ignoringOtherApps: true)
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        uninstallCompletely(onFailure: onFailure)
+                    } else {
+                        onFailure(text.restoreFailed)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The browser role could not be given back and Vorssaint still holds
+    /// it, so deleting the app would strand every link.
+    private static func linkRestoreNeedsConfirmation(_ result: DefaultBrowserManager.RestoreResult) -> Bool {
+        switch result {
+        case .restored, .notDefault: return false
+        case .failed, .previousMissing, .noPrevious:
+            switch LinkRouterService.shared.status {
+            case .isDefault, .partial: return true
+            case .other: return false
+            }
+        }
+    }
+
     // MARK: - Steps (each scoped to this app only)
 
     /// Tears down every Accessibility-backed input interceptor. MUST run on the

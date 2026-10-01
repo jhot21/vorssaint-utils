@@ -1,0 +1,538 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Vorssaint
+
+import Foundation
+
+struct LinkRouterFeatureStrings {
+    let title: String
+    let hubDescription: String
+    let enabledToggle: String
+    let statusIsDefault: String
+    let statusOtherFormat: String
+    let statusNotDefault: String
+    let makeDefault: String
+    let makeDefaultDevNote: String
+    let restoreDefault: String
+    let restoreFailed: String
+    let browsersHeader: String
+    let rescan: String
+    let noBrowsers: String
+    let rulesHeader: String
+    let rulesEmpty: String
+    let rulesUnreadable: String
+    let addRule: String
+    let patternLabel: String
+    let regexToggle: String
+    let advancedLabel: String
+    let sourceAppLabel: String
+    let anySourceApp: String
+    let browserLabel: String
+    let testLabel: String
+    let testMatchFormat: String
+    let testNoMatch: String
+    let invalidRegex: String
+    let tooSlow: String
+    let browserMissing: String
+    let pickerHeader: String
+    let showURLLine: String
+    let showUndoToast: String
+    let ruleAddedFormat: String
+    let undo: String
+    let waitingFormat: String
+    let save: String
+    let cancel: String
+}
+
+extension FeatureStrings {
+    static func linkRouter(_ language: AppLanguage) -> LinkRouterFeatureStrings {
+        switch language {
+        case .enUS: return .enUS
+        case .ptBR: return .ptBR
+        case .tr: return .tr
+        case .ru: return .ru
+        case .es: return .es
+        case .de: return .de
+        case .fr: return .fr
+        case .it: return .it
+        case .ja: return .ja
+        case .ko: return .ko
+        case .zhHans: return .zhHans
+        case .zhTW: return .zhTW
+        case .zhHK: return .zhHK
+        // No Slovak or Ukrainian translation yet, so these read in English.
+        case .sk, .uk: return .enUS
+        }
+    }
+}
+
+extension LinkRouterFeatureStrings {
+    static let enUS = LinkRouterFeatureStrings(
+        title: "Link Router",
+        hubDescription: "Choose which browser opens each link, by asking or by rules",
+        enabledToggle: "Route links through Vorssaint",
+        statusIsDefault: "Vorssaint is your default browser",
+        statusOtherFormat: "%@ is your default browser",
+        statusNotDefault: "Vorssaint is not your default browser, so links are not routed",
+        makeDefault: "Make Vorssaint Default",
+        makeDefaultDevNote: "Unavailable in development builds",
+        restoreDefault: "Restore Previous Browser",
+        restoreFailed: "Could not restore your previous browser. Choose one in System Settings.",
+        browsersHeader: "Browsers",
+        rescan: "Rescan",
+        noBrowsers: "No browsers found",
+        rulesHeader: "Rules",
+        rulesEmpty: "No rules yet. Hold ⌥ while picking a browser to add one.",
+        rulesUnreadable: "Saved rules could not be read and are being ignored",
+        addRule: "Add Rule",
+        patternLabel: "Pattern",
+        regexToggle: "Regular expression",
+        advancedLabel: "Advanced",
+        sourceAppLabel: "Only from app",
+        anySourceApp: "Any app",
+        browserLabel: "Open in",
+        testLabel: "Test a URL",
+        testMatchFormat: "Opens in %@",
+        testNoMatch: "No rule matches, the picker appears",
+        invalidRegex: "Invalid expression",
+        tooSlow: "Too slow, disabled",
+        browserMissing: "Browser not installed",
+        pickerHeader: "Picker",
+        showURLLine: "Show the link in the picker",
+        showUndoToast: "Offer undo after adding a rule",
+        ruleAddedFormat: "Rule added for %@",
+        undo: "Undo",
+        waitingFormat: "+%d waiting",
+        save: "Save",
+        cancel: "Cancel")
+
+    static let ptBR = LinkRouterFeatureStrings(
+        title: "Roteador de links",
+        hubDescription: "Escolha qual navegador abre cada link, perguntando ou por regras",
+        enabledToggle: "Rotear links pelo Vorssaint",
+        statusIsDefault: "O Vorssaint é seu navegador padrão",
+        statusOtherFormat: "%@ é seu navegador padrão",
+        statusNotDefault: "O Vorssaint não é seu navegador padrão, então os links não são roteados",
+        makeDefault: "Tornar o Vorssaint o padrão",
+        makeDefaultDevNote: "Indisponível em versões de desenvolvimento",
+        restoreDefault: "Restaurar navegador anterior",
+        restoreFailed: "Não foi possível restaurar o navegador anterior. Escolha um nas Configurações do Sistema.",
+        browsersHeader: "Navegadores",
+        rescan: "Procurar novamente",
+        noBrowsers: "Nenhum navegador encontrado",
+        rulesHeader: "Regras",
+        rulesEmpty: "Nenhuma regra ainda. Segure ⌥ ao escolher um navegador para adicionar uma.",
+        rulesUnreadable: "Não foi possível ler as regras salvas, e elas estão sendo ignoradas",
+        addRule: "Adicionar regra",
+        patternLabel: "Padrão",
+        regexToggle: "Expressão regular",
+        advancedLabel: "Avançado",
+        sourceAppLabel: "Somente do app",
+        anySourceApp: "Qualquer app",
+        browserLabel: "Abrir em",
+        testLabel: "Testar uma URL",
+        testMatchFormat: "Abre em %@",
+        testNoMatch: "Nenhuma regra corresponde, o seletor aparece",
+        invalidRegex: "Expressão inválida",
+        tooSlow: "Lenta demais, desativada",
+        browserMissing: "Navegador não instalado",
+        pickerHeader: "Seletor",
+        showURLLine: "Mostrar o link no seletor",
+        showUndoToast: "Oferecer desfazer após adicionar uma regra",
+        ruleAddedFormat: "Regra adicionada para %@",
+        undo: "Desfazer",
+        waitingFormat: "+%d aguardando",
+        save: "Salvar",
+        cancel: "Cancelar")
+
+    static let tr = LinkRouterFeatureStrings(
+        title: "Bağlantı Yönlendirici",
+        hubDescription: "Her bağlantıyı hangi tarayıcının açacağını sorarak veya kurallarla seçin",
+        enabledToggle: "Bağlantıları Vorssaint üzerinden yönlendir",
+        statusIsDefault: "Vorssaint varsayılan tarayıcınız",
+        statusOtherFormat: "%@ varsayılan tarayıcınız",
+        statusNotDefault: "Vorssaint varsayılan tarayıcınız değil, bu yüzden bağlantılar yönlendirilmiyor",
+        makeDefault: "Vorssaint’i Varsayılan Yap",
+        makeDefaultDevNote: "Geliştirme sürümlerinde kullanılamaz",
+        restoreDefault: "Önceki Tarayıcıyı Geri Yükle",
+        restoreFailed: "Önceki tarayıcı geri yüklenemedi. Sistem Ayarları’ndan bir tarayıcı seçin.",
+        browsersHeader: "Tarayıcılar",
+        rescan: "Yeniden Tara",
+        noBrowsers: "Tarayıcı bulunamadı",
+        rulesHeader: "Kurallar",
+        rulesEmpty: "Henüz kural yok. Eklemek için tarayıcı seçerken ⌥ tuşunu basılı tutun.",
+        rulesUnreadable: "Kayıtlı kurallar okunamadı ve yok sayılıyor",
+        addRule: "Kural Ekle",
+        patternLabel: "Desen",
+        regexToggle: "Düzenli ifade",
+        advancedLabel: "Gelişmiş",
+        sourceAppLabel: "Yalnızca şu uygulamadan",
+        anySourceApp: "Herhangi bir uygulama",
+        browserLabel: "Şurada aç",
+        testLabel: "Bir URL dene",
+        testMatchFormat: "%@ içinde açılır",
+        testNoMatch: "Hiçbir kural eşleşmiyor, seçici görünür",
+        invalidRegex: "Geçersiz ifade",
+        tooSlow: "Çok yavaş, devre dışı",
+        browserMissing: "Tarayıcı yüklü değil",
+        pickerHeader: "Seçici",
+        showURLLine: "Bağlantıyı seçicide göster",
+        showUndoToast: "Kural ekledikten sonra geri alma seçeneği sun",
+        ruleAddedFormat: "%@ için kural eklendi",
+        undo: "Geri Al",
+        waitingFormat: "+%d bekliyor",
+        save: "Kaydet",
+        cancel: "İptal")
+
+    static let ru = LinkRouterFeatureStrings(
+        title: "Маршрутизатор ссылок",
+        hubDescription: "Выбирайте, в каком браузере открывать каждую ссылку: по запросу или по правилам",
+        enabledToggle: "Направлять ссылки через Vorssaint",
+        statusIsDefault: "Vorssaint является вашим браузером по умолчанию",
+        statusOtherFormat: "%@ является вашим браузером по умолчанию",
+        statusNotDefault: "Vorssaint не является браузером по умолчанию, поэтому ссылки не направляются",
+        makeDefault: "Сделать Vorssaint основным",
+        makeDefaultDevNote: "Недоступно в сборках для разработки",
+        restoreDefault: "Вернуть прежний браузер",
+        restoreFailed: "Не удалось вернуть прежний браузер. Выберите его в Системных настройках.",
+        browsersHeader: "Браузеры",
+        rescan: "Обновить список",
+        noBrowsers: "Браузеры не найдены",
+        rulesHeader: "Правила",
+        rulesEmpty: "Правил пока нет. Удерживайте ⌥ при выборе браузера, чтобы добавить правило.",
+        rulesUnreadable: "Не удалось прочитать сохранённые правила, они игнорируются",
+        addRule: "Добавить правило",
+        patternLabel: "Шаблон",
+        regexToggle: "Регулярное выражение",
+        advancedLabel: "Дополнительно",
+        sourceAppLabel: "Только из приложения",
+        anySourceApp: "Любое приложение",
+        browserLabel: "Открывать в",
+        testLabel: "Проверить URL",
+        testMatchFormat: "Откроется в %@",
+        testNoMatch: "Ни одно правило не подходит, появится выбор",
+        invalidRegex: "Недопустимое выражение",
+        tooSlow: "Слишком медленное, отключено",
+        browserMissing: "Браузер не установлен",
+        pickerHeader: "Окно выбора",
+        showURLLine: "Показывать ссылку в окне выбора",
+        showUndoToast: "Предлагать отмену после добавления правила",
+        ruleAddedFormat: "Правило добавлено для %@",
+        undo: "Отменить",
+        waitingFormat: "+%d в очереди",
+        save: "Сохранить",
+        cancel: "Отмена")
+
+    static let es = LinkRouterFeatureStrings(
+        title: "Enrutador de enlaces",
+        hubDescription: "Elige qué navegador abre cada enlace, preguntando o mediante reglas",
+        enabledToggle: "Enrutar enlaces con Vorssaint",
+        statusIsDefault: "Vorssaint es tu navegador predeterminado",
+        statusOtherFormat: "%@ es tu navegador predeterminado",
+        statusNotDefault: "Vorssaint no es tu navegador predeterminado, así que los enlaces no se enrutan",
+        makeDefault: "Convertir Vorssaint en predeterminado",
+        makeDefaultDevNote: "No disponible en compilaciones de desarrollo",
+        restoreDefault: "Restaurar el navegador anterior",
+        restoreFailed: "No se pudo restaurar el navegador anterior. Elige uno en Ajustes del Sistema.",
+        browsersHeader: "Navegadores",
+        rescan: "Buscar de nuevo",
+        noBrowsers: "No se encontraron navegadores",
+        rulesHeader: "Reglas",
+        rulesEmpty: "Aún no hay reglas. Mantén ⌥ al elegir un navegador para añadir una.",
+        rulesUnreadable: "No se pudieron leer las reglas guardadas y se están ignorando",
+        addRule: "Añadir regla",
+        patternLabel: "Patrón",
+        regexToggle: "Expresión regular",
+        advancedLabel: "Avanzado",
+        sourceAppLabel: "Solo desde la app",
+        anySourceApp: "Cualquier app",
+        browserLabel: "Abrir en",
+        testLabel: "Probar una URL",
+        testMatchFormat: "Se abre en %@",
+        testNoMatch: "Ninguna regla coincide, aparece el selector",
+        invalidRegex: "Expresión no válida",
+        tooSlow: "Demasiado lenta, desactivada",
+        browserMissing: "Navegador no instalado",
+        pickerHeader: "Selector",
+        showURLLine: "Mostrar el enlace en el selector",
+        showUndoToast: "Ofrecer deshacer tras añadir una regla",
+        ruleAddedFormat: "Regla añadida para %@",
+        undo: "Deshacer",
+        waitingFormat: "+%d en espera",
+        save: "Guardar",
+        cancel: "Cancelar")
+
+    static let de = LinkRouterFeatureStrings(
+        title: "Link-Weiterleitung",
+        hubDescription: "Wähle, welcher Browser jeden Link öffnet, per Nachfrage oder mit Regeln",
+        enabledToggle: "Links über Vorssaint weiterleiten",
+        statusIsDefault: "Vorssaint ist dein Standardbrowser",
+        statusOtherFormat: "%@ ist dein Standardbrowser",
+        statusNotDefault: "Vorssaint ist nicht dein Standardbrowser, daher werden Links nicht weitergeleitet",
+        makeDefault: "Vorssaint zum Standard machen",
+        makeDefaultDevNote: "In Entwicklungs-Builds nicht verfügbar",
+        restoreDefault: "Vorherigen Browser wiederherstellen",
+        restoreFailed: "Der vorherige Browser konnte nicht wiederhergestellt werden. Wähle einen in den Systemeinstellungen.",
+        browsersHeader: "Browser",
+        rescan: "Erneut suchen",
+        noBrowsers: "Keine Browser gefunden",
+        rulesHeader: "Regeln",
+        rulesEmpty: "Noch keine Regeln. Halte ⌥ gedrückt, während du einen Browser wählst, um eine hinzuzufügen.",
+        rulesUnreadable: "Die gespeicherten Regeln konnten nicht gelesen werden und werden ignoriert",
+        addRule: "Regel hinzufügen",
+        patternLabel: "Muster",
+        regexToggle: "Regulärer Ausdruck",
+        advancedLabel: "Erweitert",
+        sourceAppLabel: "Nur aus App",
+        anySourceApp: "Jede App",
+        browserLabel: "Öffnen in",
+        testLabel: "URL testen",
+        testMatchFormat: "Öffnet in %@",
+        testNoMatch: "Keine Regel passt, die Auswahl erscheint",
+        invalidRegex: "Ungültiger Ausdruck",
+        tooSlow: "Zu langsam, deaktiviert",
+        browserMissing: "Browser nicht installiert",
+        pickerHeader: "Auswahl",
+        showURLLine: "Link in der Auswahl anzeigen",
+        showUndoToast: "Nach dem Hinzufügen einer Regel Rückgängig anbieten",
+        ruleAddedFormat: "Regel für %@ hinzugefügt",
+        undo: "Rückgängig",
+        waitingFormat: "+%d wartend",
+        save: "Speichern",
+        cancel: "Abbrechen")
+
+    static let fr = LinkRouterFeatureStrings(
+        title: "Routeur de liens",
+        hubDescription: "Choisissez quel navigateur ouvre chaque lien, en demandant ou par règles",
+        enabledToggle: "Acheminer les liens via Vorssaint",
+        statusIsDefault: "Vorssaint est votre navigateur par défaut",
+        statusOtherFormat: "%@ est votre navigateur par défaut",
+        statusNotDefault: "Vorssaint n’est pas votre navigateur par défaut, les liens ne sont donc pas acheminés",
+        makeDefault: "Définir Vorssaint par défaut",
+        makeDefaultDevNote: "Indisponible dans les versions de développement",
+        restoreDefault: "Rétablir le navigateur précédent",
+        restoreFailed: "Impossible de rétablir le navigateur précédent. Choisissez-en un dans Réglages Système.",
+        browsersHeader: "Navigateurs",
+        rescan: "Rechercher à nouveau",
+        noBrowsers: "Aucun navigateur trouvé",
+        rulesHeader: "Règles",
+        rulesEmpty: "Aucune règle pour le moment. Maintenez ⌥ en choisissant un navigateur pour en ajouter une.",
+        rulesUnreadable: "Les règles enregistrées sont illisibles et sont ignorées",
+        addRule: "Ajouter une règle",
+        patternLabel: "Motif",
+        regexToggle: "Expression régulière",
+        advancedLabel: "Avancé",
+        sourceAppLabel: "Uniquement depuis l’app",
+        anySourceApp: "Toute app",
+        browserLabel: "Ouvrir dans",
+        testLabel: "Tester une URL",
+        testMatchFormat: "S’ouvre dans %@",
+        testNoMatch: "Aucune règle ne correspond, le sélecteur s’affiche",
+        invalidRegex: "Expression non valide",
+        tooSlow: "Trop lente, désactivée",
+        browserMissing: "Navigateur non installé",
+        pickerHeader: "Sélecteur",
+        showURLLine: "Afficher le lien dans le sélecteur",
+        showUndoToast: "Proposer d’annuler après l’ajout d’une règle",
+        ruleAddedFormat: "Règle ajoutée pour %@",
+        undo: "Annuler",
+        waitingFormat: "+%d en attente",
+        save: "Enregistrer",
+        cancel: "Annuler")
+
+    static let it = LinkRouterFeatureStrings(
+        title: "Instradamento link",
+        hubDescription: "Scegli quale browser apre ogni link, chiedendo o con regole",
+        enabledToggle: "Instrada i link tramite Vorssaint",
+        statusIsDefault: "Vorssaint è il tuo browser predefinito",
+        statusOtherFormat: "%@ è il tuo browser predefinito",
+        statusNotDefault: "Vorssaint non è il tuo browser predefinito, quindi i link non vengono instradati",
+        makeDefault: "Imposta Vorssaint come predefinito",
+        makeDefaultDevNote: "Non disponibile nelle build di sviluppo",
+        restoreDefault: "Ripristina il browser precedente",
+        restoreFailed: "Impossibile ripristinare il browser precedente. Sceglilo in Impostazioni di Sistema.",
+        browsersHeader: "Browser",
+        rescan: "Cerca di nuovo",
+        noBrowsers: "Nessun browser trovato",
+        rulesHeader: "Regole",
+        rulesEmpty: "Ancora nessuna regola. Tieni premuto ⌥ scegliendo un browser per aggiungerne una.",
+        rulesUnreadable: "Impossibile leggere le regole salvate, che vengono ignorate",
+        addRule: "Aggiungi regola",
+        patternLabel: "Pattern",
+        regexToggle: "Espressione regolare",
+        advancedLabel: "Avanzate",
+        sourceAppLabel: "Solo dall’app",
+        anySourceApp: "Qualsiasi app",
+        browserLabel: "Apri in",
+        testLabel: "Prova un URL",
+        testMatchFormat: "Si apre in %@",
+        testNoMatch: "Nessuna regola corrisponde, compare il selettore",
+        invalidRegex: "Espressione non valida",
+        tooSlow: "Troppo lenta, disattivata",
+        browserMissing: "Browser non installato",
+        pickerHeader: "Selettore",
+        showURLLine: "Mostra il link nel selettore",
+        showUndoToast: "Offri Annulla dopo aver aggiunto una regola",
+        ruleAddedFormat: "Regola aggiunta per %@",
+        undo: "Annulla",
+        waitingFormat: "+%d in attesa",
+        save: "Salva",
+        cancel: "Annulla")
+
+    static let ja = LinkRouterFeatureStrings(
+        title: "リンクルーター",
+        hubDescription: "リンクごとに開くブラウザを、確認またはルールで選べます",
+        enabledToggle: "リンクをVorssaint経由で振り分ける",
+        statusIsDefault: "Vorssaintが既定のブラウザです",
+        statusOtherFormat: "%@が既定のブラウザです",
+        statusNotDefault: "Vorssaintは既定のブラウザではないため、リンクは振り分けられません",
+        makeDefault: "Vorssaintを既定にする",
+        makeDefaultDevNote: "開発ビルドでは使用できません",
+        restoreDefault: "以前のブラウザに戻す",
+        restoreFailed: "以前のブラウザに戻せませんでした。システム設定で選択してください。",
+        browsersHeader: "ブラウザ",
+        rescan: "再検索",
+        noBrowsers: "ブラウザが見つかりません",
+        rulesHeader: "ルール",
+        rulesEmpty: "ルールはまだありません。ブラウザを選ぶときに⌥を押しながらで追加できます。",
+        rulesUnreadable: "保存済みのルールを読み込めないため、無視されています",
+        addRule: "ルールを追加",
+        patternLabel: "パターン",
+        regexToggle: "正規表現",
+        advancedLabel: "詳細",
+        sourceAppLabel: "このAppからのみ",
+        anySourceApp: "すべてのApp",
+        browserLabel: "開くブラウザ",
+        testLabel: "URLをテスト",
+        testMatchFormat: "%@で開きます",
+        testNoMatch: "一致するルールがないため、選択画面が表示されます",
+        invalidRegex: "無効な式",
+        tooSlow: "処理が遅すぎるため無効にしました",
+        browserMissing: "ブラウザがインストールされていません",
+        pickerHeader: "選択画面",
+        showURLLine: "選択画面にリンクを表示",
+        showUndoToast: "ルール追加後に取り消しを表示",
+        ruleAddedFormat: "%@のルールを追加しました",
+        undo: "取り消す",
+        waitingFormat: "他%d件待機中",
+        save: "保存",
+        cancel: "キャンセル")
+
+    static let ko = LinkRouterFeatureStrings(
+        title: "링크 라우터",
+        hubDescription: "확인하거나 규칙으로 각 링크를 열 브라우저를 선택합니다",
+        enabledToggle: "링크를 Vorssaint로 전달",
+        statusIsDefault: "Vorssaint가 기본 브라우저입니다",
+        statusOtherFormat: "%@이(가) 기본 브라우저입니다",
+        statusNotDefault: "Vorssaint가 기본 브라우저가 아니므로 링크가 전달되지 않습니다",
+        makeDefault: "Vorssaint를 기본으로 설정",
+        makeDefaultDevNote: "개발 빌드에서는 사용할 수 없습니다",
+        restoreDefault: "이전 브라우저 복원",
+        restoreFailed: "이전 브라우저를 복원하지 못했습니다. 시스템 설정에서 선택하세요.",
+        browsersHeader: "브라우저",
+        rescan: "다시 검색",
+        noBrowsers: "브라우저를 찾을 수 없습니다",
+        rulesHeader: "규칙",
+        rulesEmpty: "아직 규칙이 없습니다. 브라우저를 선택할 때 ⌥를 누르고 있으면 추가됩니다.",
+        rulesUnreadable: "저장된 규칙을 읽을 수 없어 무시됩니다",
+        addRule: "규칙 추가",
+        patternLabel: "패턴",
+        regexToggle: "정규식",
+        advancedLabel: "고급",
+        sourceAppLabel: "이 앱에서만",
+        anySourceApp: "모든 앱",
+        browserLabel: "열 브라우저",
+        testLabel: "URL 테스트",
+        testMatchFormat: "%@에서 열림",
+        testNoMatch: "일치하는 규칙이 없어 선택 창이 나타납니다",
+        invalidRegex: "잘못된 식",
+        tooSlow: "너무 느려 비활성화됨",
+        browserMissing: "브라우저가 설치되어 있지 않음",
+        pickerHeader: "선택 창",
+        showURLLine: "선택 창에 링크 표시",
+        showUndoToast: "규칙 추가 후 실행 취소 제공",
+        ruleAddedFormat: "%@ 규칙이 추가되었습니다",
+        undo: "실행 취소",
+        waitingFormat: "+%d개 대기 중",
+        save: "저장",
+        cancel: "취소")
+
+    static let zhHans = LinkRouterFeatureStrings(
+        title: "链接路由",
+        hubDescription: "通过询问或规则，选择每个链接用哪个浏览器打开",
+        enabledToggle: "通过 Vorssaint 转发链接",
+        statusIsDefault: "Vorssaint 是你的默认浏览器",
+        statusOtherFormat: "%@ 是你的默认浏览器",
+        statusNotDefault: "Vorssaint 不是默认浏览器，因此链接不会被转发",
+        makeDefault: "设为默认浏览器",
+        makeDefaultDevNote: "开发版本中不可用",
+        restoreDefault: "恢复之前的浏览器",
+        restoreFailed: "无法恢复之前的浏览器。请在系统设置中选择。",
+        browsersHeader: "浏览器",
+        rescan: "重新扫描",
+        noBrowsers: "未找到浏览器",
+        rulesHeader: "规则",
+        rulesEmpty: "还没有规则。选择浏览器时按住 ⌥ 即可添加。",
+        rulesUnreadable: "无法读取已保存的规则，已将其忽略",
+        addRule: "添加规则",
+        patternLabel: "匹配模式",
+        regexToggle: "正则表达式",
+        advancedLabel: "高级",
+        sourceAppLabel: "仅限来自此 App",
+        anySourceApp: "任何 App",
+        browserLabel: "打开方式",
+        testLabel: "测试网址",
+        testMatchFormat: "将在 %@ 中打开",
+        testNoMatch: "没有匹配的规则，将显示选择器",
+        invalidRegex: "表达式无效",
+        tooSlow: "过慢，已停用",
+        browserMissing: "浏览器未安装",
+        pickerHeader: "选择器",
+        showURLLine: "在选择器中显示链接",
+        showUndoToast: "添加规则后提供撤销",
+        ruleAddedFormat: "已为 %@ 添加规则",
+        undo: "撤销",
+        waitingFormat: "另有 %d 个等待",
+        save: "保存",
+        cancel: "取消")
+
+    static let zhTW = LinkRouterFeatureStrings(
+        title: "連結路由",
+        hubDescription: "透過詢問或規則，選擇每個連結要用哪個瀏覽器開啟",
+        enabledToggle: "透過 Vorssaint 轉送連結",
+        statusIsDefault: "Vorssaint 是你的預設瀏覽器",
+        statusOtherFormat: "%@ 是你的預設瀏覽器",
+        statusNotDefault: "Vorssaint 不是預設瀏覽器，因此不會轉送連結",
+        makeDefault: "設為預設瀏覽器",
+        makeDefaultDevNote: "開發版本中無法使用",
+        restoreDefault: "還原先前的瀏覽器",
+        restoreFailed: "無法還原先前的瀏覽器。請在系統設定中選擇。",
+        browsersHeader: "瀏覽器",
+        rescan: "重新掃描",
+        noBrowsers: "找不到瀏覽器",
+        rulesHeader: "規則",
+        rulesEmpty: "尚無規則。選擇瀏覽器時按住 ⌥ 即可新增。",
+        rulesUnreadable: "無法讀取已儲存的規則，已將其忽略",
+        addRule: "新增規則",
+        patternLabel: "比對模式",
+        regexToggle: "正規表達式",
+        advancedLabel: "進階",
+        sourceAppLabel: "僅限來自此 App",
+        anySourceApp: "任何 App",
+        browserLabel: "開啟方式",
+        testLabel: "測試網址",
+        testMatchFormat: "將在 %@ 中開啟",
+        testNoMatch: "沒有符合的規則，將顯示選擇器",
+        invalidRegex: "表達式無效",
+        tooSlow: "太慢，已停用",
+        browserMissing: "瀏覽器未安裝",
+        pickerHeader: "選擇器",
+        showURLLine: "在選擇器中顯示連結",
+        showUndoToast: "新增規則後提供還原",
+        ruleAddedFormat: "已為 %@ 新增規則",
+        undo: "還原",
+        waitingFormat: "另有 %d 個等待中",
+        save: "儲存",
+        cancel: "取消")
+
+    static let zhHK = zhTW
+}

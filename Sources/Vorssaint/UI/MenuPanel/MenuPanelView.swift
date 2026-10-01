@@ -84,11 +84,8 @@ struct MenuPanelView: View {
     @AppStorage(DefaultsKey.panelShowUtilities) private var showUtilities = true
     @AppStorage(DefaultsKey.panelShowControls) private var showControls = true
     @AppStorage(DefaultsKey.panelShowToggles) private var showToggles = true
-<<<<<<< HEAD
     @AppStorage(DefaultsKey.panelShowCalendar) private var showCalendar = true
-=======
     @AppStorage(DefaultsKey.panelShowWallpaper) private var showWallpaper = true
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
     @AppStorage(DefaultsKey.panelSectionOrder) private var sectionOrderRaw = ""
     @State private var navigableContentHeight: CGFloat = 0
     @State private var metricContentHeight: CGFloat = 0
@@ -303,11 +300,8 @@ struct MenuPanelView: View {
         case .utilities: return 500
         case .controls: return 360
         case .toggles: return 420
-<<<<<<< HEAD
         case .calendar: return 420
-=======
         case .wallpaper: return 480
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 
@@ -344,9 +338,7 @@ struct MenuPanelView: View {
         case .utilities: UtilitiesSection(collapsible: collapsible, startCleaning: startCleaning)
         case .controls: QuickControlsSection(collapsible: collapsible)
         case .toggles: QuickTogglesSection(collapsible: collapsible)
-<<<<<<< HEAD
         case .calendar: if showCalendar { CalendarSection(collapsible: collapsible) }
-=======
         case .wallpaper: if showWallpaper { WallpaperSection(collapsible: collapsible) }
         }
     }
@@ -358,7 +350,6 @@ struct MenuPanelView: View {
             MixerSection(collapsible: collapsible)
         } else {
             AudioPrioritySection(collapsible: collapsible)
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
         }
     }
 
@@ -366,11 +357,7 @@ struct MenuPanelView: View {
     /// what keeps the tabs refreshing when Settings flips one of them.
     private func isSectionVisible(_ id: PanelSectionID) -> Bool {
         _ = (showKeepAwake, showBrightness, brightnessEnabled, showMixer, showSystem, showNetwork,
-<<<<<<< HEAD
-             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles, showCalendar)
-=======
-             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles, showWallpaper)
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles, showCalendar, showWallpaper)
         return PanelLayout.isVisibleInPanel(id)
     }
 

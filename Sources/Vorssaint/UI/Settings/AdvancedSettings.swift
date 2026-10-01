@@ -122,7 +122,7 @@ struct AdvancedSettings: View {
             Button(l10n.s.uninstallerCancel, role: .cancel) {}
             Button(l10n.s.advancedUninstallButton, role: .destructive) {
                 working = true
-                SelfUninstall.uninstallCompletely { body in
+                SelfUninstall.uninstallRestoringLinks { body in
                     working = false
                     uninstallFailedBody = body
                     // Stopping leaves the Mac exactly as it was, so the only

@@ -28,22 +28,14 @@ enum AppFeature: String, CaseIterable {
     // Tools
     case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
          cleaner, uninstaller, homebrew, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
-<<<<<<< HEAD
-         commandBar, screenRecorder, killProcess, portManager, calendar, meetingJoin
-=======
-         commandBar, screenRecorder, wallpaper, killProcess, portManager
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+         commandBar, screenRecorder, wallpaper, killProcess, portManager, calendar, meetingJoin, linkRouter
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
          notchQueue, notchLiveEqualizer, notchDownloads, notchAgents
     // System monitor, one entry per metric family (temperatures live with
     // their parent metric: CPU temp with CPU, battery temp with power).
-<<<<<<< HEAD
-    case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, fanControl,
+    case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, connectedDevices, fanControl,
          menuBarDate, menuBarNextMeeting
-=======
-    case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, connectedDevices, fanControl
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
 }
 
 /// Hub sections, in display order.
@@ -121,21 +113,14 @@ extension AppFeature {
             return .energyDisplay
         case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
-<<<<<<< HEAD
-             .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .calendar, .meetingJoin:
-=======
-             .scratchpad, .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager:
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+             .scratchpad, .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager, .calendar, .meetingJoin,
+             .linkRouter:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents:
             return .dynamicIsland
         case .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-<<<<<<< HEAD
-             .fanControl, .menuBarDate, .menuBarNextMeeting:
-=======
-             .connectedDevices, .fanControl:
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+             .connectedDevices, .fanControl, .menuBarDate, .menuBarNextMeeting:
             return .monitor
         }
     }
@@ -212,6 +197,7 @@ extension AppFeature {
         case .portManager: return "network"
         case .calendar: return "calendar"
         case .meetingJoin: return "video"
+        case .linkRouter: return "arrow.triangle.branch"
         case .monitorCPU: return "cpu"
         case .monitorGPU: return "rectangle.connected.to.line.below"
         case .monitorMemory: return "memorychip"
@@ -297,14 +283,11 @@ extension AppFeature {
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
-<<<<<<< HEAD
-             .commandBar, .screenRecorder, .killProcess, .portManager, .calendar, .meetingJoin,
-=======
-             .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager,
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+             .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager, .calendar, .meetingJoin,
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
              .connectedDevices, .fanControl:
             return []
+        case .linkRouter: return [DefaultsKey.linkRouterEnabled]
         case .menuBarDate: return [DefaultsKey.menuBarDate]
         case .menuBarNextMeeting: return [DefaultsKey.menuBarNextMeeting]
         }
@@ -400,13 +383,8 @@ extension AppFeature {
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher, .audioPriority,
              .extraBrightness, .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
-<<<<<<< HEAD
-             .scratchpad, .monitorGPU, .monitorNetwork, .fanControl, .killProcess, .portManager,
-             .menuBarDate:
-=======
              .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
-             .portManager:
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+             .portManager, .menuBarDate, .linkRouter:
             return []
         }
     }
@@ -446,13 +424,9 @@ extension AppFeature {
         Dictionary(uniqueKeysWithValues: allCases.map {
             ($0.availabilityKey,
              $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
-<<<<<<< HEAD
-                && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager
-                && $0 != .calendar && $0 != .menuBarDate && $0 != .meetingJoin && $0 != .menuBarNextMeeting)
-=======
                 && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .wallpaper
-                && $0 != .audioPriority)
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+                && $0 != .audioPriority && $0 != .calendar && $0 != .menuBarDate && $0 != .meetingJoin
+                && $0 != .menuBarNextMeeting && $0 != .linkRouter)
         })
     }
 

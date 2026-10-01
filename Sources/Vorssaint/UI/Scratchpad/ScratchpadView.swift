@@ -715,7 +715,7 @@ struct MarkdownPreview: NSViewRepresentable {
                       clickedOnLink link: Any,
                       at charIndex: Int) -> Bool {
             guard let url = link as? URL else { return false }
-            return NSWorkspace.shared.open(url)
+            return LinkOpener.open(url)
         }
     }
 }

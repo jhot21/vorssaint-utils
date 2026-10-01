@@ -526,7 +526,10 @@ struct PanelHomebrewView: View {
                         .help(updateHelp(update))
                 }
                 if let homepage = package.homepage, let url = URL(string: homepage) {
-                    Link(l10n.s.homebrewHomepage, destination: url)
+                    Button(l10n.s.homebrewHomepage) {
+                        LinkOpener.open(url)
+                    }
+                    .buttonStyle(.link)
                         .font(.system(size: 10.5))
                         .lineLimit(1)
                 }

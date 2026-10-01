@@ -17,16 +17,8 @@
 "NSDownloadsFolderUsageDescription" = "Vorssaint, yalnızca seçtiğiniz doğrulanmış WhatsApp dosyalarını incelemek, düzenlemek veya Çöp Sepeti'ne taşımak için İndirilenler'deki yerel meta verileri denetler. Ekran görüntülerinizi buraya kaydediyorsanız Temizlik unutulan ekran görüntülerini de arar.";
 
 /* macOS user-selected organizer destination prompts. */
-<<<<<<< HEAD
-"NSDesktopFolderUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler.";
-"NSDocumentsFolderUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler.";
-"NSNetworkVolumesUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler.";
-"NSRemovableVolumesUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler.";
-"NSCalendarsFullAccessUsageDescription" = "Yaklaşan randevularınızı menü çubuğunda ve Dynamic Island’da gösterir. Takvim etkinlikleri bu Mac’te kalır.";
-=======
 "NSDesktopFolderUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler. Ekran görüntülerinizi buraya kaydediyorsanız Temizlik unutulan ekran görüntülerini de arar.";
 "NSDocumentsFolderUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler. Ekran görüntülerinizi buraya kaydediyorsanız Temizlik unutulan ekran görüntülerini de arar.";
 "NSNetworkVolumesUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler. Ekran görüntülerinizi buraya kaydediyorsanız Temizlik unutulan ekran görüntülerini de arar.";
 "NSRemovableVolumesUsageDescription" = "Vorssaint, doğrulanmış WhatsApp indirmelerini açıkça seçtiğiniz bir hedef klasörde düzenler. Ekran görüntülerinizi buraya kaydediyorsanız Temizlik unutulan ekran görüntülerini de arar.";
-"NSCalendarsFullAccessUsageDescription" = "Yaklaşan randevularınızı ekranın üst kısmında gösterir. Takvim etkinlikleri bu Mac’te kalır.";
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+"NSCalendarsFullAccessUsageDescription" = "Yaklaşan randevularınızı menü çubuğunda ve Dynamic Island’da gösterir. Takvim etkinlikleri bu Mac’te kalır.";

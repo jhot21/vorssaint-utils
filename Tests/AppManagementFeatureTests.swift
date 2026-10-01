@@ -1055,21 +1055,12 @@ enum AppManagementFeatureTests {
         suite.expect(Defaults.sanitizedMenuBarMemoryStyle("both") == "both", "combined memory style is preserved")
         suite.expect(Defaults.sanitizedMenuBarMemoryStyle("bad") == "percent", "invalid memory style falls back to percent")
         suite.expect(Defaults.sanitizedMenuBarMetricOrder("cpu,gpu,memory,network,battery,power")
-<<<<<<< HEAD
                == ["cpu", "gpu", "memory", "network", "battery", "power", "date", "nextMeeting",
-                   "cpuTemperature", "gpuTemperature", "batteryTime", "batteryTemperature", "peripheralBattery", "diskUsage", "diskActivity", "fanSpeed"],
-               "menu bar metric order appends temperature sensors without rewriting existing saved order")
-        suite.expect(Defaults.sanitizedMenuBarMetricOrder("temperature,cpu,cpu,bad")
-               == ["cpuTemperature", "gpuTemperature", "batteryTemperature",
-                   "cpu", "date", "nextMeeting", "gpu", "memory", "battery", "batteryTime", "peripheralBattery", "network", "diskUsage", "diskActivity", "power", "fanSpeed"],
-=======
-               == ["cpu", "gpu", "memory", "network", "battery", "power",
                    "cpuTemperature", "gpuTemperature", "batteryTime", "batteryTemperature", "peripheralBattery", "diskUsage", "diskActivity", "connectedDevices", "fanSpeed"],
                "menu bar metric order appends temperature sensors without rewriting existing saved order")
         suite.expect(Defaults.sanitizedMenuBarMetricOrder("temperature,cpu,cpu,bad")
                == ["cpuTemperature", "gpuTemperature", "batteryTemperature",
-                   "cpu", "gpu", "memory", "battery", "batteryTime", "peripheralBattery", "network", "diskUsage", "diskActivity", "connectedDevices", "power", "fanSpeed"],
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+                   "cpu", "date", "nextMeeting", "gpu", "memory", "battery", "batteryTime", "peripheralBattery", "network", "diskUsage", "diskActivity", "connectedDevices", "power", "fanSpeed"],
                "menu bar metric order migrates the old generic temperature value")
         suite.expect(Defaults.sanitizedBundleIdentifierList([" com.example.One ", "", "com.example.One", "com.example.Two"])
                == ["com.example.One", "com.example.Two"],

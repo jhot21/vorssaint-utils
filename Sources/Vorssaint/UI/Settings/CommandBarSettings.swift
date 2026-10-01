@@ -661,7 +661,6 @@ private struct CommandBarLinkEditor: View {
                         .foregroundStyle(.secondary)
                     Toggle(text.scriptRunsWithoutArgument, isOn: $draft.runsWithoutArgument)
                         .font(.caption)
-<<<<<<< HEAD
                     Toggle(text.scriptSplitsArgument, isOn: $draft.splitArgument)
                         .font(.caption)
                     VStack(alignment: .leading, spacing: 5) {
@@ -681,10 +680,8 @@ private struct CommandBarLinkEditor: View {
                             .labelsHidden()
                         }
                     }
-=======
                     Toggle(text.scriptRunsDirectly, isOn: $draft.runsDirectly)
                         .font(.caption)
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
                 }
             }
 

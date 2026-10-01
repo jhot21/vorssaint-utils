@@ -205,12 +205,10 @@ final class StatusItemController {
             }
             .store(in: &cancellables)
 
-<<<<<<< HEAD
         dayChangeObserver = NotificationCenter.default.addObserver(forName: .NSCalendarDayChanged, object: nil,
                                                                     queue: .main) { [weak self] _ in
             self?.refresh()
         }
-=======
         NotificationCenter.default.publisher(for: NotchService.fullscreenVisibilityDidChange)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
@@ -220,7 +218,6 @@ final class StatusItemController {
                 self.refresh()
             }
             .store(in: &cancellables)
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
 
         bindClipboardPreviewIfAvailable()
 
@@ -685,11 +682,7 @@ final class StatusItemController {
                                      temperature: .batteryTemperature,
                                      primaryTitle: strings.batteryLabel)
             case .memory, .network, .diskUsage, .diskActivity, .batteryTime, .peripheralBattery, .power,
-<<<<<<< HEAD
-                 .fanSpeed, .date, .nextMeeting:
-=======
-                 .fanSpeed, .connectedDevices:
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
+                 .fanSpeed, .connectedDevices, .date, .nextMeeting:
                 let id = metric.rawValue
                 guard emittedIDs.insert(id).inserted else { continue }
                 groups.append(MetricStatusGroup(id: id,

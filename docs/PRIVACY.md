@@ -27,6 +27,8 @@ When the Command Bar's Firefox Bookmarks source is on, it reads Firefox's own lo
 
 When the Command Bar's Safari Bookmarks source is on, it reads Safari's own local bookmarks file to make them searchable; nothing about them is sent anywhere, turning the source off in Settings stops it from reading that file at all, and it only reads it once Full Disk Access is granted.
 
+When the Link Router is on and Vorssaint is your default browser, it sees the address of each link you click only to decide where to open it. It never stores, logs or sends those addresses; only your rules and browser preferences are saved, in the app's local storage on your Mac.
+
 ## Optional notch features
 
 Calendar access is requested only from the permission button. The notch reads upcoming events through the system calendar service; it does not create, change or delete events. Event text stays in memory and is cleared when the notch stops or the Mac locks. The optional countdown can show the next event's title in the closed notch, including in screen captures when notch capture is enabled.

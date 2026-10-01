@@ -20,13 +20,10 @@ struct MetricsTests {
                 SystemMonitorCPUTests.run(suite)
             }),
             ("clipboard", { ClipboardFeatureTests.run(suite) }),
-<<<<<<< HEAD
             ("calendar", {
                 CalendarFeatureTests.run(suite)
                 MeetingLinkFeatureTests.run(suite)
             }),
-            ("pointer-input", { PointerInputFeatureTests.run(suite) }),
-=======
             ("pointer-input", {
                 PointerOnDisplayContract.run(suite)
                 PointerInputFeatureTests.run(suite)
@@ -35,7 +32,6 @@ struct MetricsTests {
                 SuperKeyTapContract.run(suite)
                 PointerScreenContract.run(suite)
             }),
->>>>>>> 88f838546b4444c7f214cae3937359f62065ae0d
             ("scroll-modifier", { ScrollHorizontalModifierTests.run(suite) }),
             ("preferences", { PreferencesFeatureTests.run(suite) }),
             ("app-management", { AppManagementFeatureTests.run(suite) }),
@@ -73,6 +69,17 @@ struct MetricsTests {
                 RecorderExportRenderingTests.run(suite)
             }),
             ("command-bar", { CommandBarFeatureTests.run(suite) }),
+            ("link-router", {
+                LinkRouterMatcherTests.run(suite)
+                LinkRouterStorageTests.run(suite)
+                LinkRouterStringsTests.run(suite)
+                LinkRouterBrowserTests.run(suite)
+                LinkRouterDefaultBrowserTests.run(suite)
+                LinkRouterCoreTests.run(suite)
+                LinkRouterPickerTests.run(suite)
+                LinkRouterGuardTests.run(suite)
+                LinkRouterEditingTests.run(suite)
+            }),
             ("notch", {
                 NotchTests.run(suite)
                 NotchCompactTests.run(suite)

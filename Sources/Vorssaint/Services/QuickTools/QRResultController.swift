@@ -98,7 +98,7 @@ final class QRResultController {
 
     private func open(_ url: URL) {
         close()
-        NSWorkspace.shared.open(url)
+        LinkOpener.open(url)
     }
 
     private func installMonitors(for panel: NSPanel) {

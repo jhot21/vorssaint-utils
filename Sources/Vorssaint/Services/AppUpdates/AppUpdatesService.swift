@@ -670,7 +670,7 @@ final class AppUpdatesService: ObservableObject {
     /// again the moment the person is back.
     private func handOff(_ url: URL) {
         updateHandoffPending = true
-        if !NSWorkspace.shared.open(url) {
+        if !LinkOpener.open(url) {
             updateHandoffPending = false
         }
     }

@@ -9,7 +9,7 @@ struct CalendarSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var hiddenIDs: Set<String> = Self.savedHiddenIDs
     @State private var calendars: [EKCalendar] = []
-    @State private var browsers: [BrowserOption] = []
+    @State private var browsers: [BrowserInfo] = []
     @AppStorage(DefaultsKey.meetingJoinZoomNative) private var zoomNative = true
     @AppStorage(DefaultsKey.meetingJoinTeamsNative) private var teamsNative = true
     @AppStorage(DefaultsKey.meetingJoinNotifyOffset) private var offsetRaw = MeetingJoinNotifyOffset.atStart.rawValue
@@ -50,7 +50,7 @@ struct CalendarSettings: View {
                     Picker(text.meetingJoinGoogleMeetBrowserLabel, selection: $googleMeetBrowser) {
                         Text(text.meetingJoinBrowserSystemDefault).tag("")
                         ForEach(browsers) { browser in
-                            Text(browser.name).tag(browser.bundleIdentifier)
+                            Text(browser.name).tag(browser.bundleID)
                         }
                     }
                 }
@@ -59,25 +59,8 @@ struct CalendarSettings: View {
         .formStyle(.grouped)
         .onAppear {
             loadCalendars()
-            loadBrowsers()
+            browsers = BrowserCatalog.current().all.sorted { $0.name < $1.name }
         }
-    }
-
-    private struct BrowserOption: Identifiable {
-        let bundleIdentifier: String
-        let name: String
-        var id: String { bundleIdentifier }
-    }
-
-    /// Every installed app that can open an http(s) link, sorted by name —
-    /// the same universe System Settings' own default-browser picker offers.
-    private func loadBrowsers() {
-        guard let probeURL = URL(string: "https://example.com") else { return }
-        browsers = NSWorkspace.shared.urlsForApplications(toOpen: probeURL).compactMap { appURL in
-            guard let identifier = Bundle(url: appURL)?.bundleIdentifier else { return nil }
-            let name = FileManager.default.displayName(atPath: appURL.path)
-            return BrowserOption(bundleIdentifier: identifier, name: name)
-        }.sorted { $0.name < $1.name }
     }
 
     /// Grouped by account (e.g. "iCloud", "you@gmail.com") so calendars that
