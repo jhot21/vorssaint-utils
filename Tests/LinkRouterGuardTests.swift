@@ -23,6 +23,7 @@ enum LinkRouterGuardTests {
         "Services/RadialMenu/RadialMenuService.swift": 1,
         "Services/CommandBar/CommandBarCatalog.swift": 3,
         "Services/LinkRouter/LinkOpener.swift": 1,
+        "Services/Wallpaper/WallpaperService.swift": 1,
     ]
 
     static func run(_ suite: TestSuite) {

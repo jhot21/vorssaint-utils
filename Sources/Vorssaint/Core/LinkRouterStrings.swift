@@ -59,6 +59,8 @@ extension FeatureStrings {
         case .zhHans: return .zhHans
         case .zhTW: return .zhTW
         case .zhHK: return .zhHK
+        // No Slovak or Ukrainian translation yet, so these read in English.
+        case .sk, .uk: return .enUS
         }
     }
 }

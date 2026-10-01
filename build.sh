@@ -369,6 +369,7 @@ if (( TEST )); then
         Sources/Vorssaint/Core/NotchStrings.swift
         Sources/Vorssaint/Core/NotchTourStrings.swift
         Sources/Vorssaint/Core/NotchEditorStrings.swift
+        Sources/Vorssaint/UI/Settings/NotchSettingsTabRow.swift
         Sources/Vorssaint/Core/NotchActivityStrings.swift
         Sources/Vorssaint/Services/Notch/NotchTimerSupport.swift
         Sources/Vorssaint/Services/Notch/NotchTimerAlert.swift
@@ -384,7 +385,16 @@ if (( TEST )); then
         Sources/Vorssaint/Core/NotchCalendarStrings.swift
         Sources/Vorssaint/Core/NotchNotificationStrings.swift
         Sources/Vorssaint/Core/NotchGestureStrings.swift
+        Sources/Vorssaint/Core/NotchAgentStrings.swift
+        Sources/Vorssaint/Services/Notch/NotchAgentSupport.swift
+        Sources/Vorssaint/Services/AgentUsage/AgentUsageModels.swift
+        Sources/Vorssaint/Services/AgentUsage/AgentPricing.swift
+        Sources/Vorssaint/Services/AgentUsage/AgentLogParser.swift
+        Sources/Vorssaint/Services/AgentUsage/AgentUsageSummary.swift
+        Sources/Vorssaint/Services/AgentUsage/AgentUsageStore.swift
+        Sources/Vorssaint/Services/AgentUsage/AgentClaudeAppUsage.swift
         Sources/Vorssaint/Services/Notch/NotchGestureSupport.swift
+        Sources/Vorssaint/Services/Notch/NotchSectionPaging.swift
         Sources/Vorssaint/Services/Notch/NotchSliderEditing.swift
         Sources/Vorssaint/Services/Notch/NotchNotificationSupport.swift
         Sources/Vorssaint/Services/Notch/NotchNotificationReaderCore.swift
@@ -394,6 +404,8 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Notch/NotchVolumeKeyGate.swift
         Sources/Vorssaint/Services/Notch/NotchMusicSupport.swift
         Sources/Vorssaint/UI/Notch/NotchEqualizerBars.swift
+        Sources/Vorssaint/UI/Notch/NotchAgentAnimationView.swift
+        Sources/Vorssaint/UI/WindowVisibilityReader.swift
         Sources/Vorssaint/Services/Notch/NotchMusicAutomationSupport.swift
         Sources/Vorssaint/Services/Notch/NotchMusicAutomation.swift
         Sources/Vorssaint/Services/Notch/NotchPlaybackSource.swift
@@ -415,6 +427,8 @@ if (( TEST )); then
         Sources/Vorssaint/Core/RecorderStrings.swift
         Sources/Vorssaint/Core/RecorderShareStrings.swift
         Sources/Vorssaint/Core/CameraPreviewStrings.swift
+        Sources/Vorssaint/Core/WallpaperStrings.swift
+        Sources/Vorssaint/Services/Wallpaper/WallpaperSupport.swift
         Sources/Vorssaint/Core/ScratchpadStrings.swift
         Sources/Vorssaint/Core/FinderRenameStrings.swift
         Sources/Vorssaint/Core/CommandBarStrings.swift
@@ -430,7 +444,9 @@ if (( TEST )); then
         Sources/Vorssaint/Core/BluetoothSleepStrings.swift
         Sources/Vorssaint/Core/PermissionGuideStrings.swift
         Sources/Vorssaint/Core/FanControlStrings.swift
+        Sources/Vorssaint/Core/ConnectedDevicesStrings.swift
         Sources/Vorssaint/Services/FanControl/FanControlSupport.swift
+        Sources/Vorssaint/Services/FanControl/FanControlResumeSupport.swift
         Sources/Vorssaint/Services/Snippets/TextSnippetSupport.swift
         Sources/Vorssaint/Services/RadialMenu/RadialMenuSupport.swift
         Sources/Vorssaint/Services/QuickTools/ScratchpadSupport.swift
@@ -489,11 +505,13 @@ if (( TEST )); then
         Sources/Vorssaint/Services/DockPreview/DockPreviewSupport.swift
         Sources/Vorssaint/Services/DockPreview/DockAutohideHold.swift
         Sources/Vorssaint/Services/Homebrew/HomebrewSupport.swift
+        Sources/Vorssaint/Services/Homebrew/HomebrewEnvironment.swift
         Sources/Vorssaint/Services/AppUpdates/AppUpdatesSupport.swift
         Sources/Vorssaint/Services/AppUpdates/AppUpdateFeedSupport.swift
         Sources/Vorssaint/Core/AppUpdateStrings.swift
         Sources/Vorssaint/Core/DiskImageInstallerStrings.swift
         Sources/Vorssaint/Services/DiskImageInstaller/DiskImageInstallerSupport.swift
+        Sources/Vorssaint/UI/NonModalAlert.swift
         Sources/Vorssaint/Services/Clipboard/ClipboardHistorySupport.swift
         Sources/Vorssaint/Services/Clipboard/ClipboardAutoClearSupport.swift
         Sources/Vorssaint/Services/AutoQuit/AutoQuitSupport.swift
@@ -506,6 +524,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/InstalledApps.swift
         Sources/Vorssaint/Services/LaunchAtLoginSupport.swift
         Sources/Vorssaint/UI/Settings/SettingsSearchSupport.swift
+        Sources/Vorssaint/UI/Settings/SettingsSidebarSupport.swift
         Sources/Vorssaint/UI/Settings/FeatureVisibilitySupport.swift
         Sources/Vorssaint/UI/Settings/SettingsWindow.swift
         Sources/Vorssaint/Core/SettingsNavigationStrings.swift
@@ -524,11 +543,15 @@ if (( TEST )); then
         Sources/Vorssaint/Services/MouseExceptions/MouseAppExceptionSupport.swift
         Sources/Vorssaint/Services/MouseExceptions/MouseAppExceptions.swift
         Sources/Vorssaint/Services/WindowServerSupport.swift
+        Sources/Vorssaint/Services/WindowMaximizerSupport.swift
         Sources/Vorssaint/Core/MouseButtonStrings.swift
         Sources/Vorssaint/Core/MouseClickDebounceStrings.swift
         Sources/Vorssaint/Core/MouseExceptionStrings.swift
         Sources/Vorssaint/Core/ClipboardIgnoredAppsStrings.swift
+        Sources/Vorssaint/Core/WindowLayoutIgnoredAppsStrings.swift
+        Sources/Vorssaint/Services/WindowLayout/WindowLayoutIgnoredApps.swift
         Sources/Vorssaint/Core/WindowPreviewExclusionStrings.swift
+        Sources/Vorssaint/Core/WindowMaximizerExclusionStrings.swift
         Sources/Vorssaint/Core/DiskExclusionStrings.swift
         Sources/Vorssaint/Core/SwitcherAppRulesStrings.swift
         Sources/Vorssaint/Services/QuickTools/QuickToolsSupport.swift
@@ -555,6 +578,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/QuickTools/QuickTogglesSupport.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotCapturePolicy.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotSupport.swift
+        Sources/Vorssaint/UI/Settings/ScreenCaptureToolPicker.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotRenderer.swift
         Sources/Vorssaint/Services/QuickTools/RecentCaptureStore.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotSharingSupport.swift
@@ -566,12 +590,16 @@ if (( TEST )); then
         Sources/Vorssaint/Core/InputSourceSelection.swift
         Sources/Vorssaint/Services/SessionActivity.swift
         Sources/Vorssaint/Services/SessionActivitySupport.swift
+        Sources/Vorssaint/Services/EventTimestamp.swift
+        Sources/Vorssaint/Services/OwnKeyEvent.swift
         Sources/Vorssaint/Services/ScrollWheelSupport.swift
+        Sources/Vorssaint/Services/HorizontalWheelScrolling.swift
         Sources/Vorssaint/Services/SmoothScrollSupport.swift
         Sources/Vorssaint/Services/MouseAcceleration/MouseAccelerationSupport.swift
         Sources/Vorssaint/Services/FocusFollowsMouse/FocusFollowsMouseSupport.swift
         Sources/Vorssaint/Services/AssistiveKeyboard.swift
         Sources/Vorssaint/Services/Switcher/SwitcherModels.swift
+        Sources/Vorssaint/Services/Switcher/WindowServerCaptureQueue.swift
         Sources/Vorssaint/Services/Switcher/SwitcherSupport.swift
         Sources/Vorssaint/Services/Switcher/SpaceHopSupport.swift
         Sources/Vorssaint/Services/Switcher/WindowUseOrder.swift
@@ -592,15 +620,19 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Metrics/PeripheralBatterySupport.swift
         Sources/Vorssaint/Services/Metrics/DiskSupport.swift
         Sources/Vorssaint/Services/Metrics/MonitorSamplingPolicy.swift
+        Sources/Vorssaint/Services/Metrics/USBDeviceSampler.swift
         Sources/Vorssaint/Services/Metrics/MaxCapacityProbe.swift
         Sources/Vorssaint/Services/Metrics/TemperatureSensorSelector.swift
         Sources/Vorssaint/Services/Metrics/SustainedAlertGate.swift
         Sources/Vorssaint/Services/WindowLayout/WindowLayoutSupport.swift
         Sources/Vorssaint/Services/WindowLayout/WindowGestureSupport.swift
         Sources/Vorssaint/Core/WindowDirectionalStrings.swift
+        Sources/Vorssaint/Core/PointerDisplayStrings.swift
         Sources/Vorssaint/Services/CleaningMode/CleaningUnlockCounter.swift
+        Sources/Vorssaint/Services/CleaningMode/CleaningMouseReleaseGate.swift
         Sources/Vorssaint/Services/Display/ExtraBrightnessSupport.swift
         Sources/Vorssaint/Services/Display/BrightnessSupport.swift
+        Sources/Vorssaint/Services/Display/LidDimmingSupport.swift
         Sources/Vorssaint/Services/Cleaner/CleanerSupport.swift
         Sources/Vorssaint/Services/Cleaner/CleanerPolicy.swift
         Sources/Vorssaint/Services/Cleaner/CleanerSchedule.swift
@@ -628,14 +660,22 @@ fi
 
 echo "▸ Compiling ($BUILD_CONFIGURATION) against $(basename "$SDK")…"
 APP_SOURCES=(Sources/Vorssaint/**/*.swift)
-# Incremental, per-file compilation: the object directory persists across builds,
-# so a rebuild only recompiles the files whose dependencies changed instead of
-# all of them. `--clean` (or `rm -rf build`) resets it for a full build.
+if (( ! DEV )); then
+    # A release starts from an empty build directory, so nothing an earlier
+    # build left behind (an old icon catalog, a staged bundle) can reach it.
+    # Only the compiler's incremental records stay: they rebuild whatever
+    # changed since, and a fresh checkout has none.
+    find build -mindepth 1 -maxdepth 1 ! -name objects -exec rm -rf {} + 2>/dev/null || true
+fi
 APP_OBJECT_DIR="build/objects/$EXECUTABLE"
 mkdir -p build "$APP_OBJECT_DIR"
 APP_OUTPUT_FILE_MAP="$APP_OBJECT_DIR/output-file-map.json"
 write_swift_output_file_map "$APP_OUTPUT_FILE_MAP" "$APP_OBJECT_DIR" "${APP_SOURCES[@]}"
-swiftc "${APP_OPTIMIZATION_FLAGS[@]}" -incremental -j "$(sysctl -n hw.logicalcpu)" \
+# Without -j the driver compiles one file at a time, and without batch mode
+# each file's compiler parses the whole module again: a clean release took a
+# quarter of an hour. Batches share that work and run on every core, and the
+# optimization stays per file, as before.
+swiftc "${APP_OPTIMIZATION_FLAGS[@]}" -incremental -enable-batch-mode -j "$(sysctl -n hw.logicalcpu)" \
     -output-file-map "$APP_OUTPUT_FILE_MAP" \
     -target "$TARGET" -sdk "$SDK" "${SDK_COMPAT_FLAGS[@]}" "${VM_STATISTICS_COMPAT_FLAGS[@]}" "${HID_EVENT_SYSTEM_FLAGS[@]}" \
     "${BUILD_VARIANT_FLAGS[@]}" \
@@ -736,6 +776,7 @@ cp "build/$FAN_HELPER_ID" "$STAGE/Contents/Library/LaunchServices/$FAN_HELPER_ID
 mkdir -p "$STAGE/Contents/Frameworks"
 cp "build/$NOW_PLAYING_ADAPTER" "$STAGE/Contents/Frameworks/$NOW_PLAYING_ADAPTER"
 cp Resources/now-playing.pl "$STAGE/Contents/Resources/now-playing.pl"
+cp Resources/agent-prices.json "$STAGE/Contents/Resources/agent-prices.json"
 cp Resources/com.vorssaint.utils.fan-control.plist \
     "$STAGE/Contents/Library/LaunchDaemons/$FAN_HELPER_ID.plist"
 cp Resources/Info.plist "$STAGE/Contents/Info.plist"
@@ -784,6 +825,10 @@ fi
 if [[ -d Resources/Gifs ]]; then
     mkdir -p "$STAGE/Contents/Resources/Gifs"
     cp Resources/Gifs/*.gif "$STAGE/Contents/Resources/Gifs/"
+fi
+if ! cmp -s Resources/Gifs/highlights-notch.gif "$STAGE/Contents/Resources/Gifs/highlights-notch.gif"; then
+    echo "Dynamic Island tour GIF is missing or differs from the bundled copy" >&2
+    exit 1
 fi
 if [[ -d Resources/Images ]]; then
     mkdir -p "$STAGE/Contents/Resources/Images"

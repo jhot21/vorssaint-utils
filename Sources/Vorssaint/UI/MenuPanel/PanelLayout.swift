@@ -11,7 +11,7 @@ protocol PanelOrderItem: RawRepresentable, CaseIterable, Hashable where RawValue
 /// renaming a case would orphan a user's stored layout — keep them stable.
 enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
     case keepAwake, brightness, mixer, system, network, disk, power, fanControl, utilities, controls,
-         toggles, calendar
+         toggles, calendar, wallpaper
 
     var id: String { rawValue }
 
@@ -30,6 +30,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .controls: return s.quickControlsSection
         case .toggles: return FeatureStrings.quickToggles(L10n.shared.language).pageTitle
         case .calendar: return FeatureStrings.calendar(L10n.shared.language).title
+        case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).pageTitle
         }
     }
 
@@ -47,6 +48,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .controls: return "switch.2"
         case .toggles: return "togglepower"
         case .calendar: return "calendar"
+        case .wallpaper: return "photo.on.rectangle"
         }
     }
 
@@ -67,6 +69,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .controls: return DefaultsKey.panelShowControls
         case .toggles: return DefaultsKey.panelShowToggles
         case .calendar: return DefaultsKey.panelShowCalendar
+        case .wallpaper: return DefaultsKey.panelShowWallpaper
         }
     }
 
@@ -81,7 +84,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .keepAwake: return [.keepAwake]
         case .brightness: return [.brightness]
-        case .mixer: return [.mixer]
+        case .mixer: return [.mixer, .audioPriority]
         case .system: return [.monitorCPU, .monitorGPU, .monitorMemory]
         case .network: return [.monitorNetwork]
         case .disk: return [.monitorDisk]
@@ -98,6 +101,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
                                 .middleClick, .textSnippets, .superKey, .radialMenu, .mouseClickDebounce, .notch]
         case .toggles: return [.quickToggles, .micMute]
         case .calendar: return [.calendar]
+        case .wallpaper: return [.wallpaper]
         }
     }
 
