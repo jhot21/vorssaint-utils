@@ -8,6 +8,7 @@ enum LinkRouterTransformTests {
         runReplace(suite)
         runWrappers(suite)
         runPipeline(suite)
+        runRewrites(suite)
     }
 
     private static func replace(_ evaluator: RegexEvaluator, _ pattern: String, _ text: String,
@@ -126,5 +127,76 @@ enum LinkRouterTransformTests {
                      "with Extract on, Clean is offered when the destination is tracked")
         suite.expect(LinkTransform.available(for: URL(string: "https://example.com/")!, selected: [], settings: settings).isEmpty,
                      "a plain link offers no chips")
+    }
+
+    private final class FakeReplacer: RegexReplacing {
+        var next: RegexReplaceOutcome = .noMatch
+        var calls: [(pattern: String, text: String, template: String)] = []
+        func replace(pattern: String, in text: String, template: String,
+                     completion: @escaping (RegexReplaceOutcome) -> Void) {
+            calls.append((pattern, text, template))
+            completion(next)
+        }
+    }
+
+    private static func runRewrites(_ suite: TestSuite) {
+        let yt = RewriteRule(name: "YouTube to Sealant", site: "*.youtube.com",
+                             find: #"^https://www\.youtube\.com/watch\?v=([\w-]+).*$"#,
+                             replacement: "https://yt.example.test/watch?v=$1", key: "y")
+        let anywhere = RewriteRule(name: "Any", find: "a", replacement: "b", key: "a")
+        let off = RewriteRule(name: "Off", find: "a", replacement: "b", key: "o", isEnabled: false)
+        var flagged = RewriteRule(name: "Flagged", find: "a", replacement: "b", key: "f")
+        flagged.flag = .invalidRegex
+        let url = URL(string: "https://www.youtube.com/watch?v=abc")!
+        suite.expect(LinkRewrite.applicable([yt, anywhere, off, flagged], to: url).map(\.name) == ["YouTube to Sealant", "Any"],
+                     "only enabled, unflagged rules whose site matches are offered")
+        suite.expect(LinkRewrite.applicable([yt], to: URL(string: "https://example.com/")!).isEmpty,
+                     "a site-scoped rule is hidden on other sites")
+
+        let replacer = FakeReplacer()
+        func run(_ outcome: RegexReplaceOutcome, rule: RewriteRule = yt) -> RewriteOutcome? {
+            replacer.next = outcome
+            var result: RewriteOutcome?
+            LinkRewrite.apply(rule, to: url, replacer: replacer) { result = $0 }
+            LinkRouterTestSupport.spin { result != nil }
+            return result
+        }
+        suite.expect(run(.replaced("https://yt.example.test/watch?v=abc")) == .rewritten(URL(string: "https://yt.example.test/watch?v=abc")!),
+                     "a web result becomes the rewritten link")
+        suite.expect(replacer.calls.last?.text == url.absoluteString && replacer.calls.last?.template == yt.replacement,
+                     "the regex sees the whole link and the template is passed through")
+        suite.expect(run(.noMatch) == .unchanged, "no match leaves the link unchanged")
+        suite.expect(run(.invalid) == .failed(.invalid) && run(.timedOut) == .failed(.timedOut),
+                     "invalid and timed-out regexes are failures, not rewrites")
+        for bad in ["javascript:alert(1)", "file:///etc/hosts", "not a url", "yt.example.test/x", ""] {
+            suite.expect(run(.replaced(bad)) == .failed(.notWeb), "a non-web rewrite result is rejected: \(bad)")
+        }
+        suite.expect(run(.replaced(url.absoluteString)) == .unchanged,
+                     "a rewrite that yields the same link counts as unchanged")
+
+        // Keys
+        suite.expect(RewriteKeys.isValid("y", among: [], editing: nil)
+                        && !RewriteKeys.isValid("e", among: [], editing: nil)
+                        && !RewriteKeys.isValid("l", among: [], editing: nil)
+                        && !RewriteKeys.isValid("q", among: [], editing: nil)
+                        && !RewriteKeys.isValid("", among: [], editing: nil)
+                        && !RewriteKeys.isValid("yy", among: [], editing: nil)
+                        && !RewriteKeys.isValid("1", among: [], editing: nil)
+                        && !RewriteKeys.isValid("Y", among: [], editing: nil),
+                     "a key is one unreserved lowercase letter that is not a built-in chip key")
+        suite.expect(!RewriteKeys.isValid("y", among: [yt], editing: nil)
+                        && RewriteKeys.isValid("y", among: [yt], editing: yt.id),
+                     "a key already used by another rewrite is rejected, but a rule keeps its own")
+        suite.expect(RewriteKeys.suggestion(for: "YouTube", among: []) == "y"
+                        && RewriteKeys.suggestion(for: "YouTube", among: [yt]) == "o",
+                     "the suggested key is the first free letter of the name")
+        suite.expect(RewriteKeys.suggestion(for: "", among: []) != nil,
+                     "an empty name still gets a free letter")
+
+        // Storage
+        suite.expect(RewriteStore.decode(RewriteStore.encode([yt])) == [yt]
+                        && RewriteStore.decode("not json").isEmpty
+                        && RewriteStore.isMalformed("not json") && !RewriteStore.isMalformed("[]"),
+                     "rewrite rules round-trip and unreadable text decodes to none")
     }
 }
