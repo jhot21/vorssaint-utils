@@ -8,7 +8,7 @@ struct LinkRouterSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var router = LinkRouterService.shared
     @AppStorage(DefaultsKey.linkRouterEnabled) private var enabled = false
-    @AppStorage(DefaultsKey.linkRouterShowURLLine) private var showURLLine = true
+    @State private var urlLineMode = LinkURLLineMode.current()
     @AppStorage(DefaultsKey.linkRouterShowUndoToast) private var showUndoToast = true
 
     @State private var rules: [RoutingRule] = RuleStore.load()
@@ -28,6 +28,7 @@ struct LinkRouterSettings: View {
     private let evaluator = RegexEvaluator()
 
     private var text: LinkRouterFeatureStrings { FeatureStrings.linkRouter(l10n.language) }
+    private var transformText: LinkTransformFeatureStrings { FeatureStrings.linkTransform(l10n.language) }
 
     var body: some View {
         Form {
@@ -77,8 +78,20 @@ struct LinkRouterSettings: View {
                     .onChange(of: rules) { _, _ in runTest() }
                 if let testResult { Text(testResult).font(.caption).foregroundStyle(.secondary) }
             }
+            LinkTransformSettings()
             Section(text.pickerHeader) {
-                Toggle(text.showURLLine, isOn: $showURLLine)
+                // Written to the new key only; a legacy value is read once by
+                // `LinkURLLineMode.current()` and never written again.
+                Picker(transformText.urlLineModeLabel, selection: Binding(
+                    get: { urlLineMode },
+                    set: { mode in
+                        urlLineMode = mode
+                        UserDefaults.standard.set(mode.rawValue, forKey: DefaultsKey.linkRouterURLLineMode)
+                    })) {
+                    Text(transformText.urlLineOff).tag(LinkURLLineMode.off)
+                    Text(transformText.urlLineHostPath).tag(LinkURLLineMode.hostPath)
+                    Text(transformText.urlLineFull).tag(LinkURLLineMode.full)
+                }
                 Toggle(text.showUndoToast, isOn: $showUndoToast)
             }
         }
@@ -87,7 +100,7 @@ struct LinkRouterSettings: View {
             isDragging: { draggingBrowser != nil || draggingRule != nil },
             finish: commitDrag))
         .sheet(item: $editing) { rule in
-            RuleEditor(rule: rule, browsers: browsers, text: text) { saved in
+            RuleEditor(rule: rule, browsers: browsers, rewrites: RewriteStore.load().filter(\.isEnabled), text: text) { saved in
                 mutateRules { RuleEditing.save(saved, in: &$0) }
                 editing = nil
             } onCancel: { editing = nil }
@@ -184,6 +197,19 @@ struct LinkRouterSettings: View {
         }
     }
 
+    /// "Clean, Extract destination, Rewrite: Name" for a rule that edits links.
+    private func editSummary(of rule: RoutingRule) -> String? {
+        var parts: [String] = []
+        if let chips = rule.chips {
+            if chips.contains(.extract) { parts.append(transformText.extractChip) }
+            if chips.contains(.clean) { parts.append(transformText.cleanChip) }
+        }
+        if let id = rule.rewriteID, let rewrite = RewriteStore.load().first(where: { $0.id == id }) {
+            parts.append("\(transformText.ruleRewriteLabel): \(rewrite.name)")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     private func ruleRow(_ rule: RoutingRule) -> some View {
         HStack(spacing: 8) {
             PanelDragHandle()
@@ -203,6 +229,9 @@ struct LinkRouterSettings: View {
                         Text(appName(source)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                     if rule.kind == .regex { Text(text.regexToggle).font(.caption).foregroundStyle(.secondary) }
+                    if let summary = editSummary(of: rule) {
+                        Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
                     switch rule.flag {
                     case .tooSlow?: Text(text.tooSlow).font(.caption).foregroundStyle(.red).lineLimit(1)
                     case .invalidRegex?: Text(text.invalidRegex).font(.caption).foregroundStyle(.red).lineLimit(1)
@@ -333,6 +362,7 @@ struct LinkRouterSettings: View {
 private struct RuleEditor: View {
     @State var rule: RoutingRule
     let browsers: [BrowserInfo]
+    let rewrites: [RewriteRule]
     let text: LinkRouterFeatureStrings
     let onSave: (RoutingRule) -> Void
     let onCancel: () -> Void
@@ -340,10 +370,15 @@ private struct RuleEditor: View {
     @State private var showInvalid = false
     @State private var sourceApps: [BrowserInfo] = []
 
-    init(rule: RoutingRule, browsers: [BrowserInfo], text: LinkRouterFeatureStrings,
+    init(rule: RoutingRule, browsers: [BrowserInfo], rewrites: [RewriteRule], text: LinkRouterFeatureStrings,
          onSave: @escaping (RoutingRule) -> Void, onCancel: @escaping () -> Void) {
+        // A rewrite that was deleted or switched off since the rule was saved
+        // reads as "None" and is dropped on save, as the picker can't show it.
+        var rule = rule
+        if let id = rule.rewriteID, !rewrites.contains(where: { $0.id == id }) { rule.rewriteID = nil }
         _rule = State(initialValue: rule)
         self.browsers = browsers
+        self.rewrites = rewrites
         self.text = text
         self.onSave = onSave
         self.onCancel = onCancel
@@ -351,6 +386,7 @@ private struct RuleEditor: View {
     }
 
     private static let labelWidth: CGFloat = 120
+    private var transformText: LinkTransformFeatureStrings { FeatureStrings.linkTransform(L10n.shared.language) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -362,6 +398,29 @@ private struct RuleEditor: View {
             editorRow(text.browserLabel) {
                 Picker("", selection: $rule.browserBundleID) {
                     ForEach(browsers) { Text($0.name).tag($0.bundleID) }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            editorRow(transformText.ruleChipsLabel) {
+                // -1 is "use the global default" (stored as unset), which is
+                // not the same as "none" (an empty set that overrides it).
+                Picker("", selection: Binding(get: { rule.chips?.rawValue ?? -1 },
+                                              set: { rule.chips = $0 < 0 ? nil : TransformChips(rawValue: $0) })) {
+                    Text(transformText.ruleChipsDefault).tag(-1)
+                    Text(transformText.ruleRewriteNone).tag(0)
+                    Text(transformText.extractChip).tag(TransformChips.extract.rawValue)
+                    Text(transformText.cleanChip).tag(TransformChips.clean.rawValue)
+                    Text("\(transformText.extractChip), \(transformText.cleanChip)")
+                        .tag(TransformChips([.extract, .clean]).rawValue)
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            editorRow(transformText.ruleRewriteLabel) {
+                Picker("", selection: $rule.rewriteID) {
+                    Text(transformText.ruleRewriteNone).tag(UUID?.none)
+                    ForEach(rewrites) { Text($0.name).tag(UUID?.some($0.id)) }
                 }
                 .labelsHidden()
                 .frame(maxWidth: .infinity, alignment: .leading)
