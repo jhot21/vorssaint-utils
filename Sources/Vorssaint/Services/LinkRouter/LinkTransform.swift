@@ -63,7 +63,17 @@ enum LinkTransform {
     private static func clean(_ url: URL, settings: TransformSettings) -> (url: URL, removed: [String])? {
         guard let result = URLCleaning.clean(url.absoluteString, rules: settings.cleaning),
               !result.removed.isEmpty,
-              let cleaned = URL(string: result.url) else { return nil }
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        // URLCleaning only decides which names go. Rebuilding the query from
+        // the percent-encoded items keeps every surviving value byte for byte;
+        // its own output re-encodes them (`%2B` becomes `+`, which servers read
+        // as a space).
+        let removed = Set(result.removed)
+        let kept = (components.percentEncodedQueryItems ?? []).filter {
+            !removed.contains($0.name.removingPercentEncoding ?? $0.name)
+        }
+        components.percentEncodedQueryItems = kept.isEmpty ? nil : kept
+        guard let cleaned = components.url else { return nil }
         return (cleaned, result.removed)
     }
 }

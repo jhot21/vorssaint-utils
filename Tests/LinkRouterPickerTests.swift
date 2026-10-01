@@ -178,6 +178,8 @@ enum LinkRouterPickerTests {
         state.setQuery("zzz")
         suite.expect(state.visibleBrowsers.count == 3 && state.visibleRewrites.isEmpty,
                      "a query nothing matches leaves the browsers in place")
+        suite.expect(state.activate() == .nothing,
+                     "Return on text that matches nothing opens nothing instead of the first browser")
         state.setQuery("")
         suite.expect(state.browser(atDigit: 1) == firefox && state.browser(atDigit: 3) == nil && state.browser(atDigit: -1) == nil,
                      "digits index the visible browsers and out of range is nil")

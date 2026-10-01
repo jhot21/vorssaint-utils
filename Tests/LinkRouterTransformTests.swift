@@ -127,6 +127,14 @@ enum LinkRouterTransformTests {
                      "with Extract on, Clean is offered when the destination is tracked")
         suite.expect(LinkTransform.available(for: URL(string: "https://example.com/")!, selected: [], settings: settings).isEmpty,
                      "a plain link offers no chips")
+        // Clean must not re-encode the values it keeps.
+        let encoded = LinkTransform.apply(URL(string: "https://example.com/p?utm_source=x&k=a%2Bb&u=https%3A%2F%2Fo.test%2F%3Fq%3D1")!,
+                                          chips: [.clean], settings: settings)
+        suite.expect(encoded.url.absoluteString == "https://example.com/p?k=a%2Bb&u=https%3A%2F%2Fo.test%2F%3Fq%3D1",
+                     "Clean leaves the surviving parameters exactly as they were written")
+        let onlyTracker = LinkTransform.apply(URL(string: "https://example.com/p?fbclid=y")!, chips: [.clean], settings: settings)
+        suite.expect(onlyTracker.url.absoluteString == "https://example.com/p",
+                     "removing the last parameter leaves no dangling question mark")
     }
 
     private final class FakeReplacer: RegexReplacing {

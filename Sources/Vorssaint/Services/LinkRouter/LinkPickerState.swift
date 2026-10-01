@@ -68,7 +68,9 @@ struct LinkPickerState: Equatable {
     enum Activation: Equatable { case open(BrowserInfo), toggledRewrite, nothing }
 
     mutating func activate() -> Activation {
-        guard rowCount > 0 else { return .nothing }
+        // Text that matches nothing must not fall through to the first browser:
+        // that would open the link somewhere the person did not choose.
+        guard rowCount > 0, !matchesNothing else { return .nothing }
         let index = LinkPickerSupport.clamped(selected: selected, count: rowCount)
         let browsers = visibleBrowsers
         if index < browsers.count { return .open(browsers[index]) }
@@ -88,6 +90,11 @@ struct LinkPickerState: Equatable {
     func browser(atDigit index: Int) -> BrowserInfo? {
         let list = visibleBrowsers
         return list.indices.contains(index) ? list[index] : nil
+    }
+
+    private var matchesNothing: Bool {
+        !normalizedQuery.isEmpty && Self.ranked(browsers, normalizedQuery) { $0.name }.isEmpty
+            && visibleRewrites.isEmpty
     }
 
     private var normalizedQuery: String {

@@ -12,115 +12,6 @@ private final class KeyablePickerPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
-final class LinkPickerModel: ObservableObject {
-    enum RewriteStatus: Equatable { case idle, pending, applied, failed }
-
-    /// The clicked link. A queued link gets a new model, so this never changes.
-    let url: URL
-    let prefs: LinkTransformPrefs
-    let mode: LinkURLLineMode
-    /// New for every model, so the view can tell "another link" from "an
-    /// update" and refocus its field.
-    let instanceID = UUID()
-    @Published var state: LinkPickerState
-    @Published var waiting: Int
-    @Published private(set) var result: TransformResult
-    @Published private(set) var rewritten: URL?
-    @Published private(set) var rewriteStatus: RewriteStatus = .idle
-    @Published private(set) var availableChips: TransformChips = []
-    /// Set once a browser is chosen; later keys and clicks are ignored so one
-    /// link can never open twice.
-    private(set) var isCommitting = false
-    var choose: (BrowserInfo, Bool, URL, TransformChips, UUID?) -> Void = { _, _, _, _, _ in }
-
-    private let replacer: RegexReplacing
-    private let flagRewrite: (UUID, RoutingRule.Flag) -> Void
-    private var rewriteToken = 0
-    private var pendingCommit: (browser: BrowserInfo, remember: Bool)?
-
-    init(url: URL, browsers: [BrowserInfo], prefs: LinkTransformPrefs, mode: LinkURLLineMode,
-         waiting: Int, replacer: RegexReplacing, flagRewrite: @escaping (UUID, RoutingRule.Flag) -> Void) {
-        self.url = url
-        self.prefs = prefs
-        self.mode = mode
-        self.waiting = waiting
-        self.replacer = replacer
-        self.flagRewrite = flagRewrite
-        self.state = LinkPickerState(browsers: browsers, rewrites: LinkRewrite.applicable(prefs.rewrites, to: url),
-                                     chips: prefs.defaultChips)
-        self.result = TransformResult(url: url, beforeClean: url)
-        recompute()
-    }
-
-    var finalURL: URL { rewritten ?? result.url }
-    var keyMap: LinkPickerKeyMap { LinkPickerKeyMap.make(rewrites: state.rewrites) }
-
-    func setQuery(_ text: String) { state.setQuery(text) }
-    func move(_ delta: Int) { state.move(delta) }
-    func select(row: Int) { state.select(row: row) }
-
-    func toggleChip(_ chip: TransformChips) {
-        state.toggleChip(chip)
-        recompute()
-    }
-
-    func toggleRewrite(_ id: UUID) {
-        state.toggleRewrite(id)
-        recompute()
-    }
-
-    func activate() -> LinkPickerState.Activation {
-        let activation = state.activate()
-        if activation == .toggledRewrite { recompute() }
-        return activation
-    }
-
-    func escape() -> LinkPickerState.EscapeResult { state.escape() }
-
-    /// A rewrite still running when a browser is chosen is waited for; the
-    /// evaluator's own deadline bounds the wait, after which the link opens
-    /// without the rewrite.
-    func commit(_ browser: BrowserInfo, remember: Bool) {
-        guard !isCommitting else { return }
-        isCommitting = true
-        if rewriteStatus == .pending {
-            pendingCommit = (browser, remember)
-        } else {
-            choose(browser, remember, finalURL, state.chips, state.activeRewrite)
-        }
-    }
-
-    private func recompute() {
-        result = LinkTransform.apply(url, chips: state.chips, settings: prefs.settings)
-        availableChips = LinkTransform.available(for: url, selected: state.chips, settings: prefs.settings)
-        rewriteToken += 1
-        let token = rewriteToken
-        rewritten = nil
-        guard let id = state.activeRewrite, let rule = state.rewrites.first(where: { $0.id == id }) else {
-            rewriteStatus = .idle
-            return
-        }
-        rewriteStatus = .pending
-        LinkRewrite.apply(rule, to: result.url, replacer: replacer) { [weak self] outcome in
-            guard let self, self.rewriteToken == token else { return }
-            switch outcome {
-            case .rewritten(let link):
-                self.rewritten = link
-                self.rewriteStatus = .applied
-            case .unchanged:
-                self.rewriteStatus = .idle
-            case .failed(let failure):
-                self.rewriteStatus = .failed
-                if let flag = LinkRouterCore.flag(for: failure) { self.flagRewrite(rule.id, flag) }
-            }
-            if let pending = self.pendingCommit {
-                self.pendingCommit = nil
-                self.choose(pending.browser, pending.remember, self.finalURL, self.state.chips, self.state.activeRewrite)
-            }
-        }
-    }
-}
-
 struct LinkPickerView: View {
     @ObservedObject var model: LinkPickerModel
     @ObservedObject private var l10n = L10n.shared
@@ -398,6 +289,15 @@ final class LinkPickerController {
                  onChoose: @escaping (BrowserInfo, Bool, URL, TransformChips, UUID?) -> Void,
                  onCancel: @escaping () -> Void) {
         self.onCancel = onCancel
+        // The router presents the current link again whenever another one is
+        // queued behind it. That only changes the waiting count; a fresh model
+        // would throw away what the person has typed or toggled, and drop an
+        // open that is waiting on a rewrite.
+        if let model, panel != nil, model.matches(url) {
+            model.waiting = waiting
+            model.choose = onChoose
+            return
+        }
         let model = LinkPickerModel(url: url, browsers: browsers, prefs: prefs, mode: urlLineMode,
                                     waiting: waiting, replacer: replacer, flagRewrite: flagRewrite)
         model.choose = onChoose
