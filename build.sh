@@ -366,6 +366,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/LinkRouter/DefaultBrowserManager.swift
         Sources/Vorssaint/Services/LinkRouter/LinkRouterCore.swift
         Sources/Vorssaint/Services/LinkRouter/LinkPickerSupport.swift
+        Sources/Vorssaint/Services/LinkRouter/LinkPickerState.swift
         Sources/Vorssaint/Services/LinkRouter/ReorderSupport.swift
         Sources/Vorssaint/Core/LinkRouterStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
