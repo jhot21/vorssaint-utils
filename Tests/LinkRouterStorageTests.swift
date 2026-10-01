@@ -50,5 +50,17 @@ enum LinkRouterStorageTests {
                         && !exported.contains(DefaultsKey.linkRouterBrowserOrder)
                         && !exported.contains(DefaultsKey.linkRouterBrowserHidden),
                      "the previous default and this Mac's browser order and hidden set never travel")
+
+        // Rules stored before chips existed still decode, and new fields round-trip.
+        let legacyJSON = #"[{"id":"00000000-0000-0000-0000-000000000001","pattern":"a.com","kind":"glob","browserBundleID":"b","isEnabled":true}]"#
+        let legacy = RuleStore.decode(legacyJSON)
+        suite.expect(legacy.count == 1 && legacy[0].chips == nil && legacy[0].rewriteID == nil,
+                     "a stored rule without chips or rewrite decodes with both unset")
+        let rewriteID = UUID()
+        let rich = RoutingRule(pattern: "a.com", browserBundleID: "b", chips: [.extract, .clean], rewriteID: rewriteID)
+        suite.expect(RuleStore.decode(RuleStore.encode([rich])) == [rich],
+                     "chips and the rewrite id survive an encode/decode round trip")
+        suite.expect(RuleStore.decode(RuleStore.encode([RoutingRule(pattern: "a.com", browserBundleID: "b", chips: [])]))[0].chips == [],
+                     "an explicitly empty chip set is kept distinct from unset")
     }
 }
