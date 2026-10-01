@@ -54,9 +54,21 @@ struct LinkTransformSettings: View {
                             .buttonStyle(.borderless)
                     }
                 }
-                HStack {
-                    TextField(text.wrapperSiteLabel, text: $newSite).font(.body.monospaced())
-                    TextField(text.wrapperParameterLabel, text: $newParameter).font(.body.monospaced())
+                // Same shape as the URL Cleaner's add-site row: bordered fields
+                // with the hint inside them, so they read as fields even when
+                // empty, and Return adds.
+                HStack(spacing: 8) {
+                    TextField("", text: $newSite, prompt: Text(verbatim: "example.com/out/*"))
+                        .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
+                        .accessibilityLabel(text.wrapperSiteLabel)
+                        .onSubmit { addWrapper() }
+                    TextField("", text: $newParameter, prompt: Text(text.wrapperParameterLabel))
+                        .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
+                        .accessibilityLabel(text.wrapperParameterLabel)
+                        .frame(width: 160)
+                        .onSubmit { addWrapper() }
                     Button(text.addWrapper) { addWrapper() }.disabled(newWrapper == nil)
                 }
             }

@@ -70,7 +70,7 @@ extension LinkTransformFeatureStrings {
         wrappersEmpty: "No custom redirect rules.",
         addWrapper: "Add redirect rule",
         wrapperSiteLabel: "Site",
-        wrapperParameterLabel: "Parameter with the destination",
+        wrapperParameterLabel: "Destination parameter",
         builtInBadge: "Built in",
         rewritesSettingsHeader: "Rewrites",
         rewritesEmpty: "No rewrites yet. A rewrite can send links to another site, such as a privacy-friendly front-end.",
