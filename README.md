@@ -61,7 +61,7 @@
 > - **Calendar tab** — a menu bar panel tab with a month grid and upcoming agenda, reading your calendars locally and grouping them by account in Settings so same-named calendars from different accounts stay unambiguous.
 > - **Meeting-join notifications** — a local notification when a Zoom, Google Meet or Microsoft Teams meeting on your calendar starts (or a few minutes before) that joins the meeting when tapped, native app first with a browser fallback you can choose per Google Meet; joinable events get a camcorder icon in the agenda.
 > - **Next Meeting & Date menu bar readings** — pin today’s date or a live countdown to your next detected meeting (provider and minutes remaining, with a configurable lookahead window) next to your other menu bar readings.
-> - **Link Router** — make Vorssaint your default browser and choose where every link opens: a small picker at the cursor with number shortcuts, or silently by rules that match a host or path (with optional regular expressions and a source-app condition), created by Option-clicking a browser in the picker or by hand. Reorder and hide browsers, cancel a link with Esc, and turn it off to get your previous default back. Opt-in, inspired by [Browserino](https://github.com/AlexStrNik/Browserino), and the links you click are never stored or logged.
+> - **Link Router** — make Vorssaint your default browser and choose where every link opens: a Command-Bar-style picker with a search field and number shortcuts, or silently by rules that match a host or path (with optional regular expressions and a source-app condition), created by Option-clicking a browser in the picker or by hand. Reorder and hide browsers, cancel a link with Esc, and turn it off to get your previous default back. Links can be edited on the way: chips pull the real destination out of redirect links and strip tracking parameters (`⌘E`, `⌘L`), and your own regex rewrites send a link to another site, such as a privacy-friendly front-end (`⌘` plus a letter you choose), per link or by rule. Opt-in, inspired by [Browserino](https://github.com/AlexStrNik/Browserino) and [URLCheck](https://github.com/TrianguloY/URLCheck), and the links you click are never stored or logged.
 > - **Automated upstream sync** — a scheduled workflow that pulls `vorssaintapp/vorssaint-utils@main` into this fork and opens a PR (or flags conflicts for manual resolution).
 
 Per app volume, a real system monitor, a better app switcher, window snapping, Dock previews, clipboard history, text snippets, a file shelf, an uninstaller. The utilities Mac users usually buy one by one, together behind a single menu bar icon, with no account, no telemetry and no subscription.
@@ -252,6 +252,7 @@ Vorssaint is free and will stay that way. If it earned its place in your menu ba
 ## Acknowledgements
 
 - App icon designed by [@divisionseven](https://github.com/divisionseven)
+- The Link Router's built-in redirect-link table is seeded from the [ClearURLs](https://github.com/ClearURLs/Rules) rule set (LGPL-3.0)
 
 ## License
 
