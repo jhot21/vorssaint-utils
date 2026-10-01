@@ -16,17 +16,12 @@ struct NotchScratchpadView: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var loadFailed = false
     @State private var copied = false
-    @State private var dialog: Dialog?
-    @State private var renameDraft = ""
     @State private var hoveredPadID: UUID?
     @State private var editor = EditorHandle()
+    @AppStorage(DefaultsKey.scratchpadTextSize) private var storedTextSize = ScratchpadSupport.defaultTextSize
     private var text: ScratchpadFeatureStrings { FeatureStrings.scratchpad(l10n.language) }
+    private var textSize: CGFloat { CGFloat(ScratchpadSupport.sanitizedTextSize(storedTextSize)) }
     private static let editorInset = NSSize(width: 6, height: 6)
-
-    private enum Dialog {
-        case rename(ScratchpadPad)
-        case close(ScratchpadPad)
-    }
 
     /// Holds the editor's text view so a tab change can aim the caret at it
     /// and a clear can go through its undo. Weak, since the view belongs to
@@ -44,8 +39,17 @@ struct NotchScratchpadView: View {
             } else {
                 VStack(spacing: 6) {
                     toolbar
+                    if pad.saveFailed {
+                        Label(text.saveFailed, systemImage: "exclamationmark.triangle")
+                            .font(.system(size: 10.5)).foregroundStyle(.white.opacity(0.6))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     ZStack(alignment: .topLeading) {
-                        PlainTextEditor(text: $pad.text, textColor: .white, textContainerInset: Self.editorInset) { view in
+                        PlainTextEditor(text: $pad.text, fontSize: textSize,
+                                        textColor: .white,
+                                        textContainerInset: Self.editorInset,
+                                        usesFindBar: true) { view in
                             view.insertionPointColor = .white
                             editor.view = view
                             DispatchQueue.main.async { focusEditor() }
@@ -54,10 +58,11 @@ struct NotchScratchpadView: View {
                         .allowsHitTesting(!pad.isPreviewing)
                         .accessibilityHidden(pad.isPreviewing)
                         if pad.isPreviewing {
-                            MarkdownPreview(blocks: ScratchpadSupport.markdownPreview(pad.text))
+                            MarkdownPreview(blocks: ScratchpadSupport.markdownPreview(pad.text),
+                                            baseSize: textSize)
                         } else if pad.text.isEmpty {
                             Text(text.placeholder)
-                                .font(.system(size: PlainTextEditor.fontSize))
+                                .font(.system(size: textSize))
                                 .foregroundStyle(.white.opacity(0.35))
                                 .padding(.leading, Self.editorInset.width + PlainTextEditor.lineFragmentPadding)
                                 .padding(.top, Self.editorInset.height)
@@ -77,17 +82,30 @@ struct NotchScratchpadView: View {
             DispatchQueue.main.async { focusEditor() }
         }
         .onChange(of: pad.isPreviewing) { _, previewing in
+            guard let view = editor.view else { return }
             if previewing {
-                if let view = editor.view, view.window?.firstResponder === view {
+                pad.hideFindBar(in: view)
+                if view.window?.firstResponder === view || PlainTextEditor.findBarHasKeyboard(in: view.window) {
                     view.window?.makeFirstResponder(nil)
                 }
             } else {
-                DispatchQueue.main.async { focusEditor() }
+                DispatchQueue.main.async {
+                    // Preview closed the bar and took the keyboard, so a bar
+                    // up now was opened by Command-F and a focused text was
+                    // given the keyboard by Command-G, both on their way out
+                    // of preview. Either keeps its focus and the match.
+                    guard view.enclosingScrollView?.isFindBarVisible != true,
+                          view.window?.firstResponder !== view else { return }
+                    focusEditor()
+                }
             }
         }
         .onChange(of: service.scratchpadCloseSerial) { _, _ in
             guard let selectedPad else { return }
             requestClose(selectedPad)
+        }
+        .onChange(of: service.scratchpadFindSerial) { _, _ in
+            pad.performFind(service.scratchpadFindAction, in: editor.view)
         }
         .task(id: copied) {
             guard copied else { return }
@@ -95,49 +113,47 @@ struct NotchScratchpadView: View {
             guard !Task.isCancelled else { return }
             copied = false
         }
-        .alert(dialogTitle, isPresented: Binding(get: { dialog != nil }, set: { if !$0 { dialog = nil } })) {
-            switch dialog {
-            case .rename(let entry):
-                TextField(entry.name, text: $renameDraft)
-                Button(text.cancel, role: .cancel) { dialog = nil }
-                Button(text.saveName) {
-                    pad.renamePad(entry.id, to: renameDraft)
-                    dialog = nil
+    }
+
+    private var tabStrip: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: 4) {
+                    ForEach(pad.pads) { entry in tab(entry).id(entry.id) }
                 }
-            case .close(let entry):
-                Button(text.cancel, role: .cancel) { dialog = nil }
-                Button(text.closePad, role: .destructive) {
-                    _ = pad.closePad(entry.id)
-                    dialog = nil
-                }
-            case nil:
-                EmptyView()
             }
-        } message: {
-            if case .close(let entry) = dialog {
-                Text(String(format: text.deletePadMessageFormat, entry.name))
+            .scrollIndicators(.hidden)
+            .onAppear {
+                guard let selected = pad.selectedPadID else { return }
+                proxy.scrollTo(selected, anchor: .center)
+            }
+            .onChange(of: pad.selectedPadID) { _, selected in
+                guard let selected else { return }
+                withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(selected, anchor: .center) }
             }
         }
     }
 
+    private var markRow: some View {
+        ScratchpadFormatBar(style: .island, editor: editor.view)
+    }
+
     private var toolbar: some View {
         HStack(spacing: 4) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    HStack(spacing: 4) {
-                        ForEach(pad.pads) { entry in tab(entry).id(entry.id) }
-                    }
-                }
-                .scrollIndicators(.hidden)
-                .onAppear {
-                    guard let selected = pad.selectedPadID else { return }
-                    proxy.scrollTo(selected, anchor: .center)
-                }
-                .onChange(of: pad.selectedPadID) { _, selected in
-                    guard let selected else { return }
-                    withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(selected, anchor: .center) }
-                }
+            // The island has one row to spend. The marks take the tab strip's
+            // place while they are up rather than squeezing in beside it, and
+            // the chip stays put so the same click puts the tabs back.
+            if pad.marksExpanded {
+                markRow
+            } else {
+                tabStrip
             }
+            NotchIconButton(symbol: "textformat",
+                            title: text.formatMarks,
+                            selected: pad.marksExpanded) {
+                withAnimation(.easeOut(duration: 0.15)) { pad.toggleMarks() }
+            }
+            .disabled(pad.isPreviewing)
             NotchIconButton(symbol: "plus",
                             title: pad.canCreatePad
                                 ? text.newPad
@@ -171,7 +187,7 @@ struct NotchScratchpadView: View {
                 Button(text.clearAction, role: .destructive) { pad.clear(through: editor.view) }
                     .disabled(pad.text.isEmpty)
                 Divider()
-                Button(text.openButton) { service.perform { pad.show() } }
+                Button(text.openButton) { service.perform { pad.show(allowsIsland: false) } }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 12, weight: .medium))
@@ -231,14 +247,6 @@ struct NotchScratchpadView: View {
         .help(entry.name)
     }
 
-    private var dialogTitle: String {
-        switch dialog {
-        case .rename: return text.renamePad
-        case .close: return text.closePad
-        case nil: return ""
-        }
-    }
-
     /// The caret lands at the end of the pad's text, as the floating pad
     /// puts it after a tab change.
     private func focusEditor() {
@@ -250,14 +258,57 @@ struct NotchScratchpadView: View {
     }
 
     private func presentRename(_ entry: ScratchpadPad) {
-        renameDraft = entry.name
-        dialog = .rename(entry)
+        DispatchQueue.main.async {
+            let field = NSTextField(string: entry.name)
+            field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
+            let alert = NSAlert()
+            alert.messageText = text.renamePad
+            alert.accessoryView = field
+            alert.addButton(withTitle: text.saveName)
+            alert.addButton(withTitle: text.cancel)
+            alert.window.initialFirstResponder = field
+            guard runAboveIsland(alert) == .alertFirstButtonReturn else { return }
+            pad.renamePad(entry.id, to: field.stringValue)
+        }
     }
 
     /// An empty pad goes without asking, like in the floating pad.
     private func requestClose(_ entry: ScratchpadPad) {
         guard pad.canClosePad else { return }
-        if ScratchpadSupport.requiresCloseConfirmation(entry) { dialog = .close(entry) }
-        else { _ = pad.closePad(entry.id) }
+        guard ScratchpadSupport.requiresCloseConfirmation(entry) else { _ = pad.closePad(entry.id); return }
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = text.closePad
+            alert.informativeText = String(format: text.deletePadMessageFormat, entry.name)
+            alert.addButton(withTitle: text.closePad).hasDestructiveAction = true
+            alert.addButton(withTitle: text.cancel)
+            guard runAboveIsland(alert) == .alertFirstButtonReturn else { return }
+            _ = pad.closePad(entry.id)
+        }
+    }
+
+    /// A SwiftUI alert hangs from the island as a sheet, which moves and
+    /// reskins the borderless surface. The question opens on its own, above
+    /// the island, which gets the keyboard back afterwards.
+    private func runAboveIsland(_ alert: NSAlert) -> NSApplication.ModalResponse {
+        let island = service.presentationWindow
+        var observers: [NSObjectProtocol] = []
+        if let island {
+            // The modal session puts the alert at the modal panel level, below
+            // the island, and puts it back there when it activates the app or
+            // makes the alert key. Raise it once running and after each of those.
+            let level = NSWindow.Level(rawValue: island.level.rawValue + 1)
+            let raise: (Notification) -> Void = { _ in alert.window.level = level }
+            observers = [NSWindow.didBecomeKeyNotification, NSApplication.didBecomeActiveNotification].map {
+                NotificationCenter.default.addObserver(forName: $0, object: nil, queue: .main, using: raise)
+            }
+            DispatchQueue.main.async { alert.window.level = level }
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        observers.forEach(NotificationCenter.default.removeObserver)
+        // A closed island declines key status, so this only returns to an open one.
+        if let island, island.isVisible { island.makeKey() }
+        return response
     }
 }
