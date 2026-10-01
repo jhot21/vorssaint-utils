@@ -47,6 +47,20 @@ enum LinkRouterPickerTests {
         suite.expect(LinkPickerPlacement.frame(size: size, cursor: .zero, screens: []).size == size,
                      "with no screens the size is kept and nothing crashes")
 
+        // Command Bar placement
+        let wide = (frame: CGRect(x: 0, y: 0, width: 2000, height: 1000), visible: CGRect(x: 0, y: 0, width: 2000, height: 975))
+        let other = (frame: CGRect(x: 2000, y: 0, width: 1000, height: 800), visible: CGRect(x: 2000, y: 0, width: 1000, height: 775))
+        let bar = LinkPickerPlacement.barFrame(size: CGSize(width: 560, height: 200), pointer: CGPoint(x: 100, y: 100), screens: [wide, other])
+        suite.expect(bar.midX == wide.visible.midX && abs(bar.maxY - (wide.visible.minY + wide.visible.height * 0.72)) < 0.5,
+                     "the picker opens centered on the pointer's screen with its top at the Command Bar's height")
+        let barOnOther = LinkPickerPlacement.barFrame(size: CGSize(width: 560, height: 200), pointer: CGPoint(x: 2500, y: 100), screens: [wide, other])
+        suite.expect(other.visible.contains(barOnOther), "the picker follows the pointer to another display")
+        let tall = LinkPickerPlacement.barFrame(size: CGSize(width: 560, height: 900), pointer: CGPoint(x: 100, y: 100), screens: [wide])
+        suite.expect(wide.visible.contains(tall), "a tall picker is clamped into the visible frame")
+        suite.expect(LinkPickerPlacement.barFrame(size: CGSize(width: 560, height: 200), pointer: .zero, screens: []).size
+                        == CGSize(width: 560, height: 200),
+                     "with no screens the size is kept and nothing crashes")
+
         // Resizing in place keeps the top edge and horizontal center
         let current = CGRect(x: 350, y: 300, width: 300, height: 100)
         let grown = LinkPickerPlacement.resized(current, to: CGSize(width: 400, height: 130), screens: [screen])

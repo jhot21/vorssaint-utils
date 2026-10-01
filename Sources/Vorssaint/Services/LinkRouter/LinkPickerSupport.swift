@@ -47,6 +47,9 @@ enum LinkPickerSupport {
 
     static func visibleRows(count: Int) -> Int { min(count, maxVisibleRows) }
 
+    /// Matches the Command Bar's window so the two read as one family.
+    static let barWidth: CGFloat = 560
+
     /// Arrow keys wrap, so a short list never needs a second press to loop.
     static func moved(selected: Int, by delta: Int, count: Int) -> Int {
         guard count > 0 else { return 0 }
@@ -71,6 +74,18 @@ enum LinkPickerSupport {
 enum LinkPickerPlacement {
     private static let gap: CGFloat = 12
     private static let margin: CGFloat = 8
+
+    /// Where the Command Bar opens: centered, its top edge at 72% of the
+    /// visible height of the screen under the pointer. The same formula, not a
+    /// copy, so the two windows cannot drift apart.
+    static func barFrame(size: CGSize, pointer: CGPoint,
+                         screens: [(frame: CGRect, visible: CGRect)]) -> CGRect {
+        guard let screen = screens.first(where: { $0.frame.contains(pointer) }) ?? screens.first else {
+            return CGRect(origin: .zero, size: size)
+        }
+        let origin = CommandBarPreferences.clampedPanelOrigin(size: size, in: screen.visible, offset: .zero)
+        return CGRect(origin: origin, size: size)
+    }
 
     /// Below the cursor, centered on it; above when there is no room below;
     /// always clamped inside the visible frame of the screen under the cursor
