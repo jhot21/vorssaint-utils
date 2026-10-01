@@ -556,6 +556,11 @@ enum DefaultsKey {
     static let linkRouterShowURLLine = "linkRouterShowURLLine"
     static let linkRouterShowUndoToast = "linkRouterShowUndoToast"
     static let linkRouterRewrites = "linkRouterRewrites"               // String: [RewriteRule] JSON
+    static let linkRouterDefaultChips = "linkRouterDefaultChips"         // Int: TransformChips raw value
+    static let linkRouterWrapperRules = "linkRouterWrapperRules"         // String: [WrapperEntry] JSON
+    static let linkRouterWrapperDisabled = "linkRouterWrapperDisabled"   // String: comma-separated built-in wrapper tokens switched off
+    static let linkRouterGenericExtract = "linkRouterGenericExtract"
+    static let linkRouterURLLineMode = "linkRouterURLLineMode"           // off | hostPath | full
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
@@ -1628,6 +1633,11 @@ enum Defaults {
         DefaultsKey.linkRouterShowURLLine: true,
         DefaultsKey.linkRouterShowUndoToast: true,
         DefaultsKey.linkRouterRewrites: "[]",
+        DefaultsKey.linkRouterDefaultChips: 0,
+        DefaultsKey.linkRouterWrapperRules: "[]",
+        DefaultsKey.linkRouterWrapperDisabled: "",
+        DefaultsKey.linkRouterGenericExtract: false,
+        DefaultsKey.linkRouterURLLineMode: "full",
         DefaultsKey.menuBarNextMeetingWindowMinutes: Defaults.defaultNextMeetingWindowMinutes,
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,
