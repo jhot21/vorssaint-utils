@@ -29,6 +29,8 @@ protocol LinkRouterEnvironment: AnyObject {
     func hidePicker()
     func addRule(_ rule: RoutingRule)
     func flagRule(id: UUID, flag: RoutingRule.Flag)
+    var transformPrefs: LinkTransformPrefs { get }
+    func flagRewrite(id: UUID, flag: RoutingRule.Flag)
 }
 
 /// Decides what happens to each link. Call it from the main thread only.
@@ -40,6 +42,7 @@ final class LinkRouterCore {
     /// core, so a nil environment only happens during teardown.
     private weak var environment: LinkRouterEnvironment?
     private let evaluator: RegexEvaluating
+    private let replacer: RegexReplacing?
     private let selfBundleID: String
 
     private(set) var isReady = false
@@ -50,9 +53,11 @@ final class LinkRouterCore {
     /// router was stopped while they ran.
     private var generation = 0
 
-    init(environment: LinkRouterEnvironment, evaluator: RegexEvaluating, selfBundleID: String) {
+    init(environment: LinkRouterEnvironment, evaluator: RegexEvaluating, selfBundleID: String,
+         replacer: RegexReplacing? = nil) {
         self.environment = environment
         self.evaluator = evaluator
+        self.replacer = replacer
         self.selfBundleID = selfBundleID
     }
 
@@ -90,12 +95,53 @@ final class LinkRouterCore {
             if let rule = result.rule,
                rule.browserBundleID != self.selfBundleID,
                environment.isInstalled(bundleID: rule.browserBundleID) {
-                environment.open(url, inBundleID: rule.browserBundleID)
+                self.openThroughTransforms(url, rule: rule, startedIn: startedIn)
             } else if allowsPicker {
                 self.enqueue(url)
             } else {
                 self.openFallback(url)
             }
+        }
+    }
+
+    /// Applies a rule's edits and opens the result. The rewrite is asynchronous,
+    /// so it re-checks the router state the same way the rule match above does:
+    /// if the router stopped meanwhile the original link goes to the fallback,
+    /// once, rather than a rewritten link nobody asked for.
+    private func openThroughTransforms(_ url: URL, rule: RoutingRule, startedIn: Int) {
+        guard let environment else { return }
+        let prefs = environment.transformPrefs
+        let edited = LinkTransform.apply(url, chips: rule.chips ?? prefs.defaultChips, settings: prefs.settings)
+        guard let rewriteID = rule.rewriteID,
+              let rewrite = LinkRewrite.applicable(prefs.rewrites, to: edited.url).first(where: { $0.id == rewriteID }),
+              let replacer else {
+            environment.open(edited.url, inBundleID: rule.browserBundleID)
+            return
+        }
+        LinkRewrite.apply(rewrite, to: edited.url, replacer: replacer) { [weak self] outcome in
+            guard let self, let environment = self.environment else { return }
+            guard self.generation == startedIn, environment.isFeatureOn else {
+                self.openFallback(url)
+                return
+            }
+            switch outcome {
+            case .rewritten(let result):
+                environment.open(result, inBundleID: rule.browserBundleID)
+            case .unchanged:
+                environment.open(edited.url, inBundleID: rule.browserBundleID)
+            case .failed(let failure):
+                if let flag = Self.flag(for: failure) { environment.flagRewrite(id: rewrite.id, flag: flag) }
+                environment.open(edited.url, inBundleID: rule.browserBundleID)
+            }
+        }
+    }
+
+    /// `notWeb` is a one-off result, not evidence the rule is broken.
+    static func flag(for failure: RewriteFailure) -> RoutingRule.Flag? {
+        switch failure {
+        case .invalid: return .invalidRegex
+        case .timedOut: return .tooSlow
+        case .notWeb: return nil
         }
     }
 
@@ -118,12 +164,18 @@ final class LinkRouterCore {
         }
     }
 
-    func pickerDidChoose(_ url: URL, bundleID: String, saveRule: Bool) {
+    func pickerDidChoose(_ url: URL, bundleID: String, saveRule: Bool,
+                         opening finalURL: URL? = nil, chips: TransformChips? = nil, rewriteID: UUID? = nil) {
         // Identity by URL value; identical duplicate URLs in the queue are a known limitation.
         guard let environment, let current, current == url else { return }
-        environment.open(url, inBundleID: bundleID)
+        environment.open(finalURL ?? url, inBundleID: bundleID)
+        // The rule is for the link the person clicked, not the rewritten one:
+        // a rewritten host would never match the next link from that site.
         if saveRule, let host = LinkCanonical.link(for: url)?.host {
-            environment.addRule(RoutingRule(pattern: host, browserBundleID: bundleID))
+            let defaultChips = environment.transformPrefs.defaultChips
+            environment.addRule(RoutingRule(pattern: host, browserBundleID: bundleID,
+                                            chips: chips == defaultChips ? nil : chips,
+                                            rewriteID: rewriteID))
         }
         advance()
     }

@@ -16,8 +16,9 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
     private let manager = DefaultBrowserManager()
     private let picker = LinkPickerController()
     private let toast = LinkRuleToastController()
-    private lazy var core = LinkRouterCore(environment: self, evaluator: RegexEvaluator(),
-                                           selfBundleID: BrowserCatalog.ownBundleID)
+    private let evaluator = RegexEvaluator()
+    private lazy var core = LinkRouterCore(environment: self, evaluator: evaluator,
+                                           selfBundleID: BrowserCatalog.ownBundleID, replacer: evaluator)
     private var wasOn = false
     private var isRestoring = false
     /// Links still queued behind the picker on screen, as last reported to it.
@@ -202,6 +203,16 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         toast.show(message: String(format: text.ruleAddedFormat, rule.pattern), undoTitle: text.undo) { [weak self] in
             self?.removeRule(id: rule.id)
         }
+    }
+
+    var transformPrefs: LinkTransformPrefs { LinkTransformPrefs.load(defaults) }
+
+    func flagRewrite(id: UUID, flag: RoutingRule.Flag) {
+        var all = RewriteStore.load(defaults)
+        guard let index = all.firstIndex(where: { $0.id == id }) else { return }
+        all[index].flag = flag
+        all[index].isEnabled = false
+        RewriteStore.save(all, to: defaults)
     }
 
     func flagRule(id: UUID, flag: RoutingRule.Flag) {
