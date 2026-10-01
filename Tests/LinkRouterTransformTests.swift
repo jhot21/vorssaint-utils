@@ -7,6 +7,7 @@ enum LinkRouterTransformTests {
     static func run(_ suite: TestSuite) {
         runReplace(suite)
         runWrappers(suite)
+        runPipeline(suite)
     }
 
     private static func replace(_ evaluator: RegexEvaluator, _ pattern: String, _ text: String,
@@ -89,5 +90,41 @@ enum LinkRouterTransformTests {
                      "a disabled built-in wrapper no longer extracts")
         suite.expect(WrapperEntry(site: "A.com/X", parameter: "Q").token == "a.com/x|q",
                      "the token is lowercased host+path+parameter")
+    }
+
+    private static func runPipeline(_ suite: TestSuite) {
+        let settings = TransformSettings()
+        let tracked = URL(string: "https://example.com/p?id=7&utm_source=x&fbclid=y")!
+        let cleaned = LinkTransform.apply(tracked, chips: [.clean], settings: settings)
+        suite.expect(cleaned.url == URL(string: "https://example.com/p?id=7")!
+                        && cleaned.applied == [.clean]
+                        && cleaned.removedParameters.sorted() == ["fbclid", "utm_source"],
+                     "Clean removes trackers and reports what it removed")
+        suite.expect(LinkTransform.apply(tracked, chips: [], settings: settings).url == tracked,
+                     "no chips leaves the link alone")
+
+        let wrapper = URL(string: "https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.org%2Fa%3Futm_medium%3Dz%26k%3D1")!
+        let both = LinkTransform.apply(wrapper, chips: [.extract, .clean], settings: settings)
+        suite.expect(both.url == URL(string: "https://example.org/a?k=1")!
+                        && both.applied == [.extract, .clean]
+                        && both.extractedFrom == wrapper
+                        && both.beforeClean == URL(string: "https://example.org/a?utm_medium=z&k=1")!,
+                     "Extract runs before Clean, so the destination is the thing that gets cleaned")
+        let extractOnly = LinkTransform.apply(wrapper, chips: [.extract], settings: settings)
+        suite.expect(extractOnly.url == URL(string: "https://example.org/a?utm_medium=z&k=1")!,
+                     "Extract alone leaves the destination's own parameters")
+        suite.expect(LinkTransform.apply(URL(string: "https://example.com/")!, chips: [.extract, .clean], settings: settings).applied == [],
+                     "chips that change nothing report nothing applied")
+        let again = LinkTransform.apply(both.url, chips: [.extract, .clean], settings: settings)
+        suite.expect(again.url == both.url && again.applied == [], "applying the pipeline twice changes nothing more")
+
+        suite.expect(LinkTransform.available(for: tracked, selected: [], settings: settings) == [.clean],
+                     "Clean is offered on a tracked link and Extract is not")
+        suite.expect(LinkTransform.available(for: wrapper, selected: [], settings: settings) == [.extract],
+                     "Extract is offered on a wrapper link")
+        suite.expect(LinkTransform.available(for: wrapper, selected: [.extract], settings: settings) == [.extract, .clean],
+                     "with Extract on, Clean is offered when the destination is tracked")
+        suite.expect(LinkTransform.available(for: URL(string: "https://example.com/")!, selected: [], settings: settings).isEmpty,
+                     "a plain link offers no chips")
     }
 }
