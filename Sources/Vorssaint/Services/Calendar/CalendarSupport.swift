@@ -63,6 +63,12 @@ enum CalendarSupport {
         }
     }
 
+    /// End dates are exclusive, so an all-day event only completes once its
+    /// day is over.
+    static func isCompleted(_ event: CalendarEvent, now: Date) -> Bool {
+        event.end <= now
+    }
+
     /// Drops invalid ranges and duplicate ids. Recurring occurrences share a
     /// series identifier but not a start, so this only ever collapses a
     /// genuine repeat, never two different occurrences.

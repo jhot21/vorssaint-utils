@@ -41,6 +41,18 @@ enum CalendarFeatureTests {
                      start: day.addingTimeInterval(-7200), end: day.addingTimeInterval(-3600)),
         ]) == nil, "an event entirely on a different day contributes no dot")
 
+        // MARK: Completed events
+
+        let finished = makeEvent(id: "done", color: red, start: day, end: day.addingTimeInterval(3600))
+        suite.expect(CalendarSupport.isCompleted(finished, now: day.addingTimeInterval(3601)),
+               "an event whose end has passed is completed")
+        suite.expect(CalendarSupport.isCompleted(finished, now: day.addingTimeInterval(3600)),
+               "an event is completed exactly at its exclusive end")
+        suite.expect(!CalendarSupport.isCompleted(finished, now: day.addingTimeInterval(1800)),
+               "an in-progress event is not completed")
+        suite.expect(!CalendarSupport.isCompleted(finished, now: day.addingTimeInterval(-60)),
+               "an upcoming event is not completed")
+
         // MARK: Recurring-occurrence identity
 
         let seriesStart1 = day

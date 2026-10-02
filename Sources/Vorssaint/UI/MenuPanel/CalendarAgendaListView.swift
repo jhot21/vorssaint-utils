@@ -10,7 +10,8 @@ struct CalendarAgendaListView: View {
     let text: CalendarFeatureStrings
 
     var body: some View {
-        let groups = displayedGroups()
+        let now = Date()
+        let groups = displayedGroups(now: now)
         if groups.isEmpty {
             emptyState
         } else {
@@ -24,7 +25,7 @@ struct CalendarAgendaListView: View {
                                     .foregroundStyle(.secondary)
                             }
                             ForEach(group.events) { event in
-                                eventRow(event)
+                                eventRow(event, now: now)
                             }
                         }
                     }
@@ -34,15 +35,16 @@ struct CalendarAgendaListView: View {
         }
     }
 
-    private func displayedGroups() -> [(day: Date, events: [CalendarEvent])] {
+    private func displayedGroups(now: Date) -> [(day: Date, events: [CalendarEvent])] {
         if let selectedDay {
             let dayEvents = CalendarSupport.events(events, on: selectedDay)
             return dayEvents.isEmpty ? [] : [(day: selectedDay, events: dayEvents)]
         }
-        return CalendarSupport.upcomingGroups(events, from: Date())
+        return CalendarSupport.upcomingGroups(events, from: now)
     }
 
-    private func eventRow(_ event: CalendarEvent) -> some View {
+    private func eventRow(_ event: CalendarEvent, now: Date) -> some View {
+        let completed = CalendarSupport.isCompleted(event, now: now)
         let color = Color(red: event.color.red, green: event.color.green, blue: event.color.blue)
         return Button { openInCalendar(event) } label: {
             HStack(alignment: .top, spacing: 8) {
@@ -65,6 +67,7 @@ struct CalendarAgendaListView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(event.title.isEmpty ? text.untitled : event.title)
                         .font(.system(size: 11.5, weight: .medium))
+                        .strikethrough(completed)
                         .lineLimit(1)
                     Text(event.allDay ? text.allDay : timeRange(event))
                         .font(.system(size: 9.5))
@@ -78,6 +81,7 @@ struct CalendarAgendaListView: View {
                 }
                 Spacer()
             }
+            .opacity(completed ? 0.6 : 1)
         }
         .buttonStyle(.plain)
     }
