@@ -33,6 +33,7 @@ struct LinkRouterFeatureStrings {
     let invalidRegex: String
     let tooSlow: String
     let browserMissing: String
+    let openInBrowser: String
     let pickerHeader: String
     let showURLLine: String
     let showUndoToast: String
@@ -96,6 +97,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Invalid expression",
         tooSlow: "Too slow, disabled",
         browserMissing: "Browser not installed",
+        openInBrowser: "Open in Browser",
         pickerHeader: "Picker",
         showURLLine: "Show the link in the picker",
         showUndoToast: "Offer undo after adding a rule",
@@ -135,6 +137,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Expressão inválida",
         tooSlow: "Lenta demais, desativada",
         browserMissing: "Navegador não instalado",
+        openInBrowser: "Abrir no navegador",
         pickerHeader: "Seletor",
         showURLLine: "Mostrar o link no seletor",
         showUndoToast: "Oferecer desfazer após adicionar uma regra",
@@ -174,6 +177,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Geçersiz ifade",
         tooSlow: "Çok yavaş, devre dışı",
         browserMissing: "Tarayıcı yüklü değil",
+        openInBrowser: "Tarayıcıda aç",
         pickerHeader: "Seçici",
         showURLLine: "Bağlantıyı seçicide göster",
         showUndoToast: "Kural ekledikten sonra geri alma seçeneği sun",
@@ -213,6 +217,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Недопустимое выражение",
         tooSlow: "Слишком медленное, отключено",
         browserMissing: "Браузер не установлен",
+        openInBrowser: "Открыть в браузере",
         pickerHeader: "Окно выбора",
         showURLLine: "Показывать ссылку в окне выбора",
         showUndoToast: "Предлагать отмену после добавления правила",
@@ -252,6 +257,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Expresión no válida",
         tooSlow: "Demasiado lenta, desactivada",
         browserMissing: "Navegador no instalado",
+        openInBrowser: "Abrir en el navegador",
         pickerHeader: "Selector",
         showURLLine: "Mostrar el enlace en el selector",
         showUndoToast: "Ofrecer deshacer tras añadir una regla",
@@ -291,6 +297,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Ungültiger Ausdruck",
         tooSlow: "Zu langsam, deaktiviert",
         browserMissing: "Browser nicht installiert",
+        openInBrowser: "Im Browser öffnen",
         pickerHeader: "Auswahl",
         showURLLine: "Link in der Auswahl anzeigen",
         showUndoToast: "Nach dem Hinzufügen einer Regel Rückgängig anbieten",
@@ -330,6 +337,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Expression non valide",
         tooSlow: "Trop lente, désactivée",
         browserMissing: "Navigateur non installé",
+        openInBrowser: "Ouvrir dans le navigateur",
         pickerHeader: "Sélecteur",
         showURLLine: "Afficher le lien dans le sélecteur",
         showUndoToast: "Proposer d’annuler après l’ajout d’une règle",
@@ -369,6 +377,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "Espressione non valida",
         tooSlow: "Troppo lenta, disattivata",
         browserMissing: "Browser non installato",
+        openInBrowser: "Apri nel browser",
         pickerHeader: "Selettore",
         showURLLine: "Mostra il link nel selettore",
         showUndoToast: "Offri Annulla dopo aver aggiunto una regola",
@@ -408,6 +417,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "無効な式",
         tooSlow: "処理が遅すぎるため無効にしました",
         browserMissing: "ブラウザがインストールされていません",
+        openInBrowser: "ブラウザで開く",
         pickerHeader: "選択画面",
         showURLLine: "選択画面にリンクを表示",
         showUndoToast: "ルール追加後に取り消しを表示",
@@ -447,6 +457,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "잘못된 식",
         tooSlow: "너무 느려 비활성화됨",
         browserMissing: "브라우저가 설치되어 있지 않음",
+        openInBrowser: "브라우저에서 열기",
         pickerHeader: "선택 창",
         showURLLine: "선택 창에 링크 표시",
         showUndoToast: "규칙 추가 후 실행 취소 제공",
@@ -486,6 +497,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "表达式无效",
         tooSlow: "过慢，已停用",
         browserMissing: "浏览器未安装",
+        openInBrowser: "在浏览器中打开",
         pickerHeader: "选择器",
         showURLLine: "在选择器中显示链接",
         showUndoToast: "添加规则后提供撤销",
@@ -525,6 +537,7 @@ extension LinkRouterFeatureStrings {
         invalidRegex: "表達式無效",
         tooSlow: "太慢，已停用",
         browserMissing: "瀏覽器未安裝",
+        openInBrowser: "在瀏覽器中開啟",
         pickerHeader: "選擇器",
         showURLLine: "在選擇器中顯示連結",
         showUndoToast: "新增規則後提供還原",

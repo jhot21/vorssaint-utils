@@ -854,3 +854,17 @@ enum ClipboardHistoryImageSupport {
         return fileManager.fileExists(atPath: path)
     }
 }
+
+/// Decides whether a history entry gets an "Open in Browser" menu item. It
+/// runs only when a menu is built for one entry, never across the list.
+enum ClipboardLinkSupport {
+    /// Longer text is not a link worth scanning with the system detector.
+    private static let maxLength = 2000
+
+    static func routableURL(for entry: ClipboardHistoryEntry, routerOn: Bool) -> URL? {
+        guard routerOn, entry.kind == .text else { return nil }
+        let trimmed = entry.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count <= maxLength, !trimmed.contains(where: \.isNewline) else { return nil }
+        return CommandBarLinks.typedURL(trimmed)
+    }
+}

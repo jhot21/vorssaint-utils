@@ -9,7 +9,7 @@ enum LinkRouterStringsTests {
             let strings = FeatureStrings.linkRouter(language)
             let values = Mirror(reflecting: strings).children.compactMap { $0.value as? String }
             let tag = language.rawValue
-            suite.expect(values.count == 37 && values.allSatisfy { !$0.isEmpty },
+            suite.expect(values.count == 38 && values.allSatisfy { !$0.isEmpty },
                          "link router strings are complete (\(tag))")
             suite.expect(values.allSatisfy { !$0.contains("\u{2014}") },
                          "link router strings contain no em dash (\(tag))")

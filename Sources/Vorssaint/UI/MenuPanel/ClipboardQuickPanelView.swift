@@ -545,6 +545,11 @@ private struct QuickEntryRow: View, Equatable {
             }
             .keyboardShortcut(.return, modifiers: [])
         }
+        if let link = ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn) {
+            Button(FeatureStrings.linkRouter(l10n.language).openInBrowser) {
+                LinkRouterService.shared.route(LinkRequest(urls: [link], senderBundleID: nil))
+            }
+        }
         Divider()
         Button(entry.isPinned ? text.unpin : text.pin) {
             history.togglePin(entry)

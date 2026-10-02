@@ -1574,6 +1574,10 @@ final class ClipboardHistoryService: ObservableObject {
         } else {
             menu.addItem(item(text.copy, #selector(QuickEntryMenuController.pasteOrCopy), key: "\r"))
         }
+        if ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn) != nil {
+            menu.addItem(item(FeatureStrings.linkRouter(L10n.shared.language).openInBrowser,
+                              #selector(QuickEntryMenuController.openInBrowser)))
+        }
         menu.addItem(.separator())
         menu.addItem(item(entry.isPinned ? text.unpin : text.pin, #selector(QuickEntryMenuController.togglePin),
                           key: "p", modifiers: [.option]))
@@ -1606,6 +1610,11 @@ private final class QuickEntryMenuController: NSObject {
 
     @objc func pasteOrCopy() { service?.copyQuickEntry(entry) }
     @objc func copyOnly() { service?.copyOnlyQuickEntry(entry) }
+    @objc func openInBrowser() {
+        guard let url = ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn)
+        else { return }
+        LinkRouterService.shared.route(LinkRequest(urls: [url], senderBundleID: nil))
+    }
     @objc func togglePin() { service?.togglePin(entry) }
     @objc func moveUp() { service?.move(entry, .up) }
     @objc func moveDown() { service?.move(entry, .down) }
