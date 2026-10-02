@@ -568,6 +568,16 @@ final class ClipboardHistoryService: ObservableObject {
     /// because pasting before it lands would paste whatever the user had
     /// copied before. A stale entry leaves the clipboard untouched and pastes
     /// nothing at all.
+    /// Sends a link entry through the link router. The history window closes
+    /// first, like Copy does, so the picker is not left behind it.
+    func openInBrowser(_ entry: ClipboardHistoryEntry) {
+        guard let url = ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn)
+        else { return }
+        hideHistoryWindow()
+        pasteTargetApp = nil
+        LinkRouterService.shared.route(LinkRequest(urls: [url], senderBundleID: nil))
+    }
+
     func copyQuickEntry(_ entry: ClipboardHistoryEntry) {
         let target = pasteTargetApp
         let shouldPaste = pasteAfterSelectEnabled
@@ -1569,10 +1579,10 @@ final class ClipboardHistoryService: ObservableObject {
         }
 
         if pasteAfterSelectEnabled {
-            menu.addItem(item(L10n.shared.s.menuPaste, #selector(QuickEntryMenuController.pasteOrCopy), key: "\r"))
+            menu.addItem(item(L10n.shared.s.menuPaste, #selector(QuickEntryMenuController.pasteOrCopy)))
             menu.addItem(item(text.copy, #selector(QuickEntryMenuController.copyOnly), key: "c", modifiers: [.command]))
         } else {
-            menu.addItem(item(text.copy, #selector(QuickEntryMenuController.pasteOrCopy), key: "\r"))
+            menu.addItem(item(text.copy, #selector(QuickEntryMenuController.pasteOrCopy)))
         }
         if ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn) != nil {
             menu.addItem(item(FeatureStrings.linkRouter(L10n.shared.language).openInBrowser,
@@ -1591,7 +1601,14 @@ final class ClipboardHistoryService: ObservableObject {
         menu.addItem(.separator())
         menu.addItem(item(text.delete, #selector(QuickEntryMenuController.delete), key: "\u{8}"))
 
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor)
+        // NSMenuItem.target is weak; without this ARC may release the controller before popUp.
+        // Return runs the highlighted item. Copy used to claim Return as a key
+        // equivalent, which AppKit matches before the highlight, so it would
+        // run Copy even with another item selected. Highlighting the first
+        // item keeps Control+Return, Return as the quick copy.
+        withExtendedLifetime(controller) {
+            menu.popUp(positioning: menu.items.first, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor)
+        }
     }
 }
 
@@ -1610,11 +1627,7 @@ private final class QuickEntryMenuController: NSObject {
 
     @objc func pasteOrCopy() { service?.copyQuickEntry(entry) }
     @objc func copyOnly() { service?.copyOnlyQuickEntry(entry) }
-    @objc func openInBrowser() {
-        guard let url = ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn)
-        else { return }
-        LinkRouterService.shared.route(LinkRequest(urls: [url], senderBundleID: nil))
-    }
+    @objc func openInBrowser() { service?.openInBrowser(entry) }
     @objc func togglePin() { service?.togglePin(entry) }
     @objc func moveUp() { service?.move(entry, .up) }
     @objc func moveDown() { service?.move(entry, .down) }

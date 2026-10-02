@@ -182,9 +182,10 @@ struct NotchClipboardView: View {
             Button(l10n.s.menuPaste) { paste(entry) }
         }
         Button(text.copy) { copy(entry) }
-        if let link = ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn) {
+        if ClipboardLinkSupport.routableURL(for: entry, routerOn: LinkRouterService.shared.isFeatureOn) != nil {
             Button(FeatureStrings.linkRouter(l10n.language).openInBrowser) {
-                LinkRouterService.shared.route(LinkRequest(urls: [link], senderBundleID: nil))
+                service.collapse()
+                history.openInBrowser(entry)
             }
         }
         Divider()
