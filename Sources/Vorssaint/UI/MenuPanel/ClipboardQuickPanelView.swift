@@ -23,6 +23,10 @@ struct ClipboardQuickPanelView: View {
         history.quickQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var searchTokens: [String] {
+        ClipboardHistorySearch.searchTokens(for: history.quickQuery)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             toolbar
@@ -114,13 +118,13 @@ struct ClipboardQuickPanelView: View {
                     // than the placement work a lazy stack does per tick.
                     Group {
                         if filtered.count <= Self.eagerRowLimit {
-                            VStack(alignment: .leading, spacing: 0) { sections }
+                            VStack(alignment: .leading, spacing: 0) { topAnchor; sections }
                         } else {
-                            LazyVStack(alignment: .leading, spacing: 0) { sections }
+                            LazyVStack(alignment: .leading, spacing: 0) { topAnchor; sections }
                         }
                     }
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.bottom, Self.listVerticalInset)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .background(ScrollBounceDisabler())
@@ -133,6 +137,12 @@ struct ClipboardQuickPanelView: View {
                 .onChange(of: history.quickQuery) { _, _ in
                     scrollSelectedEntry(with: proxy)
                 }
+                // The window is only hidden between uses, so without this it
+                // reopens wherever it was scrolled, while the selection and
+                // ⌘1 to ⌘9 already start from the top rows.
+                .onChange(of: history.quickWindowPresentationID) { _, _ in
+                    proxy.scrollTo(Self.topAnchorID, anchor: .top)
+                }
             }
         }
     }
@@ -140,6 +150,17 @@ struct ClipboardQuickPanelView: View {
     /// Emits the header and rows straight into the enclosing lazy stack. If
     /// wrapped, the whole section becomes one lazy unit and builds every row.
     private static let eagerRowLimit = 300
+
+    private static let listVerticalInset: CGFloat = 6
+
+    /// Above the first section's header, which scrolling to the first row
+    /// would leave cut off. It is the list's top inset itself, so scrolling
+    /// it to the top lands exactly where a first open starts.
+    private static let topAnchorID = "clipboard-list-top"
+
+    private var topAnchor: some View {
+        Color.clear.frame(height: Self.listVerticalInset).id(Self.topAnchorID)
+    }
 
     @ViewBuilder
     private var sections: some View {
@@ -169,6 +190,7 @@ struct ClipboardQuickPanelView: View {
                 .padding(.vertical, 6)
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                 QuickEntryRow(entry: entry,
+                              tokens: searchTokens,
                               shortcutIndex: shortcutIndex(for: entry),
                               isSelected: history.quickSelectionIsVisible
                                  && history.selectedQuickEntryID == entry.id,
@@ -288,6 +310,7 @@ private struct QuickPreviewPane: View {
 /// Value inputs let SwiftUI skip rows unaffected by selection or history changes.
 private struct QuickEntryRow: View, Equatable {
     let entry: ClipboardHistoryEntry
+    let tokens: [String]
     let shortcutIndex: Int?
     let isSelected: Bool
     let isBatchSelected: Bool
@@ -313,6 +336,7 @@ private struct QuickEntryRow: View, Equatable {
     // appearance, so it stays out of the comparison.
     static func == (lhs: QuickEntryRow, rhs: QuickEntryRow) -> Bool {
         lhs.entry == rhs.entry
+            && lhs.tokens == rhs.tokens
             && lhs.shortcutIndex == rhs.shortcutIndex
             && lhs.isSelected == rhs.isSelected
             && lhs.isBatchSelected == rhs.isBatchSelected
@@ -397,9 +421,9 @@ private struct QuickEntryRow: View, Equatable {
         case .text:
             HStack(alignment: .center, spacing: 8) {
                 if let color = entry.color {
-                    ClipboardColorSwatch(color: color, size: 14)
+                    ColorSwatch(color: color, size: 14)
                 }
-                Text(entry.preview)
+                SearchHighlightText.text(entry.preview, tokens: tokens, fontSize: 12)
                     .font(.system(size: 12))
                     .lineLimit(2)
                     .truncationMode(.tail)
@@ -413,7 +437,8 @@ private struct QuickEntryRow: View, Equatable {
                         .frame(maxWidth: 240, maxHeight: 120)
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
-                Text("\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)")
+                SearchHighlightText.text("\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)",
+                                         tokens: tokens, fontSize: 11.5)
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
             }
@@ -429,7 +454,7 @@ private struct QuickEntryRow: View, Equatable {
                         .frame(maxWidth: 240, maxHeight: 120)
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.fileNames.first ?? entry.preview)
+                        SearchHighlightText.text(entry.fileNames.first ?? entry.preview, tokens: tokens, fontSize: 12)
                             .font(.system(size: 12))
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -444,12 +469,15 @@ private struct QuickEntryRow: View, Equatable {
                 .help(path)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(fileTitle(entry))
+                    // A count of several files is no text the search reads.
+                    SearchHighlightText.text(fileTitle(entry),
+                                             tokens: entry.filePaths.count == 1 ? tokens : [],
+                                             fontSize: 12)
                         .font(.system(size: 12))
                         .lineLimit(1)
                         .truncationMode(.middle)
                     if entry.filePaths.count > 1 {
-                        Text(entry.preview)
+                        SearchHighlightText.text(entry.preview, tokens: tokens, fontSize: 10)
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
