@@ -155,6 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             KeepAwakeManager.shared.activateOnLaunchIfNeeded()
         }
         FanControlService.recoverIfNeeded()
+        SpacesOrderHold.recoverIfNeeded()
         // One binding per feature: only available features are touched, so a
         // feature switched off in the hub never even instantiates here.
         FeatureRuntime.shared.syncAtLaunch()
@@ -172,7 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             .receive(on: DispatchQueue.main)
             .sink { _ in
                 FeatureRuntime.shared.sync([
-                    .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .mouseNavigation, .switcher,
+                    .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseNavigation, .switcher,
                     .dockPreview, .finderCutPaste, .finderRename, .autoQuit, .dockClick,
                     .middleClick, .windowMaximizer, .keyboardDebounce, .windowLayout,
                     .textSnippets, .brightness, .radialMenu, .mouseButtonShortcuts,
@@ -355,7 +356,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     /// force the icon back and pop the panel so there's immediate proof the app is
     /// alive. Without this, a hidden icon would strand the app running with no way
     /// in. (A cold launch can't happen while running, so this is the recovery path.)
+    /// Reopens that Siri and Shortcuts send on their own are ignored.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        let requester = ReopenRequestSupport.currentSender()
+        guard ReopenRequestSupport.isPersonOpeningApp(requester) else {
+            Self.menuBarLog.log("reopen ignored from \(ReopenRequestSupport.logName(requester), privacy: .public)")
+            return false
+        }
         guard !flag else { return true }
         // Captured now (this call is main-thread, same as the notification
         // handler that sets it) so the decision is locked in before the
@@ -460,8 +467,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // system material where the surface stops, the seam users see. The visible
         // content stays inset either way, before through the content view's frame
         // and now through the safe area the popover publishes, so only the surface
-        // reaches the arrow.
-        popover.hasFullSizeContent = true
+        // reaches the arrow. Before macOS 26 AppKit does not lay full-size content
+        // out, so the panel keeps the inset content there.
+        popover.hasFullSizeContent = PanelSurface.popoverHostsFullSizeContent
         popover.delegate = self
         let host = NSHostingController(rootView: MenuPanelView())
         host.sizingOptions = .preferredContentSize
@@ -1094,6 +1102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
 
     private func handlePopoverKeyDown(_ event: NSEvent) -> NSEvent? {
         if popover.isShown, event.keyCode == UInt16(kVK_Escape) {
+            // The monitor sees the whole app; Esc in another window, such as
+            // Settings or a popover or dialog opened from the panel, stays there.
+            guard let window = popover.contentViewController?.view.window,
+                  event.window === window else { return event }
+            // While an input method is composing, Esc belongs to it and
+            // drops the candidate; the panel closes on the next one.
+            if (window.firstResponder as? NSTextView)?.hasMarkedText() == true { return event }
             closePopover(reason: .escape)
             return nil
         }
@@ -1140,6 +1155,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // fires on every activation, so rebuilding here would cause churn/flicker.)
         UpdateService.shared.checkIfStale()
         restoreAfterAppUpdateHandoff()
+        if settingsWindow?.isVisible == true {
+            NotificationCenter.default.post(name: LaunchAtLoginSupport.settingsRefreshRequested, object: nil)
+        }
     }
 
     /// Some updates finish in another app. With no Dock icon there is no way
@@ -1683,6 +1701,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // that page's own onAppear, since its view was never removed from
         // the hierarchy; the window itself is the only reliable signal here.
         SecureInputMonitor.shared.setSettingsWindowOpen(true)
+        NotificationCenter.default.post(name: LaunchAtLoginSupport.settingsRefreshRequested, object: nil)
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.settingsWindow else { return }
             self.positionSettingsWindow(window, force: false, on: targetScreen)
@@ -2384,6 +2403,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // A clean install that just saw everything in onboarding should not
         // then get the update tour; only people who updated get it.
         markUpdateHighlightsSeen()
+        // Setup just picked the installed features; a beta adds the companion
+        // for a Command Bar user now.
+        Defaults.installCompanionForBetaCommandBar(in: .standard)
     }
 
     private func markSupportUpdateIntroSeenIfCurrentUpdate() {
