@@ -30,8 +30,11 @@ enum LinkRouterTransformTests {
                      "a pattern that does not match reports noMatch, not an unchanged replacement")
         suite.expect(replace(evaluator, "([", "https://x.test", "z") == .invalid,
                      "an unparsable pattern is invalid")
+        // 22 characters outlast the deadline by a wide margin yet finish on their own.
+        // NSRegularExpression cannot be cancelled, so a longer input would pin a core for the
+        // rest of the run and starve later suites on a runner with few cores.
         let quick = RegexEvaluator(deadline: 0.05)
-        suite.expect(replace(quick, "(a+)+$", String(repeating: "a", count: 34) + "b", "z") == .timedOut,
+        suite.expect(replace(quick, "(a+)+$", String(repeating: "a", count: 22) + "b", "z") == .timedOut,
                      "a catastrophic pattern times out instead of hanging")
         suite.expect(replace(evaluator, "^", "https://x.test",
                              String(repeating: "x", count: RegexEvaluator.maxReplacementLength + 1)) == .invalid,

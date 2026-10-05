@@ -209,9 +209,12 @@ enum LinkRouterMatcherTests {
                      "regex matching is case-insensitive")
         suite.expect(evaluate(evaluator, "([", "https://x.test") == .invalid,
                      "an unparsable expression is invalid")
+        // 22 characters outlast the deadline by a wide margin yet finish on their own.
+        // NSRegularExpression cannot be cancelled, so a longer input would pin a core for the
+        // rest of the run and starve later suites on a runner with few cores.
         let quick = RegexEvaluator(deadline: 0.05)
         let started = Date()
-        let slow = evaluate(quick, "(a+)+$", String(repeating: "a", count: 34) + "b")
+        let slow = evaluate(quick, "(a+)+$", String(repeating: "a", count: 22) + "b")
         suite.expect(slow == .timedOut && Date().timeIntervalSince(started) < 2,
                      "a catastrophic expression is reported as timed out near the deadline, not waited for")
     }
