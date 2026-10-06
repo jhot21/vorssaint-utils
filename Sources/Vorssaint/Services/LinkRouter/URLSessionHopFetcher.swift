@@ -53,6 +53,17 @@ final class URLSessionHopFetcher: NSObject, HopFetching, URLSessionDataDelegate 
             ? .performDefaultHandling : .cancelAuthenticationChallenge
     }
 
+    /// The request is always made over https, so the path never crosses the
+    /// network in the clear. Only the request changes; callers keep the
+    /// original URL for their cache and for what is eventually opened.
+    static func lookupURL(for url: URL) -> URL {
+        guard var parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              parts.scheme?.lowercased() == "http" else { return url }
+        parts.scheme = "https"
+        if parts.port == 80 { parts.port = nil }
+        return parts.url ?? url
+    }
+
     private var session: URLSession?
     private var task: URLSessionDataTask?
     private var completion: ((HopResponse) -> Void)?
@@ -62,7 +73,7 @@ final class URLSessionHopFetcher: NSObject, HopFetching, URLSessionDataDelegate 
                                                  delegateQueue: .main)
         self.session = session
         self.completion = completion
-        let task = session.dataTask(with: Self.makeRequest(for: url, method: method))
+        let task = session.dataTask(with: Self.makeRequest(for: Self.lookupURL(for: url), method: method))
         self.task = task
         task.resume()
     }

@@ -285,6 +285,11 @@ enum LinkUnshortenTests {
                         == .cancelAuthenticationChallenge,
                      "credential challenges are cancelled")
 
+        suite.expect(URLSessionHopFetcher.lookupURL(for: u("http://bit.ly/a?x=1")) == u("https://bit.ly/a?x=1")
+                        && URLSessionHopFetcher.lookupURL(for: u("https://bit.ly/a")) == u("https://bit.ly/a")
+                        && URLSessionHopFetcher.lookupURL(for: u("http://bit.ly:80/a")) == u("https://bit.ly/a")
+                        && URLSessionHopFetcher.lookupURL(for: u("http://bit.ly:8080/a")) == u("https://bit.ly:8080/a"),
+                     "the lookup is always https: http is upgraded, port 80 dropped, other ports kept")
     }
 
     private final class CannedUnshortener: LinkUnshortening {
