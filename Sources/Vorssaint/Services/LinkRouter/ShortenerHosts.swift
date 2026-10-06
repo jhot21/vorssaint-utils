@@ -52,9 +52,10 @@ enum ShortenerHosts {
         guard !host.contains("@"), !host.contains(":") else { return nil }
         let labels = host.split(separator: ".", omittingEmptySubsequences: false)
         // At least two labels, a literal last label, and one literal label
-        // before it: `*`, `*.*`, `*.com` and `bit.*` are all too broad.
+        // before it (a label of only stars is not literal): `*`, `*.*`, `*.com`,
+        // `**.com` and `bit.*` are all too broad.
         guard labels.count >= 2, let last = labels.last, !last.isEmpty, !last.contains("*"),
-              labels.dropLast().contains(where: { !$0.isEmpty && $0 != "*" }) else { return nil }
+              labels.dropLast().contains(where: { $0.contains { $0 != "*" } }) else { return nil }
         let entry = ShortenerEntry(site: site)
         let known = Set(builtIn.map(\.token)).union(rules.added.map(\.token))
         return known.contains(entry.token) ? nil : entry

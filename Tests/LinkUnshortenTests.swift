@@ -54,7 +54,7 @@ enum LinkUnshortenTests {
         suite.expect(accepted("short.example") && accepted("*.go.example") && accepted("go.example/x/*"),
                      "plain hosts, subdomain globs and host/path globs are accepted")
         for bad in ["", "   ", "*", "*.*", "*.com", "bit.*", "https://x.example", "a b.example",
-                    "localhost", "a@b.example", "BIT.LY"] {
+                    "localhost", "a@b.example", "BIT.LY", "**.com", "***.com", "**.*.com"] {
             suite.expect(!accepted(bad), "the host '\(bad)' is rejected")
         }
         let existing = ShortenerRules(added: [ShortenerEntry(site: "short.example")], disabled: [])
