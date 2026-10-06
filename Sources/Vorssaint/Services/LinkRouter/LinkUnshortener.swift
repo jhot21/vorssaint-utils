@@ -116,8 +116,9 @@ final class LinkUnshortener: LinkUnshortening {
         private func finish(_ outcome: UnshortenOutcome) {
             guard !finished else { return }
             finished = true
-            // Cancelling the timer lets a chain that resolved quickly be
-            // released now instead of at the deadline.
+            // Cancelling keeps a finished chain from running its timeout block.
+            // The queue still holds the work item, and so this chain, until the
+            // budget elapses, which is bounded at 6 seconds.
             deadline?.cancel()
             deadline = nil
             fetcher.cancel()
