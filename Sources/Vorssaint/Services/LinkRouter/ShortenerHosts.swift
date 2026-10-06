@@ -26,7 +26,7 @@ enum ShortenerHosts {
     // manual check).
     static let builtIn: [ShortenerEntry] = [
         "bit.ly", "t.co", "tinyurl.com", "ow.ly", "is.gd", "v.gd", "buff.ly", "lnkd.in",
-        "cutt.ly", "rb.gy", "t.ly", "shorturl.at", "rebrand.ly", "bit.do", "s.id",
+        "cutt.ly", "rb.gy", "t.ly", "shorturl.at", "rebrand.ly", "s.id",
         "amzn.to", "fb.me", "wp.me", "nyti.ms", "apple.co",
     ].map { ShortenerEntry(site: $0) }
 
