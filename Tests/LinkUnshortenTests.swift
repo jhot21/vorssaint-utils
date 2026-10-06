@@ -10,6 +10,7 @@ enum LinkUnshortenTests {
         runChipAndKeys(suite)
         runShortenerHosts(suite)
         runTransformSplit(suite)
+        runChain(suite)
     }
 
     private static func runChipAndKeys(_ suite: TestSuite) {
@@ -99,5 +100,118 @@ enum LinkUnshortenTests {
         suite.expect(LinkTransform.available(for: short, selected: [.unshorten], settings: settings,
                                              resolved: u("https://example.org/p")) == [.unshorten],
                      "a clean resolved destination does not offer Clean")
+    }
+
+    private final class ScriptedFetcher: HopFetching {
+        let respond: (URL, String) -> HopResponse?
+        private(set) var calls: [String] = []
+        private(set) var cancelled = false
+        init(_ respond: @escaping (URL, String) -> HopResponse?) { self.respond = respond }
+        func fetch(_ url: URL, method: String, completion: @escaping (HopResponse) -> Void) {
+            calls.append("\(method) \(url.absoluteString)")
+            guard let response = respond(url, method) else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, !self.cancelled else { return }
+                completion(response)
+            }
+        }
+        func cancel() { cancelled = true }
+    }
+
+    private static func resolve(_ link: String, rules: ShortenerRules = .none, budget: TimeInterval = 2,
+                                _ respond: @escaping (URL, String) -> HopResponse?)
+        -> (outcome: UnshortenOutcome?, fetcher: ScriptedFetcher, completions: Int) {
+        let fetcher = ScriptedFetcher(respond)
+        let service = LinkUnshortener(budget: budget) { fetcher }
+        var outcome: UnshortenOutcome?
+        var completions = 0
+        service.resolve(u(link), shorteners: rules) { outcome = $0; completions += 1 }
+        LinkRouterTestSupport.spin(timeout: 3) { outcome != nil }
+        LinkRouterTestSupport.spin(timeout: 0.15) { false }
+        return (outcome, fetcher, completions)
+    }
+
+    private static func runChain(_ suite: TestSuite) {
+        let go: (URL, String) -> HopResponse? = { url, _ in
+            url.host == "bit.ly" ? .redirect(u("https://example.org/page")) : .failed
+        }
+        let single = resolve("https://bit.ly/a", go)
+        suite.expect(single.outcome == .resolved(u("https://example.org/page"))
+                        && single.fetcher.calls == ["HEAD https://bit.ly/a"] && single.fetcher.cancelled,
+                     "a HEAD redirect to an ordinary host resolves in one request, and the destination is never fetched")
+
+        let chain = resolve("https://bit.ly/a") { url, _ in
+            switch url.host {
+            case "bit.ly": return .redirect(u("https://tinyurl.com/b"))
+            case "tinyurl.com": return .redirect(u("https://example.org/final"))
+            default: return .failed
+            }
+        }
+        suite.expect(chain.outcome == .resolved(u("https://example.org/final"))
+                        && chain.fetcher.calls == ["HEAD https://bit.ly/a", "HEAD https://tinyurl.com/b"],
+                     "a chain of shorteners is followed hop by hop and stops at the first ordinary host")
+
+        let retry = resolve("https://bit.ly/a") { url, method in
+            method == "HEAD" ? .noRedirect : .redirect(u("https://example.org/p"))
+        }
+        suite.expect(retry.outcome == .resolved(u("https://example.org/p"))
+                        && retry.fetcher.calls == ["HEAD https://bit.ly/a", "GET https://bit.ly/a"],
+                     "a HEAD that does not redirect is retried once as GET")
+
+        let none = resolve("https://bit.ly/a") { _, _ in .noRedirect }
+        suite.expect(none.outcome == .noRedirect && none.fetcher.calls.count == 2,
+                     "a GET that does not redirect reports noRedirect")
+
+        let stalled = resolve("https://bit.ly/a") { url, _ in
+            url.host == "bit.ly" ? .redirect(u("https://tinyurl.com/b")) : .noRedirect
+        }
+        suite.expect(stalled.outcome == .noRedirect,
+                     "a shortener that stops redirecting mid-chain is noRedirect, never a resolved short link")
+
+        let custom = ShortenerRules(added: [ShortenerEntry(site: "*.s.test")], disabled: [])
+        let endless = resolve("https://h0.s.test/x", rules: custom) { url, _ in
+            let next = (Int(url.host!.dropFirst().prefix(while: \.isNumber)) ?? 0) + 1
+            return .redirect(u("https://h\(next).s.test/x"))
+        }
+        suite.expect(endless.outcome == .failed(.tooManyHops) && endless.fetcher.calls.count == LinkUnshortener.maxHops,
+                     "a chain that stays on shorteners stops at the hop cap")
+
+        let loop = resolve("https://bit.ly/a") { url, _ in
+            url.host == "bit.ly" ? .redirect(u("https://tinyurl.com/b")) : .redirect(u("https://bit.ly/a"))
+        }
+        suite.expect(loop.outcome == .failed(.loop), "a redirect loop is detected")
+
+        let deepLink = resolve("https://bit.ly/a") { _, _ in .redirect(u("myapp://open")) }
+        suite.expect(deepLink.outcome == .failed(.notWeb),
+                     "a redirect to a non-web scheme fails and is never followed")
+
+        let broken = resolve("https://bit.ly/a") { _, _ in .failed }
+        suite.expect(broken.outcome == .failed(.network), "a failed request reports a network failure")
+
+        let slow = resolve("https://bit.ly/a", budget: 0.1) { _, _ in nil }
+        suite.expect(slow.outcome == .failed(.timedOut) && slow.fetcher.cancelled && slow.completions == 1,
+                     "the total budget ends a lookup that never answers, cancels it, and completes once")
+
+        // Cache: successes are remembered for the app run, failures are not.
+        var made = 0
+        let service = LinkUnshortener(budget: 2) {
+            made += 1
+            return ScriptedFetcher(go)
+        }
+        for _ in 0..<2 {
+            var outcome: UnshortenOutcome?
+            service.resolve(u("https://bit.ly/a"), shorteners: .none) { outcome = $0 }
+            LinkRouterTestSupport.spin(timeout: 3) { outcome != nil }
+            suite.expect(outcome == .resolved(u("https://example.org/page")), "the cached lookup still resolves")
+        }
+        suite.expect(made == 1, "a resolved short link is looked up once per app run")
+        made = 0
+        let failing = LinkUnshortener(budget: 2) { made += 1; return ScriptedFetcher { _, _ in .failed } }
+        for _ in 0..<2 {
+            var outcome: UnshortenOutcome?
+            failing.resolve(u("https://bit.ly/a"), shorteners: .none) { outcome = $0 }
+            LinkRouterTestSupport.spin(timeout: 3) { outcome != nil }
+        }
+        suite.expect(made == 2, "a failed lookup is not cached")
     }
 }
