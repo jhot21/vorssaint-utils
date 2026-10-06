@@ -154,5 +154,79 @@ enum LinkPickerModelTests {
             let m = unshortenModel("https://bit.ly/a", unshortener: nil)
             suite.expect(!m.availableChips.contains(.unshorten), "without an unshortener the chip is not offered")
         }
+
+        // Rewrites and repeat lookups after an Unshorten.
+        let after = RewriteRule(name: "Front-end", site: "example.org", find: "example.org", replacement: "alt.example.org", key: "f")
+        let dest = URL(string: "https://example.org/p?utm_source=x")!
+        do {
+            let unshortener = DeferredUnshortener()
+            let replacer = DeferredReplacer()
+            let m = unshortenModel("https://bit.ly/a", unshortener: unshortener, rewrites: [after], replacer: replacer)
+            var opened: [String] = []
+            m.choose = { _, _, url, _, _ in opened.append(url.absoluteString) }
+            m.toggleChip(.unshorten)
+            unshortener.complete(.resolved(dest))
+            m.toggleRewrite(after.id)
+            suite.expect(replacer.pending.count == 1 && m.state.activeRewrite == after.id && unshortener.requested.count == 1,
+                         "a rewrite chosen after Unshorten runs on the destination without a second lookup")
+            m.commit(safari, remember: false)
+            replacer.complete(.replaced("https://alt.example.org/p?utm_source=x"))
+            suite.expect(m.finalURL.absoluteString == "https://alt.example.org/p?utm_source=x"
+                            && opened == ["https://alt.example.org/p?utm_source=x"],
+                         "the rewritten destination opens once")
+        }
+        do {
+            let unshortener = DeferredUnshortener()
+            let replacer = DeferredReplacer()
+            let m = unshortenModel("https://bit.ly/a", unshortener: unshortener, rewrites: [after], replacer: replacer)
+            m.toggleChip(.unshorten)
+            unshortener.complete(.resolved(dest))
+            m.toggleRewrite(after.id)
+            replacer.complete(.replaced("https://alt.example.org/p?utm_source=x"))
+            m.toggleChip(.clean)
+            suite.expect(m.state.activeRewrite == after.id && unshortener.requested.count == 1 && m.unshortenStatus == .resolved,
+                         "toggling Clean keeps the active rewrite and does not look up again")
+        }
+        do {
+            let unshortener = DeferredUnshortener()
+            let m = unshortenModel("https://bit.ly/a", unshortener: unshortener, rewrites: [after])
+            m.toggleChip(.unshorten)
+            unshortener.complete(.failed(.network))
+            m.toggleChip(.clean)
+            m.toggleChip(.clean)
+            m.toggleRewrite(after.id)
+            suite.expect(unshortener.requested.count == 1 && m.unshortenStatus == .failed
+                            && m.finalURL.absoluteString == "https://bit.ly/a",
+                         "a failed lookup is not repeated by later chip or rewrite toggles")
+            m.toggleChip(.unshorten)
+            m.toggleChip(.unshorten)
+            suite.expect(unshortener.requested.count == 2, "toggling Unshorten itself retries")
+        }
+        do {
+            let unshortener = DeferredUnshortener()
+            let m = unshortenModel("https://bit.ly/a", unshortener: unshortener)
+            m.toggleChip(.unshorten)
+            unshortener.complete(.noRedirect)
+            suite.expect(m.unshortenStatus == .noRedirect && m.finalURL.absoluteString == "https://bit.ly/a",
+                         "no redirect leaves the short link")
+            m.toggleChip(.clean)
+            suite.expect(unshortener.requested.count == 1 && m.unshortenStatus == .noRedirect,
+                         "a no-redirect answer is not repeated by a Clean toggle")
+        }
+        do {
+            let unshortener = DeferredUnshortener()
+            let m = unshortenModel("https://bit.ly/a?utm_source=x", unshortener: unshortener)
+            var opened: [String] = []
+            m.choose = { _, _, url, _, _ in opened.append(url.absoluteString) }
+            m.toggleChip(.unshorten)
+            m.toggleChip(.clean)
+            suite.expect(unshortener.requested.count == 1 && m.unshortenStatus == .pending,
+                         "toggling Clean while a lookup is pending shares that lookup")
+            m.commit(safari, remember: false)
+            unshortener.complete(.resolved(URL(string: "https://example.org/p?utm_source=x&id=1")!))
+            suite.expect(m.state.chips.contains(.clean) && m.state.chips.contains(.unshorten)
+                            && opened == ["https://example.org/p?id=1"],
+                         "the single answer applies both chips and the open fires once")
+        }
     }
 }

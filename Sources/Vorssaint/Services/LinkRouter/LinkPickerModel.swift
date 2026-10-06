@@ -30,6 +30,7 @@ final class LinkPickerModel: ObservableObject {
     private let replacer: RegexReplacing
     private let flagRewrite: (UUID, RoutingRule.Flag) -> Void
     private let unshortener: LinkUnshortening?
+    private let lookups: LookupMemo?
     private var transformToken = 0
     private var rewriteToken = 0
     private var pendingCommit: (browser: BrowserInfo, remember: Bool)?
@@ -44,6 +45,7 @@ final class LinkPickerModel: ObservableObject {
         self.replacer = replacer
         self.flagRewrite = flagRewrite
         self.unshortener = unshortener
+        self.lookups = unshortener.map(LookupMemo.init)
         // The rewrites offered depend on the link after the default chips ran,
         // so they are filled in by the first recompute.
         self.state = LinkPickerState(browsers: browsers, rewrites: [], chips: prefs.defaultChips)
@@ -68,6 +70,9 @@ final class LinkPickerModel: ObservableObject {
     func toggleChip(_ chip: TransformChips) {
         guard !isCommitting else { return }
         state.toggleChip(chip)
+        // Toggling Unshorten is the person's explicit retry; any other change
+        // reuses what the lookups already answered, failures included.
+        if chip == .unshorten { lookups?.reset() }
         recompute()
     }
 
@@ -118,7 +123,7 @@ final class LinkPickerModel: ObservableObject {
         rewriteStatus = .idle
         let settings = prefs.settings
         let extractedURL = LinkTransform.extract(url, chips: state.chips, settings: settings).url
-        guard unshortener != nil,
+        guard let lookups,
               LinkPipeline.needsLookup(extractedURL, chips: state.chips, settings: settings) else {
             unshortenStatus = .idle
             show(LinkTransform.apply(url, chips: state.chips, settings: settings), resolved: nil)
@@ -129,7 +134,7 @@ final class LinkPickerModel: ObservableObject {
         // and no rewrite runs on the short link.
         unshortenStatus = .pending
         show(LinkTransform.extract(url, chips: state.chips, settings: settings), resolved: nil)
-        LinkPipeline.run(url, chips: state.chips, settings: settings, unshortener: unshortener) { [weak self] outcome in
+        LinkPipeline.run(url, chips: state.chips, settings: settings, unshortener: lookups) { [weak self] outcome in
             guard let self, self.transformToken == token else { return }
             switch outcome.unshorten {
             case .resolved: self.unshortenStatus = .resolved
@@ -146,6 +151,42 @@ final class LinkPickerModel: ObservableObject {
         }
     }
 
+    /// Remembers this picker's lookup answers, `failed` and `noRedirect`
+    /// included (the service-level cache keeps only `resolved`), and lets
+    /// concurrent callers for one URL share a single request, so toggling a
+    /// chip never contacts the shortener again.
+    private final class LookupMemo: LinkUnshortening {
+        private final class Flight { var callers: [(UnshortenOutcome) -> Void] = [] }
+
+        private let inner: LinkUnshortening
+        private var answers: [URL: UnshortenOutcome] = [:]
+        private var flights: [URL: Flight] = [:]
+
+        init(_ inner: LinkUnshortening) { self.inner = inner }
+
+        /// Forgets answers and detaches running flights: they still tell their
+        /// own callers, but a later request starts a fresh lookup.
+        func reset() {
+            answers = [:]
+            flights = [:]
+        }
+
+        func resolve(_ url: URL, shorteners: ShortenerRules, completion: @escaping (UnshortenOutcome) -> Void) {
+            if let answer = answers[url] { completion(answer); return }
+            if let flight = flights[url] { flight.callers.append(completion); return }
+            let flight = Flight()
+            flight.callers = [completion]
+            flights[url] = flight
+            inner.resolve(url, shorteners: shorteners) { [weak self] outcome in
+                if let self, self.flights[url] === flight {
+                    self.flights[url] = nil
+                    self.answers[url] = outcome
+                }
+                flight.callers.forEach { $0(outcome) }
+            }
+        }
+    }
+
     private func show(_ new: TransformResult, resolved: URL?) {
         result = new
         var offered = LinkTransform.available(for: url, selected: state.chips, settings: prefs.settings,
@@ -156,7 +197,11 @@ final class LinkPickerModel: ObservableObject {
         // against that link, the same way an auto-open rule judges it. While a
         // lookup is pending none is offered: the destination is not known.
         state.rewrites = unshortenStatus == .pending ? [] : LinkRewrite.applicable(prefs.rewrites, to: new.url)
-        if let id = state.activeRewrite, !state.rewrites.contains(where: { $0.id == id }) {
+        // The offered list is empty while a lookup is pending, which says
+        // nothing about the destination, so the chosen rewrite stays until
+        // the answer shows whether it applies there.
+        if unshortenStatus != .pending, let id = state.activeRewrite,
+           !state.rewrites.contains(where: { $0.id == id }) {
             state.activeRewrite = nil
         }
     }
