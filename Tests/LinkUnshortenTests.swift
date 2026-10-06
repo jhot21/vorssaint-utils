@@ -11,6 +11,7 @@ enum LinkUnshortenTests {
         runShortenerHosts(suite)
         runTransformSplit(suite)
         runChain(suite)
+        runFetcher(suite)
     }
 
     private static func runChipAndKeys(_ suite: TestSuite) {
@@ -213,5 +214,53 @@ enum LinkUnshortenTests {
             LinkRouterTestSupport.spin(timeout: 3) { outcome != nil }
         }
         suite.expect(made == 2, "a failed lookup is not cached")
+    }
+
+    private static func runFetcher(_ suite: TestSuite) {
+        let config = URLSessionHopFetcher.makeConfiguration()
+        suite.expect(!config.httpShouldSetCookies && config.httpCookieStorage == nil && config.urlCache == nil
+                        && config.httpCookieAcceptPolicy == .never,
+                     "the lookup session keeps no cookies and no cache")
+        let request = URLSessionHopFetcher.makeRequest(for: u("https://bit.ly/a"), method: "HEAD")
+        suite.expect(request.httpMethod == "HEAD" && request.value(forHTTPHeaderField: "Referer") == nil
+                        && request.value(forHTTPHeaderField: "Cookie") == nil
+                        && request.value(forHTTPHeaderField: "User-Agent") == URLSessionHopFetcher.userAgent
+                        && !request.httpShouldHandleCookies,
+                     "the request is a HEAD with no Referer, no cookies and the fixed user agent")
+
+        func response(_ status: Int, location: String? = nil) -> HopResponse {
+            let fields = location.map { ["Location": $0] } ?? [:]
+            let http = HTTPURLResponse(url: u("https://bit.ly/a"), statusCode: status, httpVersion: "HTTP/1.1",
+                                       headerFields: fields)!
+            return URLSessionHopFetcher.hopResponse(for: http)
+        }
+        suite.expect(response(301, location: "https://example.org/p") == .redirect(u("https://example.org/p")),
+                     "an absolute Location is the redirect target")
+        suite.expect(response(302, location: "/next") == .redirect(u("https://bit.ly/next")),
+                     "a relative Location resolves against the current hop")
+        suite.expect(response(307, location: "//example.org/p") == .redirect(u("https://example.org/p")),
+                     "a protocol-relative Location resolves against the current hop's scheme")
+        suite.expect(response(301) == .noRedirect && response(200) == .noRedirect
+                        && response(405) == .noRedirect && response(304, location: "https://x.test/") == .noRedirect,
+                     "no Location, a 2xx, 405 and 304 are all noRedirect")
+        suite.expect(URLSessionHopFetcher.hopResponse(for: URLResponse(url: u("https://bit.ly/a"), mimeType: nil,
+                                                                       expectedContentLength: 0,
+                                                                       textEncodingName: nil)) == .failed,
+                     "a non-HTTP response is a failure")
+
+        // The redirect is declined: the 3xx response itself is what is delivered.
+        let fetcher = URLSessionHopFetcher()
+        let session = URLSession(configuration: URLSessionHopFetcher.makeConfiguration())
+        var next: URLRequest? = URLRequest(url: u("https://example.org/"))
+        var called = false
+        fetcher.urlSession(session, task: session.dataTask(with: u("https://bit.ly/a")),
+                           willPerformHTTPRedirection: HTTPURLResponse(url: u("https://bit.ly/a"), statusCode: 301,
+                                                                       httpVersion: nil, headerFields: nil)!,
+                           newRequest: URLRequest(url: u("https://example.org/"))) { replacement in
+            next = replacement
+            called = true
+        }
+        suite.expect(called && next == nil, "a redirect is never followed")
+        session.invalidateAndCancel()
     }
 }

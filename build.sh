@@ -356,6 +356,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/LinkRouter/RedirectWrappers.swift
         Sources/Vorssaint/Services/LinkRouter/ShortenerHosts.swift
         Sources/Vorssaint/Services/LinkRouter/LinkUnshortener.swift
+        Sources/Vorssaint/Services/LinkRouter/URLSessionHopFetcher.swift
         Sources/Vorssaint/Services/LinkRouter/LinkTransform.swift
         Sources/Vorssaint/Services/LinkRouter/RewriteRule.swift
         Sources/Vorssaint/Services/LinkRouter/LinkTransformPrefs.swift
