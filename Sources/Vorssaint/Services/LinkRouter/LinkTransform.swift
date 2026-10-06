@@ -7,6 +7,7 @@ struct TransformSettings: Equatable {
     var wrappers: WrapperRules = .none
     var cleaning: URLCleaning.Rules = .none
     var genericExtract = false
+    var shorteners: ShortenerRules = .none
 }
 
 struct TransformResult: Equatable {

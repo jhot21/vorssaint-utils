@@ -581,6 +581,8 @@ enum DefaultsKey {
     static let linkRouterWrapperRules = "linkRouterWrapperRules"         // String: [WrapperEntry] JSON
     static let linkRouterWrapperDisabled = "linkRouterWrapperDisabled"   // String: comma-separated built-in wrapper tokens switched off
     static let linkRouterGenericExtract = "linkRouterGenericExtract"
+    static let linkRouterShortenerHosts = "linkRouterShortenerHosts"       // String: [ShortenerEntry] JSON
+    static let linkRouterShortenerDisabled = "linkRouterShortenerDisabled" // String: comma-separated built-in shortener tokens switched off
     static let linkRouterURLLineMode = "linkRouterURLLineMode"           // off | hostPath | full
     static let diskEjectExcludedVolumes = "diskEjectExcludedVolumes" // volume names/UUIDs excluded from Eject all disks
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
@@ -1747,6 +1749,8 @@ enum Defaults {
         DefaultsKey.linkRouterWrapperRules: "[]",
         DefaultsKey.linkRouterWrapperDisabled: "",
         DefaultsKey.linkRouterGenericExtract: false,
+        DefaultsKey.linkRouterShortenerHosts: "[]",
+        DefaultsKey.linkRouterShortenerDisabled: "",
         DefaultsKey.linkRouterURLLineMode: "full",
         DefaultsKey.menuBarNextMeetingWindowMinutes: Defaults.defaultNextMeetingWindowMinutes,
         DefaultsKey.switcherPreviewExcludedApps: [String](),

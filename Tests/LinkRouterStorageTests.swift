@@ -95,12 +95,17 @@ enum LinkRouterStorageTests {
         WrapperStore.saveAdded([WrapperEntry(site: "a.test/go", parameter: "to")], to: prefsDefaults)
         WrapperStore.saveDisabled(["vk.com/away.php|to"], to: prefsDefaults)
         RewriteStore.save([RewriteRule(name: "R", find: "a", replacement: "b", key: "r")], to: prefsDefaults)
+        ShortenerStore.saveAdded([ShortenerEntry(site: "go.test")], to: prefsDefaults)
+        ShortenerStore.saveDisabled(["bit.ly"], to: prefsDefaults)
         let filled = LinkTransformPrefs.load(prefsDefaults)
         suite.expect(filled.defaultChips == [.extract, .clean] && filled.settings.genericExtract
                         && filled.settings.wrappers.added.count == 1
                         && filled.settings.wrappers.disabled == ["vk.com/away.php|to"]
                         && filled.rewrites.count == 1,
                      "stored transform preferences load back into one value")
+        suite.expect(filled.settings.shorteners.added == [ShortenerEntry(site: "go.test")]
+                        && filled.settings.shorteners.disabled == ["bit.ly"],
+                     "stored shortener hosts load back into the transform settings")
 
         suite.expect(registered[DefaultsKey.linkRouterDefaultChips] as? Int == 0
                         && registered[DefaultsKey.linkRouterWrapperRules] as? String == "[]"
@@ -109,9 +114,13 @@ enum LinkRouterStorageTests {
                         && registered[DefaultsKey.linkRouterGenericExtract] as? Bool == false
                         && registered[DefaultsKey.linkRouterURLLineMode] as? String == "full",
                      "the transform keys are registered with their documented defaults")
+        suite.expect(registered[DefaultsKey.linkRouterShortenerHosts] as? String == "[]"
+                        && registered[DefaultsKey.linkRouterShortenerDisabled] as? String == "",
+                     "the shortener keys are registered with their documented defaults")
         for key in [DefaultsKey.linkRouterDefaultChips, DefaultsKey.linkRouterWrapperRules,
                     DefaultsKey.linkRouterWrapperDisabled, DefaultsKey.linkRouterRewrites,
-                    DefaultsKey.linkRouterGenericExtract, DefaultsKey.linkRouterURLLineMode] {
+                    DefaultsKey.linkRouterGenericExtract, DefaultsKey.linkRouterURLLineMode,
+                    DefaultsKey.linkRouterShortenerHosts, DefaultsKey.linkRouterShortenerDisabled] {
             suite.expect(exported.contains(key), "the transform setting \(key) travels in a backup")
         }
     }

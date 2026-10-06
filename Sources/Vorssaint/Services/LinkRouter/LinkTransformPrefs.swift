@@ -68,7 +68,9 @@ struct LinkTransformPrefs: Equatable {
                 wrappers: WrapperRules(added: WrapperStore.loadAdded(defaults),
                                        disabled: WrapperStore.loadDisabled(defaults)),
                 cleaning: cleaning,
-                genericExtract: defaults.bool(forKey: DefaultsKey.linkRouterGenericExtract)),
+                genericExtract: defaults.bool(forKey: DefaultsKey.linkRouterGenericExtract),
+                shorteners: ShortenerRules(added: ShortenerStore.loadAdded(defaults),
+                                           disabled: ShortenerStore.loadDisabled(defaults))),
             rewrites: RewriteStore.load(defaults))
     }
 }
