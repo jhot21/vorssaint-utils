@@ -62,8 +62,9 @@ enum LinkUnshortenTests {
                     "a*.com", "*a*.com", "x.*.example"] {
             suite.expect(!accepted(bad), "the host '\(bad)' is rejected")
         }
-        let suiteName = "LinkUnshortenTests.\(UUID().uuidString)"
+        let suiteName = "vorss.tests.linkrouter.shorteners"
         let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
         ShortenerStore.saveAdded([ShortenerEntry(site: "*"), ShortenerEntry(site: "*.com"),
                                   ShortenerEntry(site: "a*.com"), ShortenerEntry(site: "*.go.example")],
                                  to: defaults)
