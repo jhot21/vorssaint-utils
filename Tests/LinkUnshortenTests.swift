@@ -9,6 +9,7 @@ enum LinkUnshortenTests {
     static func run(_ suite: TestSuite) {
         runChipAndKeys(suite)
         runShortenerHosts(suite)
+        runTransformSplit(suite)
     }
 
     private static func runChipAndKeys(_ suite: TestSuite) {
@@ -60,5 +61,43 @@ enum LinkUnshortenTests {
         let existing = ShortenerRules(added: [ShortenerEntry(site: "short.example")], disabled: [])
         suite.expect(ShortenerHosts.newEntry(from: "Short.Example", rules: existing) == nil,
                      "a duplicate of an added host is rejected")
+    }
+
+    private static func runTransformSplit(_ suite: TestSuite) {
+        let settings = TransformSettings()
+        let link = u("https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.org%2Fp%3Futm_source%3Dx")
+        let chips: TransformChips = [.extract, .clean]
+        let split = LinkTransform.cleaned(LinkTransform.extract(link, chips: chips, settings: settings),
+                                          chips: chips, settings: settings)
+        suite.expect(split == LinkTransform.apply(link, chips: chips, settings: settings)
+                        && split.url == u("https://example.org/p")
+                        && split.extractedFrom == link && split.unshortenedFrom == nil,
+                     "apply is Extract then Clean, and the split helpers compose to the same result")
+        let extracted = LinkTransform.extract(link, chips: chips, settings: settings)
+        suite.expect(extracted.url == u("https://example.org/p?utm_source=x")
+                        && extracted.beforeClean == extracted.url && extracted.applied == [.extract],
+                     "extract alone leaves Clean undone")
+
+        // Availability.
+        let short = u("https://bit.ly/abc")
+        suite.expect(LinkTransform.available(for: short, selected: [], settings: settings) == [.unshorten],
+                     "a listed shortener offers Unshorten")
+        suite.expect(LinkTransform.available(for: u("https://example.org/p"), selected: [], settings: settings).isEmpty,
+                     "an ordinary link offers nothing")
+        let wrapped = u("https://l.facebook.com/l.php?u=https%3A%2F%2Fbit.ly%2Fabc")
+        suite.expect(LinkTransform.available(for: wrapped, selected: [], settings: settings) == [.extract],
+                     "a wrapper around a shortener does not offer Unshorten until Extract is selected")
+        suite.expect(LinkTransform.available(for: wrapped, selected: [.extract], settings: settings)
+                        == [.extract, .unshorten],
+                     "once Extract is selected, Unshorten is judged on the destination")
+        suite.expect(LinkTransform.available(for: short, selected: [.unshorten], settings: settings,
+                                             unshortenPending: true) == [.unshorten, .clean],
+                     "Clean is offered optimistically while Unshorten is pending")
+        suite.expect(LinkTransform.available(for: short, selected: [.unshorten], settings: settings,
+                                             resolved: u("https://example.org/p?utm_source=x")) == [.unshorten, .clean],
+                     "Clean is judged on the resolved destination")
+        suite.expect(LinkTransform.available(for: short, selected: [.unshorten], settings: settings,
+                                             resolved: u("https://example.org/p")) == [.unshorten],
+                     "a clean resolved destination does not offer Clean")
     }
 }

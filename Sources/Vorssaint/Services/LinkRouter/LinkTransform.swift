@@ -20,12 +20,19 @@ struct TransformResult: Equatable {
     /// The link after Extract and before Clean, for previews that show what
     /// Clean took out.
     var beforeClean: URL
+    /// The short link, when Unshorten replaced it.
+    var unshortenedFrom: URL?
 }
 
 /// The synchronous steps of the pipeline. Rewrites are asynchronous (regex
 /// cannot be cancelled) and live in `LinkRewrite`; they always run after this.
 enum LinkTransform {
     static func apply(_ url: URL, chips: TransformChips, settings: TransformSettings) -> TransformResult {
+        cleaned(extract(url, chips: chips, settings: settings), chips: chips, settings: settings)
+    }
+
+    /// Extract only. `LinkPipeline` runs Unshorten between this and `cleaned`.
+    static func extract(_ url: URL, chips: TransformChips, settings: TransformSettings) -> TransformResult {
         var result = TransformResult(url: url, beforeClean: url)
         if chips.contains(.extract),
            let target = RedirectWrappers.destination(of: url, rules: settings.wrappers,
@@ -35,6 +42,11 @@ enum LinkTransform {
             result.beforeClean = target
             result.applied.insert(.extract)
         }
+        return result
+    }
+
+    static func cleaned(_ result: TransformResult, chips: TransformChips, settings: TransformSettings) -> TransformResult {
+        var result = result
         if chips.contains(.clean), let cleaned = clean(result.url, settings: settings) {
             result.removedParameters = cleaned.removed
             result.url = cleaned.url
@@ -43,16 +55,20 @@ enum LinkTransform {
         return result
     }
 
-    /// Which chips would change this link. Clean is judged on the link as it
-    /// will be once the selected Extract has run, because that is what Clean
-    /// would see.
-    static func available(for url: URL, selected: TransformChips, settings: TransformSettings) -> TransformChips {
+    /// Which chips would change this link. Unshorten and Clean are judged on
+    /// the link as it will be once the selected Extract has run, because that
+    /// is what they would see. After an Unshorten, `resolved` is the real
+    /// destination Clean will see; while it is still pending Clean is offered
+    /// optimistically, since the destination is not known yet.
+    static func available(for url: URL, selected: TransformChips, settings: TransformSettings,
+                          resolved: URL? = nil, unshortenPending: Bool = false) -> TransformChips {
         var offered: TransformChips = []
-        let destination = RedirectWrappers.destination(of: url, rules: settings.wrappers,
-                                                       genericFallback: settings.genericExtract)
-        if destination != nil { offered.insert(.extract) }
-        let base = selected.contains(.extract) ? (destination ?? url) : url
-        if clean(base, settings: settings) != nil { offered.insert(.clean) }
+        let extractTarget = RedirectWrappers.destination(of: url, rules: settings.wrappers,
+                                                         genericFallback: settings.genericExtract)
+        if extractTarget != nil { offered.insert(.extract) }
+        let base = selected.contains(.extract) ? (extractTarget ?? url) : url
+        if ShortenerHosts.isShortener(base, rules: settings.shorteners) { offered.insert(.unshorten) }
+        if unshortenPending || clean(resolved ?? base, settings: settings) != nil { offered.insert(.clean) }
         return offered
     }
 
