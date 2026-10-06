@@ -27,9 +27,9 @@ When the Command Bar's Firefox Bookmarks source is on, it reads Firefox's own lo
 
 When the Command Bar's Safari Bookmarks source is on, it reads Safari's own local bookmarks file to make them searchable; nothing about them is sent anywhere, turning the source off in Settings stops it from reading that file at all, and it only reads it once Full Disk Access is granted.
 
-When the Link Router is on and Vorssaint is your default browser, it sees the address of each link you click only to decide where to open it. It never stores, logs or sends those addresses; only your rules and browser preferences are saved, in the app's local storage on your Mac.
+When the Link Router is on and Vorssaint is your default browser, it sees the address of each link you click only to decide where to open it. It never stores, logs or sends those addresses, except that when Unshorten runs, Vorssaint sends a short link to its own shortener (see below); only your rules and browser preferences are saved, in the app's local storage on your Mac.
 
-Unshorten is off unless you turn it on, for one link in the picker, as a default, or in a rule. When it runs on a link from a known shortener, Vorssaint asks that shortener where the link goes, without cookies or a referrer, and stops at the redirect, so the destination is never contacted. The shortener still sees the request (your IP address, the time, and a generic browser user agent) and may count it as a click, and the network can see the lookup's DNS name and TLS server name. Resolved links are remembered in memory until you quit and are never written to disk.
+Unshorten is off unless you turn it on, for one link in the picker, as a default, or in a rule. When it runs on a link from a known shortener, Vorssaint asks that shortener where the link goes, always over https and without cookies or a referrer, and stops at the redirect, so the destination is never contacted. The shortener still sees the request (your IP address, the time, and a generic browser user agent) and may count it as a click, and the network can see the shortener's DNS name and TLS server name, but not the path, because the lookup is always made over https. Resolved links are remembered in memory until you quit and are never written to disk.
 
 ## Optional notch features
 
