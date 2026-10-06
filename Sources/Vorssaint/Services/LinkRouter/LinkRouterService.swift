@@ -17,8 +17,10 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
     private let picker = LinkPickerController()
     private let toast = LinkRuleToastController()
     private let evaluator = RegexEvaluator()
+    private let unshortener = LinkUnshortener(makeFetcher: { URLSessionHopFetcher() })
     private lazy var core = LinkRouterCore(environment: self, evaluator: evaluator,
-                                           selfBundleID: BrowserCatalog.ownBundleID, replacer: evaluator)
+                                           selfBundleID: BrowserCatalog.ownBundleID, replacer: evaluator,
+                                           unshortener: unshortener)
     private var wasOn = false
     private var isRestoring = false
     /// Links still queued behind the picker on screen, as last reported to it.
@@ -182,7 +184,7 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         pickerWaiting = waiting
         picker.present(
             url: url, browsers: browsers, prefs: transformPrefs, urlLineMode: LinkURLLineMode.current(defaults),
-            replacer: evaluator, waiting: waiting,
+            replacer: evaluator, unshortener: unshortener, waiting: waiting,
             flagRewrite: { [weak self] id, flag in self?.flagRewrite(id: id, flag: flag) },
             onChoose: { [weak self] browser, saveRule, finalURL, chips, rewriteID in
                 self?.core.pickerDidChoose(url, bundleID: browser.bundleID, saveRule: saveRule,
@@ -221,6 +223,7 @@ final class LinkRouterService: NSObject, ObservableObject, LinkRouterEnvironment
         if let chips = rule.chips {
             if chips.contains(.extract) { names.append(text.extractChip) }
             if chips.contains(.clean) { names.append(text.cleanChip) }
+            if chips.contains(.unshorten) { names.append(text.unshortenChip) }
         }
         if let id = rule.rewriteID, let rewrite = RewriteStore.load(defaults).first(where: { $0.id == id }) {
             names.append(rewrite.name)

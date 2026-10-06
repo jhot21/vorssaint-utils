@@ -102,6 +102,18 @@ struct LinkPickerView: View {
             case .idle, .applied:
                 EmptyView()
             }
+            switch model.unshortenStatus {
+            case .pending:
+                Text(text.unshortenPending).font(.caption2).foregroundStyle(.secondary)
+            case .failed:
+                Label(text.unshortenFailed, systemImage: "exclamationmark.triangle")
+                    .font(.caption2).foregroundStyle(.orange)
+            case .noRedirect:
+                Label(text.unshortenNoRedirect, systemImage: "exclamationmark.triangle")
+                    .font(.caption2).foregroundStyle(.orange)
+            case .idle, .resolved:
+                EmptyView()
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -134,6 +146,9 @@ struct LinkPickerView: View {
             }
             if model.availableChips.contains(.clean) {
                 chip(.clean, label: text.cleanChip, key: RewriteKeys.cleanKey)
+            }
+            if model.availableChips.contains(.unshorten) {
+                chip(.unshorten, label: text.unshortenChip, key: RewriteKeys.unshortenKey)
             }
             Spacer(minLength: 0)
         }
@@ -285,7 +300,7 @@ final class LinkPickerController {
     private var onCancel: () -> Void = {}
 
     func present(url: URL, browsers: [BrowserInfo], prefs: LinkTransformPrefs, urlLineMode: LinkURLLineMode,
-                 replacer: RegexReplacing, waiting: Int, flagRewrite: @escaping (UUID, RoutingRule.Flag) -> Void,
+                 replacer: RegexReplacing, unshortener: LinkUnshortening?, waiting: Int, flagRewrite: @escaping (UUID, RoutingRule.Flag) -> Void,
                  onChoose: @escaping (BrowserInfo, Bool, URL, TransformChips, UUID?) -> Void,
                  onCancel: @escaping () -> Void) {
         self.onCancel = onCancel
@@ -299,7 +314,8 @@ final class LinkPickerController {
             return
         }
         let model = LinkPickerModel(url: url, browsers: browsers, prefs: prefs, mode: urlLineMode,
-                                    waiting: waiting, replacer: replacer, flagRewrite: flagRewrite)
+                                    waiting: waiting, replacer: replacer, flagRewrite: flagRewrite,
+                                    unshortener: unshortener)
         model.choose = onChoose
         self.model = model
         observe(model)
