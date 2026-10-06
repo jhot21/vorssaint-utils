@@ -21,9 +21,8 @@ struct ShortenerRules: Equatable {
 
 enum ShortenerHosts {
     // Seeded by hand from public shorteners that redirect with a plain 3xx.
-    // A host is removed when the service is dead or stops redirecting; each
-    // one is checked with a real lookup before a release (see the plan's
-    // manual check).
+    // A host is removed when it no longer resolves or no longer redirects.
+    // Spot-check every entry before a release.
     static let builtIn: [ShortenerEntry] = [
         "bit.ly", "t.co", "tinyurl.com", "ow.ly", "is.gd", "v.gd", "buff.ly", "lnkd.in",
         "cutt.ly", "rb.gy", "t.ly", "shorturl.at", "rebrand.ly", "s.id",
@@ -41,6 +40,19 @@ enum ShortenerHosts {
         return entries(rules: rules).contains { GlobMatcher.matches(pattern: $0.site, link: link) }
     }
 
+    /// The breadth rule, shared by typed entries and stored ones: a literal
+    /// last label and a label before it with no `*` at all, so `*`, `*.com`,
+    /// `a*.com`, `x.*.example` and `bit.*` are all too broad, while `*.go.example`
+    /// and `go.example/x/*` pass.
+    static func hasAcceptableBreadth(_ site: String) -> Bool {
+        let host = LinkCanonical.splitPattern(site).host.lowercased()
+        guard !host.isEmpty, !host.contains("@"), !host.contains(":") else { return false }
+        let labels = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard labels.count >= 2, let last = labels.last, !last.isEmpty, !last.contains("*") else { return false }
+        let before = labels[labels.count - 2]
+        return !before.isEmpty && !before.contains("*")
+    }
+
     /// An entry from typed text, or nil when it is empty, malformed, too broad
     /// to be a host a person means to contact, or already listed. The lookup
     /// follows hops while they stay on the list, so a broad entry would let a
@@ -48,14 +60,7 @@ enum ShortenerHosts {
     static func newEntry(from text: String, rules: ShortenerRules) -> ShortenerEntry? {
         let site = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !site.isEmpty, !site.contains(where: \.isWhitespace), !site.contains("://") else { return nil }
-        let host = LinkCanonical.splitPattern(site).host.lowercased()
-        guard !host.contains("@"), !host.contains(":") else { return nil }
-        let labels = host.split(separator: ".", omittingEmptySubsequences: false)
-        // At least two labels, a literal last label, and one literal label
-        // before it (a label of only stars is not literal): `*`, `*.*`, `*.com`,
-        // `**.com` and `bit.*` are all too broad.
-        guard labels.count >= 2, let last = labels.last, !last.isEmpty, !last.contains("*"),
-              labels.dropLast().contains(where: { $0.contains { $0 != "*" } }) else { return nil }
+        guard hasAcceptableBreadth(site) else { return nil }
         let entry = ShortenerEntry(site: site)
         let known = Set(builtIn.map(\.token)).union(rules.added.map(\.token))
         return known.contains(entry.token) ? nil : entry
@@ -65,7 +70,10 @@ enum ShortenerHosts {
 enum ShortenerStore {
     static func loadAdded(_ defaults: UserDefaults = .standard) -> [ShortenerEntry] {
         let json = defaults.string(forKey: DefaultsKey.linkRouterShortenerHosts) ?? "[]"
-        return (try? JSONDecoder().decode([ShortenerEntry].self, from: Data(json.utf8))) ?? []
+        // A restored backup or a manual `defaults write` must not inject a
+        // host broad enough to let a chain walk anywhere.
+        let stored = (try? JSONDecoder().decode([ShortenerEntry].self, from: Data(json.utf8))) ?? []
+        return stored.filter { ShortenerHosts.hasAcceptableBreadth($0.site) }
     }
 
     static func saveAdded(_ entries: [ShortenerEntry], to defaults: UserDefaults = .standard) {

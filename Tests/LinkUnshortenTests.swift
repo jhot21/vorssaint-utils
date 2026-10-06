@@ -58,9 +58,18 @@ enum LinkUnshortenTests {
         suite.expect(accepted("short.example") && accepted("*.go.example") && accepted("go.example/x/*"),
                      "plain hosts, subdomain globs and host/path globs are accepted")
         for bad in ["", "   ", "*", "*.*", "*.com", "bit.*", "https://x.example", "a b.example",
-                    "localhost", "a@b.example", "BIT.LY", "**.com", "***.com", "**.*.com"] {
+                    "localhost", "a@b.example", "BIT.LY", "**.com", "***.com", "**.*.com",
+                    "a*.com", "*a*.com", "x.*.example"] {
             suite.expect(!accepted(bad), "the host '\(bad)' is rejected")
         }
+        let suiteName = "LinkUnshortenTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        ShortenerStore.saveAdded([ShortenerEntry(site: "*"), ShortenerEntry(site: "*.com"),
+                                  ShortenerEntry(site: "a*.com"), ShortenerEntry(site: "*.go.example")],
+                                 to: defaults)
+        suite.expect(ShortenerStore.loadAdded(defaults) == [ShortenerEntry(site: "*.go.example")],
+                     "stored entries that are too broad are dropped on load, a valid one survives")
+        defaults.removePersistentDomain(forName: suiteName)
         let existing = ShortenerRules(added: [ShortenerEntry(site: "short.example")], disabled: [])
         suite.expect(ShortenerHosts.newEntry(from: "Short.Example", rules: existing) == nil,
                      "a duplicate of an added host is rejected")
