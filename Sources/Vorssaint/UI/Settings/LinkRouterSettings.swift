@@ -197,12 +197,13 @@ struct LinkRouterSettings: View {
         }
     }
 
-    /// "Clean, Extract destination, Rewrite: Name" for a rule that edits links.
+    /// "Clean, Extract destination, Unshorten, Rewrite: Name" for a rule that edits links.
     private func editSummary(of rule: RoutingRule) -> String? {
         var parts: [String] = []
         if let chips = rule.chips {
             if chips.contains(.extract) { parts.append(transformText.extractChip) }
             if chips.contains(.clean) { parts.append(transformText.cleanChip) }
+            if chips.contains(.unshorten) { parts.append(transformText.unshortenChip) }
         }
         if let id = rule.rewriteID, let rewrite = RewriteStore.load().first(where: { $0.id == id }) {
             parts.append("\(transformText.ruleRewriteLabel): \(rewrite.name)")
@@ -403,19 +404,23 @@ private struct RuleEditor: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             editorRow(transformText.ruleChipsLabel) {
-                // -1 is "use the global default" (stored as unset), which is
-                // not the same as "none" (an empty set that overrides it).
-                Picker("", selection: Binding(get: { rule.chips?.rawValue ?? -1 },
-                                              set: { rule.chips = $0 < 0 ? nil : TransformChips(rawValue: $0) })) {
-                    Text(transformText.ruleChipsDefault).tag(-1)
-                    Text(transformText.ruleRewriteNone).tag(0)
-                    Text(transformText.extractChip).tag(TransformChips.extract.rawValue)
-                    Text(transformText.cleanChip).tag(TransformChips.clean.rawValue)
-                    Text("\(transformText.extractChip), \(transformText.cleanChip)")
-                        .tag(TransformChips([.extract, .clean]).rawValue)
+                VStack(alignment: .leading, spacing: 4) {
+                    // nil chips mean "use the global default", which is not the
+                    // same as an empty set ("none, even if the default is on").
+                    Toggle(transformText.ruleChipsDefault, isOn: Binding(
+                        get: { rule.chips == nil },
+                        set: { rule.chips = $0 ? nil
+                            : TransformChips(rawValue: UserDefaults.standard.integer(forKey: DefaultsKey.linkRouterDefaultChips)) }))
+                    Toggle(transformText.extractChip, isOn: ruleChipBinding(.extract))
+                        .disabled(rule.chips == nil)
+                    Toggle(transformText.cleanChip, isOn: ruleChipBinding(.clean))
+                        .disabled(rule.chips == nil)
+                    Toggle(transformText.unshortenChip, isOn: ruleChipBinding(.unshorten))
+                        .disabled(rule.chips == nil)
+                    if rule.chips?.contains(.unshorten) == true {
+                        Text(transformText.unshortenNote).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             editorRow(transformText.ruleRewriteLabel) {
                 Picker("", selection: $rule.rewriteID) {
@@ -481,6 +486,15 @@ private struct RuleEditor: View {
                 .compactMap { app in app.bundleIdentifier.map { BrowserInfo(bundleID: $0, name: app.localizedName ?? $0) } }
                 .sorted { $0.name < $1.name }
         }
+    }
+
+    private func ruleChipBinding(_ chip: TransformChips) -> Binding<Bool> {
+        Binding(get: { rule.chips?.contains(chip) ?? false },
+                set: { on in
+                    var chips = rule.chips ?? []
+                    if on { chips.insert(chip) } else { chips.remove(chip) }
+                    rule.chips = chips
+                })
     }
 
     private func editorRow<Control: View>(_ label: String, @ViewBuilder control: () -> Control) -> some View {

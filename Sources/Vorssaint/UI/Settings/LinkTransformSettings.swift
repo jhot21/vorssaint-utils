@@ -5,7 +5,7 @@ import AppKit
 import SwiftUI
 
 /// The Link Router's link-editing settings: which edits start on, redirect
-/// wrapper rules, and regex rewrites. Every change reloads the stored value
+/// wrapper rules, short link hosts, and regex rewrites. Every change reloads the stored value
 /// first, so a stale copy of this page cannot overwrite newer data.
 struct LinkTransformSettings: View {
     @ObservedObject private var l10n = L10n.shared
@@ -14,6 +14,9 @@ struct LinkTransformSettings: View {
 
     @State private var added: [WrapperEntry] = WrapperStore.loadAdded()
     @State private var disabled: Set<String> = WrapperStore.loadDisabled()
+    @State private var shortenerAdded: [ShortenerEntry] = ShortenerStore.loadAdded()
+    @State private var shortenerDisabled: Set<String> = ShortenerStore.loadDisabled()
+    @State private var newShortener = ""
     @State private var rewrites: [RewriteRule] = RewriteStore.load()
     @State private var editing: RewriteRule?
     @State private var newSite = ""
@@ -27,6 +30,8 @@ struct LinkTransformSettings: View {
             Section(text.defaultChipsHeader) {
                 Toggle(text.extractToggle, isOn: chipBinding(.extract))
                 Toggle(text.cleanToggle, isOn: chipBinding(.clean))
+                Toggle(text.unshortenToggle, isOn: chipBinding(.unshorten))
+                Text(text.unshortenNote).font(.caption).foregroundStyle(.secondary)
                 Toggle(text.genericExtractToggle, isOn: $genericExtract)
                 Text(text.genericExtractNote).font(.caption).foregroundStyle(.secondary)
             }
@@ -71,6 +76,38 @@ struct LinkTransformSettings: View {
                         .onSubmit { addWrapper() }
                     Button(text.addWrapper) { addWrapper() }.disabled(newWrapper == nil)
                 }
+            }
+            Section(text.shortenersHeader) {
+                ForEach(ShortenerHosts.builtIn, id: \.token) { entry in
+                    HStack {
+                        Toggle("", isOn: Binding(get: { !shortenerDisabled.contains(entry.token) },
+                                                 set: { setBuiltInShortener(entry, enabled: $0) }))
+                            .labelsHidden().fixedSize()
+                        Text(entry.site).font(.body.monospaced()).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 8)
+                        Text(text.builtInBadge).font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
+                if shortenerAdded.isEmpty {
+                    Text(text.shortenersEmpty).font(.caption).foregroundStyle(.secondary)
+                }
+                ForEach(shortenerAdded, id: \.token) { entry in
+                    HStack {
+                        Text(entry.site).font(.body.monospaced()).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 8)
+                        Button(role: .destructive) { removeShortener(entry) } label: { Image(systemName: "trash") }
+                            .buttonStyle(.borderless)
+                    }
+                }
+                HStack(spacing: 8) {
+                    TextField("", text: $newShortener, prompt: Text(verbatim: "go.example.com"))
+                        .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
+                        .accessibilityLabel(text.shortenerSiteLabel)
+                        .onSubmit { addShortener() }
+                    Button(text.addShortener) { addShortener() }.disabled(pendingShortener == nil)
+                }
+                Text(text.shortenerAddedNote).font(.caption).foregroundStyle(.secondary)
             }
             Section(text.rewritesSettingsHeader) {
                 if rewrites.isEmpty { Text(text.rewritesEmpty).font(.caption).foregroundStyle(.secondary) }
@@ -141,6 +178,36 @@ struct LinkTransformSettings: View {
         all.removeAll { $0.token == entry.token }
         WrapperStore.saveAdded(all)
         added = all
+    }
+
+    // MARK: Shorteners
+
+    private var pendingShortener: ShortenerEntry? {
+        ShortenerHosts.newEntry(from: newShortener,
+                                rules: ShortenerRules(added: shortenerAdded, disabled: shortenerDisabled))
+    }
+
+    private func setBuiltInShortener(_ entry: ShortenerEntry, enabled: Bool) {
+        var tokens = ShortenerStore.loadDisabled()
+        if enabled { tokens.remove(entry.token) } else { tokens.insert(entry.token) }
+        ShortenerStore.saveDisabled(tokens)
+        shortenerDisabled = tokens
+    }
+
+    private func addShortener() {
+        guard let entry = pendingShortener else { return }
+        var all = ShortenerStore.loadAdded()
+        all.append(entry)
+        ShortenerStore.saveAdded(all)
+        shortenerAdded = all
+        newShortener = ""
+    }
+
+    private func removeShortener(_ entry: ShortenerEntry) {
+        var all = ShortenerStore.loadAdded()
+        all.removeAll { $0.token == entry.token }
+        ShortenerStore.saveAdded(all)
+        shortenerAdded = all
     }
 
     // MARK: Rewrites
