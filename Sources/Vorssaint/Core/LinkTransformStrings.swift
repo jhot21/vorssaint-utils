@@ -77,7 +77,7 @@ extension LinkTransformFeatureStrings {
         cleanToggle: "Remove tracking parameters",
         unshortenChip: "Unshorten",
         unshortenToggle: "Resolve short links (contacts the shortener)",
-        unshortenNote: "The shortener sees the lookup and may count it as a click. Off by default.",
+        unshortenNote: "The shortener sees the lookup (your IP address and a generic browser identity) and may count it as a click. Your network can see which shortener you contact.",
         unshortenPending: "Resolving...",
         unshortenFailed: "Couldn’t resolve, using the short link",
         unshortenNoRedirect: "The short link didn’t redirect",
