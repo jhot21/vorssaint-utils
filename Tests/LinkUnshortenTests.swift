@@ -12,6 +12,7 @@ enum LinkUnshortenTests {
         runTransformSplit(suite)
         runChain(suite)
         runFetcher(suite)
+        runPipeline(suite)
     }
 
     private static func runChipAndKeys(_ suite: TestSuite) {
@@ -262,5 +263,72 @@ enum LinkUnshortenTests {
         }
         suite.expect(called && next == nil, "a redirect is never followed")
         session.invalidateAndCancel()
+    }
+
+    private final class CannedUnshortener: LinkUnshortening {
+        let outcome: UnshortenOutcome
+        private(set) var requested: [URL] = []
+        init(_ outcome: UnshortenOutcome) { self.outcome = outcome }
+        func resolve(_ url: URL, shorteners: ShortenerRules, completion: @escaping (UnshortenOutcome) -> Void) {
+            requested.append(url)
+            DispatchQueue.main.async { [outcome] in completion(outcome) }
+        }
+    }
+
+    private static func runPipeline(_ suite: TestSuite) {
+        let settings = TransformSettings()
+        func pipeline(_ link: String, _ chips: TransformChips, _ unshortener: LinkUnshortening?) -> PipelineOutcome {
+            var outcome: PipelineOutcome?
+            LinkPipeline.run(u(link), chips: chips, settings: settings, unshortener: unshortener) { outcome = $0 }
+            LinkRouterTestSupport.spin(timeout: 3) { outcome != nil }
+            return outcome!
+        }
+
+        // Clean sees the unshortened destination.
+        let canned = CannedUnshortener(.resolved(u("https://example.org/p?id=1&utm_source=x")))
+        let both = pipeline("https://bit.ly/a", [.unshorten, .clean], canned)
+        suite.expect(both.result.url == u("https://example.org/p?id=1")
+                        && both.result.unshortenedFrom == u("https://bit.ly/a")
+                        && both.result.beforeClean == u("https://example.org/p?id=1&utm_source=x")
+                        && both.result.removedParameters == ["utm_source"]
+                        && both.result.applied == [.unshorten, .clean] && both.unshorten == .resolved,
+                     "Clean runs on the unshortened destination and the result remembers the short link")
+
+        // A wrapper whose destination is a shortener: Extract first, then Unshorten.
+        let wrapped = CannedUnshortener(.resolved(u("https://example.org/p")))
+        let extracted = pipeline("https://l.facebook.com/l.php?u=https%3A%2F%2Fbit.ly%2Fabc", [.extract, .unshorten], wrapped)
+        suite.expect(wrapped.requested == [u("https://bit.ly/abc")]
+                        && extracted.result.extractedFrom != nil && extracted.result.unshortenedFrom == u("https://bit.ly/abc"),
+                     "the shortener found by Extract is the one looked up")
+
+        // Failure leaves the short link, and Clean still runs on it.
+        let failed = pipeline("https://bit.ly/a?utm_source=x", [.unshorten, .clean], CannedUnshortener(.failed(.timedOut)))
+        suite.expect(failed.result.url == u("https://bit.ly/a") && failed.result.unshortenedFrom == nil
+                        && failed.unshorten == .failed && failed.result.applied == [.clean],
+                     "a failed lookup keeps the short link and the other selected chips still apply")
+        let still = pipeline("https://bit.ly/a", [.unshorten], CannedUnshortener(.noRedirect))
+        suite.expect(still.unshorten == .noRedirect && still.result.url == u("https://bit.ly/a"),
+                     "a short link that does not redirect is reported and left alone")
+
+        // No lookup unless it is selected, offered by the link, and possible.
+        let idle = CannedUnshortener(.resolved(u("https://example.org/")))
+        _ = pipeline("https://bit.ly/a", [.clean], idle)
+        _ = pipeline("https://example.org/a", [.unshorten], idle)
+        suite.expect(idle.requested.isEmpty, "an unselected chip or a non-shortener never contacts anything")
+        suite.expect(pipeline("https://bit.ly/a", [.unshorten], nil).unshorten == .notRun,
+                     "without an unshortener the step is simply not run")
+
+        // The shared predicate.
+        suite.expect(LinkPipeline.needsLookup(u("https://bit.ly/a"), chips: [.unshorten], settings: settings)
+                        && !LinkPipeline.needsLookup(u("https://bit.ly/a"), chips: [.clean], settings: settings)
+                        && !LinkPipeline.needsLookup(u("https://example.org/a"), chips: [.unshorten], settings: settings),
+                     "a lookup is needed only when the chip is on and the link is a listed shortener")
+
+        // Preview.
+        var unshortened = TransformResult(url: u("https://example.org/p"), beforeClean: u("https://example.org/p"))
+        unshortened.unshortenedFrom = u("https://bit.ly/a")
+        let segments = LinkURLPreview.segments(mode: .full, result: unshortened, rewritten: nil)
+        suite.expect(segments.contains(URLSegment(text: "example.org", style: .changed)),
+                     "the preview highlights the host of an unshortened link")
     }
 }

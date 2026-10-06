@@ -152,6 +152,7 @@ enum LinkURLPreview {
         case .full:
             if rewritten != nil { return hostHighlighted(final) }
             if !result.removedParameters.isEmpty { return strikingRemoved(result.beforeClean, names: result.removedParameters) }
+            if result.unshortenedFrom != nil { return hostHighlighted(final) }
             return [URLSegment(text: final.absoluteString, style: .plain)]
         }
     }
