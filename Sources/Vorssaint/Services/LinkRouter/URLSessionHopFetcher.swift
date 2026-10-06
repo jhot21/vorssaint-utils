@@ -45,6 +45,14 @@ final class URLSessionHopFetcher: NSObject, HopFetching, URLSessionDataDelegate 
         return .redirect(target)
     }
 
+    /// Server trust must proceed, or no https lookup could verify its server
+    /// and every one would be cancelled. Any credential challenge (Basic,
+    /// Digest, NTLM, a client certificate) is cancelled: nothing is sent.
+    static func disposition(for challenge: URLAuthenticationChallenge) -> URLSession.AuthChallengeDisposition {
+        challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust
+            ? .performDefaultHandling : .cancelAuthenticationChallenge
+    }
+
     private var session: URLSession?
     private var task: URLSessionDataTask?
     private var completion: ((HopResponse) -> Void)?
@@ -94,6 +102,6 @@ final class URLSessionHopFetcher: NSObject, HopFetching, URLSessionDataDelegate 
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        completionHandler(.cancelAuthenticationChallenge, nil)
+        completionHandler(Self.disposition(for: challenge), nil)
     }
 }

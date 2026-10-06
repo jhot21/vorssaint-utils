@@ -263,6 +263,28 @@ enum LinkUnshortenTests {
         }
         suite.expect(called && next == nil, "a redirect is never followed")
         session.invalidateAndCancel()
+
+        func challenge(_ method: String) -> URLAuthenticationChallenge {
+            final class Sender: NSObject, URLAuthenticationChallengeSender {
+                func use(_ credential: URLCredential, for challenge: URLAuthenticationChallenge) {}
+                func continueWithoutCredential(for challenge: URLAuthenticationChallenge) {}
+                func cancel(_ challenge: URLAuthenticationChallenge) {}
+            }
+            let space = URLProtectionSpace(host: "bit.ly", port: 443, protocol: "https", realm: nil,
+                                           authenticationMethod: method)
+            return URLAuthenticationChallenge(protectionSpace: space, proposedCredential: nil,
+                                              previousFailureCount: 0, failureResponse: nil, error: nil,
+                                              sender: Sender())
+        }
+        suite.expect(URLSessionHopFetcher.disposition(for: challenge(NSURLAuthenticationMethodServerTrust))
+                        == .performDefaultHandling,
+                     "a server trust challenge gets the default handling, so https can be verified")
+        suite.expect(URLSessionHopFetcher.disposition(for: challenge(NSURLAuthenticationMethodHTTPBasic))
+                        == .cancelAuthenticationChallenge
+                        && URLSessionHopFetcher.disposition(for: challenge(NSURLAuthenticationMethodClientCertificate))
+                        == .cancelAuthenticationChallenge,
+                     "credential challenges are cancelled")
+
     }
 
     private final class CannedUnshortener: LinkUnshortening {
