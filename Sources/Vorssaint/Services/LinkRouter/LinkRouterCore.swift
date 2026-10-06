@@ -43,6 +43,7 @@ final class LinkRouterCore {
     private weak var environment: LinkRouterEnvironment?
     private let evaluator: RegexEvaluating
     private let replacer: RegexReplacing?
+    private let unshortener: LinkUnshortening?
     private let selfBundleID: String
 
     private(set) var isReady = false
@@ -54,10 +55,11 @@ final class LinkRouterCore {
     private var generation = 0
 
     init(environment: LinkRouterEnvironment, evaluator: RegexEvaluating, selfBundleID: String,
-         replacer: RegexReplacing? = nil) {
+         replacer: RegexReplacing? = nil, unshortener: LinkUnshortening? = nil) {
         self.environment = environment
         self.evaluator = evaluator
         self.replacer = replacer
+        self.unshortener = unshortener
         self.selfBundleID = selfBundleID
     }
 
@@ -104,21 +106,34 @@ final class LinkRouterCore {
         }
     }
 
-    /// Applies a rule's edits and opens the result. The rewrite is asynchronous,
-    /// so it re-checks the router state the same way the rule match above does:
-    /// if the router stopped meanwhile the original link goes to the fallback,
-    /// once, rather than a rewritten link nobody asked for.
+    /// Applies a rule's edits and opens the result. Unshorten and the rewrite
+    /// are asynchronous, so each re-checks the router state the same way the
+    /// rule match above does: if the router stopped meanwhile the original link
+    /// goes to the fallback, once, rather than an edited link nobody asked for.
     private func openThroughTransforms(_ url: URL, rule: RoutingRule, startedIn: Int) {
         guard let environment else { return }
         let prefs = environment.transformPrefs
-        let edited = LinkTransform.apply(url, chips: rule.chips ?? prefs.defaultChips, settings: prefs.settings)
+        LinkPipeline.run(url, chips: rule.chips ?? prefs.defaultChips, settings: prefs.settings,
+                         unshortener: unshortener) { [weak self] outcome in
+            guard let self, let environment = self.environment else { return }
+            guard self.generation == startedIn, environment.isFeatureOn else {
+                self.openFallback(url)
+                return
+            }
+            self.openRewritten(url, edited: outcome.result.url, rule: rule, startedIn: startedIn)
+        }
+    }
+
+    private func openRewritten(_ url: URL, edited: URL, rule: RoutingRule, startedIn: Int) {
+        guard let environment else { return }
+        let prefs = environment.transformPrefs
         guard let rewriteID = rule.rewriteID,
-              let rewrite = LinkRewrite.applicable(prefs.rewrites, to: edited.url).first(where: { $0.id == rewriteID }),
+              let rewrite = LinkRewrite.applicable(prefs.rewrites, to: edited).first(where: { $0.id == rewriteID }),
               let replacer else {
-            environment.open(edited.url, inBundleID: rule.browserBundleID)
+            environment.open(edited, inBundleID: rule.browserBundleID)
             return
         }
-        LinkRewrite.apply(rewrite, to: edited.url, replacer: replacer) { [weak self] outcome in
+        LinkRewrite.apply(rewrite, to: edited, replacer: replacer) { [weak self] outcome in
             guard let self, let environment = self.environment else { return }
             guard self.generation == startedIn, environment.isFeatureOn else {
                 self.openFallback(url)
@@ -128,10 +143,10 @@ final class LinkRouterCore {
             case .rewritten(let result):
                 environment.open(result, inBundleID: rule.browserBundleID)
             case .unchanged:
-                environment.open(edited.url, inBundleID: rule.browserBundleID)
+                environment.open(edited, inBundleID: rule.browserBundleID)
             case .failed(let failure):
                 if let flag = Self.flag(for: failure) { environment.flagRewrite(id: rewrite.id, flag: flag) }
-                environment.open(edited.url, inBundleID: rule.browserBundleID)
+                environment.open(edited, inBundleID: rule.browserBundleID)
             }
         }
     }

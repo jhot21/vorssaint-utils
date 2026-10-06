@@ -32,6 +32,16 @@ enum LinkRouterCoreTests {
         func complete(_ outcome: RegexReplaceOutcome) { let p = pending; pending = []; p.forEach { $0(outcome) } }
     }
 
+    private final class DeferredUnshortener: LinkUnshortening {
+        var pending: [(UnshortenOutcome) -> Void] = []
+        var requested: [URL] = []
+        func resolve(_ url: URL, shorteners: ShortenerRules, completion: @escaping (UnshortenOutcome) -> Void) {
+            requested.append(url)
+            pending.append(completion)
+        }
+        func complete(_ outcome: UnshortenOutcome) { let p = pending; pending = []; p.forEach { $0(outcome) } }
+    }
+
     private final class NeverRegex: RegexEvaluating {
         var outcome: RegexOutcome = .noMatch
         func evaluate(pattern: String, in text: String, completion: @escaping (RegexOutcome) -> Void) { completion(outcome) }
@@ -354,6 +364,46 @@ enum LinkRouterCoreTests {
             core.route(req("https://a.test/"))
             core.pickerDidChoose(URL(string: "https://a.test/")!, bundleID: "com.apple.Safari", saveRule: true, chips: [.clean])
             suite.expect(env.rules.first?.chips == nil, "chips equal to the global default are saved as unset")
+        }
+        // Auto-open with Unshorten: waits for the lookup, falls back if the router stopped meanwhile.
+        do {
+            let env = FakeEnv()
+            env.rules = [RoutingRule(pattern: "bit.ly", browserBundleID: "com.work", chips: [.unshorten])]
+            let unshortener = DeferredUnshortener()
+            let core = LinkRouterCore(environment: env, evaluator: NeverRegex(), selfBundleID: "me",
+                                      unshortener: unshortener)
+            core.setReady(); env.events = []
+            core.route(req("https://bit.ly/a"))
+            suite.expect(env.events.isEmpty && unshortener.requested == [URL(string: "https://bit.ly/a")!],
+                         "a rule with Unshorten waits for the lookup before opening")
+            unshortener.complete(.resolved(URL(string: "https://example.org/page?utm_source=x")!))
+            suite.expect(env.events == ["open:https://example.org/page?utm_source=x@com.work"],
+                         "the destination opens in the rule's browser, and only the rule's chips apply")
+
+            env.events = []
+            core.route(req("https://bit.ly/b"))
+            core.stopAll()
+            env.events = []
+            unshortener.complete(.resolved(URL(string: "https://example.org/b")!))
+            suite.expect(env.events == ["open:https://bit.ly/b@org.mozilla.firefox"],
+                         "a router stopped mid-lookup opens the original link once via the fallback")
+
+            env.events = []
+            core.route(req("https://bit.ly/c"))
+            unshortener.complete(.failed(.timedOut))
+            suite.expect(env.events == ["open:https://bit.ly/c@com.work"],
+                         "a failed lookup opens the short link in the rule's browser")
+        }
+        do {
+            let env = FakeEnv()
+            env.rules = [RoutingRule(pattern: "example.com", browserBundleID: "com.work", chips: [.unshorten])]
+            let unshortener = DeferredUnshortener()
+            let core = LinkRouterCore(environment: env, evaluator: NeverRegex(), selfBundleID: "me",
+                                      unshortener: unshortener)
+            core.setReady(); env.events = []
+            core.route(req("https://example.com/a"))
+            suite.expect(unshortener.requested.isEmpty && env.events == ["open:https://example.com/a@com.work"],
+                         "a rule with Unshorten never contacts a host that is not a listed shortener")
         }
     }
 }
