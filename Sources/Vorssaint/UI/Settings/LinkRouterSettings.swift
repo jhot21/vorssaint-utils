@@ -417,10 +417,11 @@ private struct RuleEditor: View {
                         .disabled(rule.chips == nil)
                     Toggle(transformText.unshortenChip, isOn: ruleChipBinding(.unshorten))
                         .disabled(rule.chips == nil)
-                    if rule.chips?.contains(.unshorten) == true {
+                    if effectiveChips.contains(.unshorten) {
                         Text(transformText.unshortenNote).font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityElement(children: .contain)
             }
             editorRow(transformText.ruleRewriteLabel) {
                 Picker("", selection: $rule.rewriteID) {
@@ -488,10 +489,16 @@ private struct RuleEditor: View {
         }
     }
 
+    /// What the rule actually applies: its own set, or the global default while
+    /// "Use default" is on. Writing a toggle always stores a concrete set.
+    private var effectiveChips: TransformChips {
+        rule.chips ?? TransformChips(rawValue: UserDefaults.standard.integer(forKey: DefaultsKey.linkRouterDefaultChips))
+    }
+
     private func ruleChipBinding(_ chip: TransformChips) -> Binding<Bool> {
-        Binding(get: { rule.chips?.contains(chip) ?? false },
+        Binding(get: { effectiveChips.contains(chip) },
                 set: { on in
-                    var chips = rule.chips ?? []
+                    var chips = effectiveChips
                     if on { chips.insert(chip) } else { chips.remove(chip) }
                     rule.chips = chips
                 })
