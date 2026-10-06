@@ -9,7 +9,7 @@ enum LinkTransformStringsTests {
             let strings = FeatureStrings.linkTransform(language)
             let values = Mirror(reflecting: strings).children.compactMap { $0.value as? String }
             let tag = language.rawValue
-            suite.expect(values.count == 39 && values.allSatisfy { !$0.isEmpty },
+            suite.expect(values.count == 50 && values.allSatisfy { !$0.isEmpty },
                          "link transform strings are complete (\(tag))")
             suite.expect(values.allSatisfy { !$0.contains("\u{2014}") },
                          "link transform strings contain no em dash (\(tag))")

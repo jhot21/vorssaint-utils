@@ -97,6 +97,7 @@ struct MetricsTests {
                 LinkRouterTransformTests.run(suite)
                 LinkTransformStringsTests.run(suite)
                 LinkPickerModelTests.run(suite)
+                LinkUnshortenTests.run(suite)
             }),
             ("notch", {
                 NotchTests.run(suite)

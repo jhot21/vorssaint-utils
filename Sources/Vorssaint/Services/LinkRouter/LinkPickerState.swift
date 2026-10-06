@@ -111,7 +111,7 @@ struct LinkPickerState: Equatable {
     }
 }
 
-/// `⌘`-letter bindings for one link: the two built-in chips and the rewrites
+/// `⌘`-letter bindings for one link: the built-in chips and the rewrites
 /// that apply to it.
 struct LinkPickerKeyMap: Equatable {
     var chips: [String: TransformChips]
@@ -120,7 +120,8 @@ struct LinkPickerKeyMap: Equatable {
     /// A rewrite whose key is a built-in chip's, reserved, malformed or already
     /// taken by an earlier rewrite gets no binding rather than shadowing one.
     static func make(rewrites: [RewriteRule]) -> LinkPickerKeyMap {
-        var map = LinkPickerKeyMap(chips: [RewriteKeys.extractKey: .extract, RewriteKeys.cleanKey: .clean],
+        var map = LinkPickerKeyMap(chips: [RewriteKeys.extractKey: .extract, RewriteKeys.cleanKey: .clean,
+                                           RewriteKeys.unshortenKey: .unshorten],
                                    rewrites: [:])
         for rule in rewrites where RewriteKeys.isValid(rule.key, among: [], editing: nil)
             && map.rewrites[rule.key] == nil {

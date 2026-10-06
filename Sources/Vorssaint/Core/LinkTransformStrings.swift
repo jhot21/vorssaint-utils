@@ -17,6 +17,17 @@ struct LinkTransformFeatureStrings {
     let defaultChipsHeader: String
     let extractToggle: String
     let cleanToggle: String
+    let unshortenChip: String
+    let unshortenToggle: String
+    let unshortenNote: String
+    let unshortenPending: String
+    let unshortenFailed: String
+    let unshortenNoRedirect: String
+    let shortenersHeader: String
+    let shortenersEmpty: String
+    let addShortener: String
+    let shortenerSiteLabel: String
+    let shortenerAddedNote: String
     let genericExtractToggle: String
     let genericExtractNote: String
     let wrappersHeader: String
@@ -64,6 +75,17 @@ extension LinkTransformFeatureStrings {
         defaultChipsHeader: "Edits applied by default",
         extractToggle: "Extract the destination from redirect links",
         cleanToggle: "Remove tracking parameters",
+        unshortenChip: "Unshorten",
+        unshortenToggle: "Resolve short links (contacts the shortener)",
+        unshortenNote: "The shortener sees the lookup and may count it as a click. Off by default.",
+        unshortenPending: "Resolving...",
+        unshortenFailed: "Couldn't resolve, using the short link",
+        unshortenNoRedirect: "The short link didn't redirect",
+        shortenersHeader: "Short link hosts",
+        shortenersEmpty: "No custom hosts.",
+        addShortener: "Add host",
+        shortenerSiteLabel: "Host",
+        shortenerAddedNote: "Added hosts are contacted when Unshorten runs.",
         genericExtractToggle: "Also try any link-valued parameter on unknown sites",
         genericExtractNote: "May pick the wrong link on some sites. Off by default.",
         wrappersHeader: "Redirect links",
@@ -80,7 +102,7 @@ extension LinkTransformFeatureStrings {
         rewriteFindLabel: "Find (regex)",
         rewriteReplaceLabel: "Replace with ($1 for groups)",
         rewriteKeyLabel: "Key",
-        rewriteKeyInvalid: "Use one unused letter. E, L and common shortcut letters are taken.",
+        rewriteKeyInvalid: "Use one unused letter. E, L, U and common shortcut letters are taken.",
         rewriteTestLabel: "Test link",
         rewriteTestResultFormat: "Result: %@",
         rewriteTestNoChange: "No change",

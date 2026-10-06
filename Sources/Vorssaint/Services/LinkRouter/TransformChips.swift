@@ -3,9 +3,10 @@
 
 import Foundation
 
-/// The two combinable link edits. Rewrites are a separate, exclusive choice.
+/// The combinable link edits. Rewrites are a separate, exclusive choice.
 struct TransformChips: OptionSet, Codable, Hashable {
     let rawValue: Int
     static let extract = TransformChips(rawValue: 1 << 0)
     static let clean = TransformChips(rawValue: 1 << 1)
+    static let unshorten = TransformChips(rawValue: 1 << 2)
 }

@@ -125,7 +125,7 @@ enum LinkRouterPickerTests {
         let reservedKeys = [RewriteRule(name: "E", find: "a", replacement: "b", key: "e"),
                             RewriteRule(name: "V", find: "a", replacement: "b", key: "v")]
         let clashMap = LinkPickerKeyMap.make(rewrites: [sealant, clash] + reservedKeys)
-        suite.expect(clashMap.rewrites == ["y": sealant.id] && clashMap.chips == ["e": .extract, "l": .clean],
+        suite.expect(clashMap.rewrites == ["y": sealant.id] && clashMap.chips == ["e": .extract, "l": .clean, "u": .unshorten],
                      "a duplicate, built-in or reserved rewrite key never maps; the first claim wins")
     }
 

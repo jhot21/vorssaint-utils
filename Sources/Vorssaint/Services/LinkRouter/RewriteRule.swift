@@ -54,6 +54,7 @@ enum RewriteStore {
 enum RewriteKeys {
     static let extractKey = "e"
     static let cleanKey = "l"
+    static let unshortenKey = "u"
     /// Edit and window shortcuts the picker must leave to the system and the
     /// search field: quit, close, minimise, hide, copy, paste, cut, select
     /// all, undo, and the settings key.
@@ -62,7 +63,7 @@ enum RewriteKeys {
     static func isValid(_ key: String, among rules: [RewriteRule], editing id: UUID?) -> Bool {
         guard key.count == 1, let scalar = key.unicodeScalars.first,
               scalar.value >= 97, scalar.value <= 122,
-              key != extractKey, key != cleanKey, !reserved.contains(key) else { return false }
+              key != extractKey, key != cleanKey, key != unshortenKey, !reserved.contains(key) else { return false }
         return !rules.contains { $0.key == key && $0.id != id }
     }
 
