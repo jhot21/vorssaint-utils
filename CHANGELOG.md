@@ -52,6 +52,7 @@ Dynamic Island adds a companion, an integrated Command Bar and Watch, while AI A
 
 - Option-Up and Option-Down move the current line or selected lines in Scratchpad, including inside Dynamic Island, and in the snippet editor.
 - Focus follows mouse can give a window keyboard focus without bringing it to the front. With raising turned off, it can also focus while the pointer moves instead of waiting for it to stop. Its hover delay can be set from 100 ms to three seconds.
+- Unshorten resolves links from known shorteners such as bit.ly before they open, without cookies or a referrer and without ever contacting the destination. Turn it on per link in the picker (Command-U), as a default, or in a rule; add your own shortener hosts. Settings → Link Router. Command-U now belongs to Unshorten, so a rewrite that used U as its key keeps working from the list but loses that shortcut until you give it another key.
 
 ### Changed
 - The switcher is named Window switcher, and physical screens are consistently called displays. Translated labels are more consistent too.
