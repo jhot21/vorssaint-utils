@@ -125,6 +125,14 @@ enum CommandBarPreferences {
         chromeBookmarksBrowserRowID, firefoxBookmarksBrowserRowID, safariBookmarksBrowserRowID,
     ]
 
+    /// The rows that open another category. They are the app's own actions,
+    /// but they carry the prefix of what they open, because that is where
+    /// they lead, so `source(ofRowID:)` files them under it and the Actions
+    /// list has to name them rather than read them off the prefix.
+    static let actionBrowseRowIDs: Set<String> = [
+        emojiBrowserRowID, killProcessBrowserRowID, "uninstall.browse", "uninstall.finder",
+    ]
+
     // MARK: - Sources
 
     static func disabledSources(from raw: String) -> Set<CommandBarSource> {
@@ -156,7 +164,13 @@ enum CommandBarPreferences {
     }
 
     static func isEnabled(_ source: CommandBarSource, disabledRaw: String) -> Bool {
-        source.isAlwaysOn || !disabledSources(from: disabledRaw).contains(source)
+        isEnabled(source, disabled: disabledSources(from: disabledRaw))
+    }
+
+    /// The same rule the empty bar and the search pool apply, over a set the
+    /// caller already holds rather than a string it would have to parse again.
+    static func isEnabled(_ source: CommandBarSource, disabled: Set<CommandBarSource>) -> Bool {
+        source.isAlwaysOn || !disabled.contains(source)
     }
 
     /// The source a row belongs to, decided by its id. Rows with no prefix of
@@ -166,6 +180,22 @@ enum CommandBarPreferences {
             if let prefix = source.idPrefix, id.hasPrefix(prefix) { return source }
         }
         return .actions
+    }
+
+    /// Whether the Actions browse list shows this row: everything with no
+    /// prefix of its own, plus the rows whose only way into another category
+    /// is that category's name.
+    static func isActionRow(_ id: String) -> Bool {
+        source(ofRowID: id) == .actions || actionBrowseRowIDs.contains(id)
+    }
+
+    /// Whether the Actions browse list shows this row, with the source rule
+    /// the empty bar and the search pool already apply. A row that opens
+    /// another category leads to that category's name, so with the category
+    /// switched off the row is the only place left that can still run it, and
+    /// that is exactly what the empty bar and the search pool refuse.
+    static func isActionRow(_ id: String, disabled: Set<CommandBarSource>) -> Bool {
+        isActionRow(id) && isEnabled(source(ofRowID: id), disabled: disabled)
     }
 
     /// What a kind of row is worth before a single letter of it is read.
@@ -235,6 +265,11 @@ enum CommandBarPreferences {
             next[rowID] = String(clean.prefix(60))
         }
         return next
+    }
+
+    static func removingAliases(for keys: Set<String>, in aliases: [String: String]) -> [String: String] {
+        guard !keys.isEmpty else { return aliases }
+        return aliases.filter { !keys.contains($0.key) }
     }
 
     /// How well what was typed names this alias. A name the person gave has
@@ -322,6 +357,11 @@ enum CommandBarPreferences {
         return next
     }
 
+    static func removingPins(for keys: Set<String>, in pins: [String]) -> [String] {
+        guard !keys.isEmpty else { return pins }
+        return pins.filter { !keys.contains($0) }
+    }
+
     /// What a pin is worth on a typed query: enough to win a tie between two
     /// equally good matches, never enough to jump over a better one. A pin
     /// that overrode the ranking would make the list feel stale, which is the
@@ -367,6 +407,11 @@ enum CommandBarPreferences {
         var next = hidden
         if next.contains(key) { next.remove(key) } else { next.insert(key) }
         return next
+    }
+
+    static func removingHidden(for keys: Set<String>, in hidden: Set<String>) -> Set<String> {
+        guard !keys.isEmpty else { return hidden }
+        return hidden.subtracting(keys)
     }
 
     // MARK: - Position
