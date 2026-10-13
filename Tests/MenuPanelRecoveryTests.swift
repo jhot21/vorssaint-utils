@@ -141,7 +141,7 @@ enum MenuPanelRecoveryTests {
         func setMicBadgeHeld(_ value: Bool) { held = value }
     }
     typealias MetricDetailKind = String
-    struct MenuBarMetric { let detailKind: String }
+    struct MenuBarMetric { let detailKind: String? }
     enum Module { case system }
     enum NotchSupport {
         static func routesAppPanel() -> Bool { false }
@@ -157,6 +157,8 @@ enum MenuPanelRecoveryTests {
         var activeMetric: String? = "network"
         var request: String?
         func focus(_ metric: String) { activeMetric = metric; request = metric }
+        enum Section { case calendar }
+        func focus(_ section: Section) { request = "\(section)" }
         var switching = false
         var popoverIsVisible = false
         func setSwitchingMetricAnchor(_ value: Bool) { switching = value }

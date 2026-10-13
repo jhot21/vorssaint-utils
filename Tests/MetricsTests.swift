@@ -26,14 +26,10 @@ struct MetricsTests {
                 ClipboardFeatureTests.run(suite)
                 PastePlainTests.run(suite)
             }),
-<<<<<<< HEAD
-            ("clipboard", { ClipboardFeatureTests.run(suite) }),
             ("calendar", {
                 CalendarFeatureTests.run(suite)
                 MeetingLinkFeatureTests.run(suite)
             }),
-=======
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
             ("pointer-input", {
                 PointerOnDisplayContract.run(suite)
                 PointerInputFeatureTests.run(suite)
@@ -97,7 +93,6 @@ struct MetricsTests {
                 RecorderExportRenderingTests.run(suite)
             }),
             ("command-bar", { CommandBarFeatureTests.run(suite) }),
-<<<<<<< HEAD
             ("link-router", {
                 LinkRouterMatcherTests.run(suite)
                 LinkRouterStorageTests.run(suite)
@@ -112,9 +107,7 @@ struct MetricsTests {
                 LinkTransformStringsTests.run(suite)
                 LinkPickerModelTests.run(suite)
             }),
-=======
             ("notch-music", { NotchMusicExtrasTests.run(suite) }),
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
             ("notch", {
                 NotchTests.run(suite)
                 NotchCompactTests.run(suite)

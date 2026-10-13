@@ -237,7 +237,7 @@ private struct UpdateSupportContent: View {
                 .foregroundStyle(.tertiary)
 
             Button {
-                openURL(AppInfo.repositoryURL)
+                LinkOpener.open(AppInfo.repositoryURL)
             } label: {
                 Label(l10n.s.supportIntroStarHint, systemImage: "star")
                     .font(.caption)

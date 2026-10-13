@@ -87,9 +87,7 @@ enum ClipboardFeatureTests {
 
     static func run(_ suite: TestSuite) {
         ClipboardPreviewContract.run(suite)
-<<<<<<< HEAD
         ClipboardLinkTests.run(suite)
-=======
         let source = SourceHost()
         func sourceCheck(declared: String? = nil, remote: Bool = false,
                          panelIsKey: Bool = false, panelClosing: Bool = false)
@@ -189,7 +187,6 @@ enum ClipboardFeatureTests {
                      && cleanerBoard.string(forType: .source) == nil,
                      "a rewritten copy that named no app gains no mark, so the app that copied it is still credited")
         cleanerBoard.releaseGlobally()
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
         func expectEqual(_ actual: String, _ expected: String, _ label: String,
                          file: StaticString = #filePath, line: UInt = #line) {
             suite.expect(actual == expected, "\(label): got \(actual), expected \(expected)",

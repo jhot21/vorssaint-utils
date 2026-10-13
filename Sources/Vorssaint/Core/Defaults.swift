@@ -554,13 +554,9 @@ enum DefaultsKey {
     static let clipboardHistoryIncludeImagesFiles = "clipboardHistoryIncludeImagesFiles" // capture copied images and files too
     static let clipboardHistoryIgnoredApps = "clipboardHistoryIgnoredApps" // apps whose copies are never saved
     static let clipboardHistoryQuickPreview = "clipboardHistoryQuickPreview"
-<<<<<<< HEAD
     static let clipboardHistoryPasteAfterSelect = "clipboardHistoryPasteAfterSelect" // false: selecting an entry only copies it
-    static let clipboardHistoryWindowWidth = "clipboardHistoryWindowWidth"
-=======
     static let clipboardHistoryLayout = "clipboardHistoryLayout" // cards | list, how the history window shows entries
     static let clipboardHistoryWindowWidth = "clipboardHistoryWindowWidth" // the list window's chosen size
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
     static let clipboardHistoryWindowHeight = "clipboardHistoryWindowHeight"
     static let clipboardHistoryMenuBarPreview = "clipboardHistoryMenuBarPreview" // show latest copy next to the menu bar icon
     static let clipboardHistoryMenuBarPreviewLength = "clipboardHistoryMenuBarPreviewLength" // characters shown before truncating
@@ -1764,11 +1760,8 @@ enum Defaults {
         DefaultsKey.clipboardHistoryIgnoredApps: [String](),
         DefaultsKey.windowLayoutIgnoredApps: [String](),
         DefaultsKey.clipboardHistoryQuickPreview: false,
-<<<<<<< HEAD
         DefaultsKey.clipboardHistoryPasteAfterSelect: true,
-=======
         DefaultsKey.clipboardHistoryLayout: ClipboardHistoryLayout.list.rawValue,
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
         DefaultsKey.clipboardHistoryWindowWidth: 0.0,
         DefaultsKey.clipboardHistoryWindowHeight: 0.0,
         DefaultsKey.clipboardHistoryMenuBarPreview: false,

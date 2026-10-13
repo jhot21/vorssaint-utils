@@ -413,25 +413,8 @@ private struct QuickEntryView: View, Equatable {
     }
 
     var body: some View {
-<<<<<<< HEAD
-        HStack(alignment: .center, spacing: 9) {
-            Button {
-                history.toggleQuickBatchSelection(entry)
-            } label: {
-                leadingMarker(entry: entry,
-                              isBatchSelected: isBatchSelected,
-                              isHovered: isHovered)
-            }
-            .buttonStyle(.plain)
-            .help(isBatchSelected ? text.unselectMultiple : text.selectMultiple)
-
-            entryContent(entry)
-            Spacer(minLength: 8)
-            entryTrailing(entry, shortcutIndex: shortcutIndex, isHovered: isHovered, isSelected: isSelected)
-=======
         Group {
             if isRow { row } else { card }
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
         }
         .contentShape(Rectangle())
         .contextMenu { entryActions(entry) }
@@ -476,7 +459,7 @@ private struct QuickEntryView: View, Equatable {
             selectionButton
             entryContent(entry)
             Spacer(minLength: 8)
-            entryTrailing(entry, isHovered: isHovered)
+            entryTrailing(entry, shortcutIndex: shortcutIndex, isHovered: isHovered, isSelected: isSelected)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -543,7 +526,7 @@ private struct QuickEntryView: View, Equatable {
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
-            entryTrailing(entry, isHovered: isHovered)
+            entryTrailing(entry, shortcutIndex: shortcutIndex, isHovered: isHovered, isSelected: isSelected)
         }
         .padding(.horizontal, 6)
         .frame(height: 34)
@@ -677,14 +660,10 @@ private struct QuickEntryView: View, Equatable {
     }
 
     @ViewBuilder
-<<<<<<< HEAD
     private func entryTrailing(_ entry: ClipboardHistoryEntry,
                                shortcutIndex: Int?,
                                isHovered: Bool,
                                isSelected: Bool) -> some View {
-=======
-    private func entryTrailing(_ entry: ClipboardHistoryEntry, isHovered: Bool) -> some View {
->>>>>>> fe24c1766d568b132c1c78c554cc422381a3a17d
         if isHovered {
             HStack(spacing: 4) {
                 if entry.kind == .image, AppFeature.screenshot.isAvailable {
