@@ -385,11 +385,13 @@ if (( TEST )); then
         Sources/Vorssaint/Core/NotchActivityStrings.swift
         Sources/Vorssaint/Services/Notch/NotchTimerSupport.swift
         Sources/Vorssaint/Services/Notch/NotchTimerAlert.swift
+        Sources/Vorssaint/UI/Notch/NotchIslandAlert.swift
         Sources/Vorssaint/Services/Notch/NotchAccessorySupport.swift
         Sources/Vorssaint/Services/QuickTools/CameraPreviewSupport.swift
         Sources/Vorssaint/Core/NotchMusicExtrasStrings.swift
         Sources/Vorssaint/Services/Notch/NotchLyricsSupport.swift
         Sources/Vorssaint/Services/Notch/NotchQueueSupport.swift
+        Sources/Vorssaint/Services/Notch/NotchPreferredPlayer.swift
         Sources/Vorssaint/Core/NotchFilesStrings.swift
         Sources/Vorssaint/Core/NotchWatchStrings.swift
         Sources/Vorssaint/Services/Notch/NotchWatchSupport.swift
@@ -427,6 +429,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Notch/NotchAudioLevelSupport.swift
         Sources/Vorssaint/Services/Notch/NotchVolumeKeyGate.swift
         Sources/Vorssaint/Services/Notch/NotchMusicSupport.swift
+        Sources/Vorssaint/UI/Notch/NotchDecorativeClock.swift
         Sources/Vorssaint/UI/Notch/NotchEqualizerBars.swift
         Sources/Vorssaint/UI/Notch/NotchScrollEdgeFade.swift
         Sources/Vorssaint/UI/Notch/NotchAgentAnimationView.swift
@@ -465,6 +468,7 @@ if (( TEST )); then
         Sources/Vorssaint/Core/GeneralSettingsStrings.swift
         Sources/Vorssaint/Core/SettingsPageStrings.swift
         Sources/Vorssaint/Core/BatteryTimeStrings.swift
+        Sources/Vorssaint/Core/CPUCoreStrings.swift
         Sources/Vorssaint/Core/MonitorLayoutStrings.swift
         Sources/Vorssaint/Core/KeepAwakeStrings.swift
         Sources/Vorssaint/Core/BluetoothSleepStrings.swift
@@ -642,6 +646,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/KeepAwakeAutomationSupport.swift
         Sources/Vorssaint/Services/SudoersSupport.swift
         Sources/Vorssaint/Services/Metrics/BatteryTimeSupport.swift
+        Sources/Vorssaint/Services/Metrics/BatteryPowerSupport.swift
         Sources/Vorssaint/Services/BoundedProcessRunner.swift
         Sources/Vorssaint/Services/DetachedProcess.swift
         Sources/Vorssaint/Services/ShellSupport.swift
@@ -655,6 +660,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Metrics/DiskSupport.swift
         Sources/Vorssaint/Services/Metrics/MonitorSamplingPolicy.swift
         Sources/Vorssaint/Services/Metrics/USBDeviceSampler.swift
+        Sources/Vorssaint/Services/Metrics/CPUCoreSampler.swift
         Sources/Vorssaint/Services/Metrics/MaxCapacityProbe.swift
         Sources/Vorssaint/Services/Metrics/TemperatureSensorSelector.swift
         Sources/Vorssaint/Services/Metrics/SustainedAlertGate.swift
@@ -663,6 +669,7 @@ if (( TEST )); then
         Sources/Vorssaint/Core/WindowDirectionalStrings.swift
         Sources/Vorssaint/Core/PointerDisplayStrings.swift
         Sources/Vorssaint/Core/GraphScaleStrings.swift
+        Sources/Vorssaint/Core/NotchLowBatteryStrings.swift
         Sources/Vorssaint/Services/CleaningMode/CleaningUnlockCounter.swift
         Sources/Vorssaint/Services/CleaningMode/CleaningMouseReleaseGate.swift
         Sources/Vorssaint/Services/Display/ExtraBrightnessSupport.swift
@@ -689,6 +696,7 @@ if (( TEST )); then
     if (( ${#TEST_ARGS} == 0 )); then
         ./Tests/PreferenceCleanupTests.sh || test_status=1
         ./Tests/UninstallSpacesTests.sh || test_status=1
+        ./Tests/DeveloperInstallIsolationTests.sh || test_status=1
     fi
     discard_test_preferences || test_status=1
     exit $test_status
@@ -1017,16 +1025,18 @@ if (( INSTALL )); then
         echo "▸ Stopping the running $APP_NAME…"
     fi
     stop_process "$EXECUTABLE"
-    # Remove the pre-rename apps so two menu bar items never coexist. Same bundle
-    # id, so macOS keeps the granted permissions for the new bundle.
-    for legacy in "Vorss:Vorss" "Vorssaint Utils:VorssaintUtils"; do
-        name="${legacy%%:*}"; proc="${legacy##*:}"
-        if [[ -d "/Applications/$name.app" ]]; then
-            stop_process "$proc"
-            rm -rf "/Applications/$name.app"
-            echo "  (legacy $name.app removed)"
-        fi
-    done
+    # Only an official install replaces the pre-rename official apps. The
+    # Developer variant must coexist with them just as it does with Vorssaint.
+    if (( ! DEV )); then
+        for legacy in "Vorss:Vorss" "Vorssaint Utils:VorssaintUtils"; do
+            name="${legacy%%:*}"; proc="${legacy##*:}"
+            if [[ -d "/Applications/$name.app" ]]; then
+                stop_process "$proc"
+                rm -rf "/Applications/$name.app"
+                echo "  (legacy $name.app removed)"
+            fi
+        done
+    fi
     INSTALL_DEST="/Applications/$APP_NAME.app"
     rm -rf "$INSTALL_DEST"
     ditto --noextattr --noqtn "$STAGE" "$INSTALL_DEST"

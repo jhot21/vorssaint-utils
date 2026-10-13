@@ -206,11 +206,13 @@ enum MenuBarSegment {
     case text(String)
     case symbol(String)
     case largeSymbol(String)
-    case metricBlock(label: String, value: String, minimumValue: String, style: MenuBarBlockStyle, pressure: MemoryPressure?)
+    case metricBlock(label: String, value: String, minimumValue: String, style: MenuBarBlockStyle,
+                     pressure: MemoryPressure?, warning: BatteryWarning = .none)
     case usageBarBlock(label: String, fraction: Double?, style: MenuBarBlockStyle, pressure: MemoryPressure?)
     case networkBlock(down: String, up: String, style: MenuBarBlockStyle)
     case diskActivityBlock(read: String, write: String, style: MenuBarBlockStyle)
-    case batteryBlock(percent: Int, isCharging: Bool, style: MenuBarBlockStyle)
+    case batteryBlock(percent: Int, isCharging: Bool, externalConnected: Bool,
+                      warning: BatteryWarning = .none, style: MenuBarBlockStyle)
     case dot(MemoryPressure)
     case separator
 }
@@ -233,7 +235,7 @@ enum MenuBarRenderer {
     private static let glyphAndButtonChrome: CGFloat = 26
     private static let separatorWidth = 3
     private static let rateBlockReservedLines = [
-        "↓8888B", "↑8888B", "R8888B", "W8888B",
+        "↓999Kb", "↑999Kb", "R8888B", "W8888B",
         "↓8888M", "↑8888M", "R8888M", "W8888M",
     ]
     private static let blockImageCache: NSCache<NSString, NSImage> = {
@@ -479,8 +481,8 @@ enum MenuBarRenderer {
                 }
             case .network:
                 if let down = snapshot.netDownBytesPerSec, let up = snapshot.netUpBytesPerSec {
-                    groups.append([.networkBlock(down: MetricFormat.bytesPerSecCompact(down),
-                                                 up: MetricFormat.bytesPerSecCompact(up),
+                    groups.append([.networkBlock(down: MetricFormat.networkRateCompact(down),
+                                                 up: MetricFormat.networkRateCompact(up),
                                                  style: style)])
                 }
             case .diskUsage:
@@ -521,10 +523,13 @@ enum MenuBarRenderer {
                                                     value: value,
                                                     minimumValue: "100% 999°",
                                                     style: style,
-                                                    pressure: nil)])
+                                                    pressure: nil,
+                                                    warning: batteryWarning(for: snapshot.power))])
                     } else if let chargePercent = enabled.contains(.battery) ? snapshot.power?.chargePercent : nil {
                         groups.append([.batteryBlock(percent: chargePercent,
                                                      isCharging: snapshot.power?.isCharging ?? false,
+                                                     externalConnected: snapshot.power?.externalConnected ?? false,
+                                                     warning: batteryWarning(for: snapshot.power),
                                                      style: style)])
                     } else if let temperature {
                         groups.append([.metricBlock(label: temperatureLabel("BAT"),
@@ -548,6 +553,8 @@ enum MenuBarRenderer {
                 if let charge = snapshot.power?.chargePercent {
                     groups.append([.batteryBlock(percent: charge,
                                                  isCharging: snapshot.power?.isCharging ?? false,
+                                                 externalConnected: snapshot.power?.externalConnected ?? false,
+                                                 warning: batteryWarning(for: snapshot.power),
                                                  style: style)])
                 }
             case .batteryTime:
@@ -724,7 +731,7 @@ enum MenuBarRenderer {
         case (_, .peripheralBattery):
             return 12      // symbol + " KBD 100%+9"
         case (_, .network):
-            return 15      // down symbol + 1.0G + up symbol + 1.0G
+            return 15      // down symbol + 999Kb/1023K + up symbol + 999Kb/1023K
         case (_, .diskUsage):
             return DiskMenuBarStyle.current.showsPercentage ? 11 : 14
         case (_, .diskActivity):
@@ -791,12 +798,13 @@ enum MenuBarRenderer {
                 result.append(symbolAttachment(named: name, stacked: stacked))
             case let .largeSymbol(name):
                 result.append(symbolAttachment(named: name, stacked: stacked, enlarged: true))
-            case let .metricBlock(label, value, minimumValue, style, pressure):
+            case let .metricBlock(label, value, minimumValue, style, pressure, warning):
                 result.append(metricBlockAttachment(label: label,
                                                     value: value,
                                                     minimumValue: minimumValue,
                                                     style: style,
-                                                    pressure: pressure))
+                                                    pressure: pressure,
+                                                    warning: warning))
             case let .usageBarBlock(label, fraction, style, pressure):
                 result.append(usageBarBlockAttachment(label: label,
                                                       fraction: fraction,
@@ -806,9 +814,11 @@ enum MenuBarRenderer {
                 result.append(networkBlockAttachment(down: down, up: up, style: style))
             case let .diskActivityBlock(read, write, style):
                 result.append(diskActivityBlockAttachment(read: read, write: write, style: style))
-            case let .batteryBlock(percent, isCharging, style):
+            case let .batteryBlock(percent, isCharging, externalConnected, warning, style):
                 result.append(batteryBlockAttachment(percent: percent,
                                                      isCharging: isCharging,
+                                                     externalConnected: externalConnected,
+                                                     warning: warning,
                                                      style: style))
             case let .dot(pressure):
                 result.append(NSAttributedString(string: "●", attributes: [.foregroundColor: nsColor(for: pressure)]))
@@ -851,12 +861,14 @@ enum MenuBarRenderer {
                                               value: String,
                                               minimumValue: String,
                                               style: MenuBarBlockStyle,
-                                              pressure: MemoryPressure?) -> NSAttributedString {
+                                              pressure: MemoryPressure?,
+                                              warning: BatteryWarning) -> NSAttributedString {
         let image = metricBlockImage(label: label,
                                      value: value,
                                      minimumValue: minimumValue,
                                      style: style,
-                                     pressure: pressure)
+                                     pressure: pressure,
+                                     warning: warning)
         let attachment = NSTextAttachment()
         attachment.image = image
         attachment.bounds = NSRect(x: 0,
@@ -912,9 +924,13 @@ enum MenuBarRenderer {
 
     private static func batteryBlockAttachment(percent: Int,
                                                isCharging: Bool,
+                                               externalConnected: Bool,
+                                               warning: BatteryWarning,
                                                style: MenuBarBlockStyle) -> NSAttributedString {
         let image = batteryBlockImage(percent: percent,
                                       isCharging: isCharging,
+                                      externalConnected: externalConnected,
+                                      warning: warning,
                                       style: style)
         let attachment = NSTextAttachment()
         attachment.image = image
@@ -929,7 +945,8 @@ enum MenuBarRenderer {
                                          value: String,
                                          minimumValue reservedValue: String,
                                          style: MenuBarBlockStyle,
-                                         pressure: MemoryPressure?) -> NSImage {
+                                         pressure: MemoryPressure?,
+                                         warning: BatteryWarning) -> NSImage {
         // Compact spacing hugs the value's digit count (with a stability
         // floor, see MenuBarSpacingSupport) instead of the metric's absolute
         // maximum; the reserve participates in the cache key, so both modes
@@ -938,7 +955,7 @@ enum MenuBarRenderer {
             ? MenuBarSpacingSupport.compactReserve(label: label, value: value)
             : reservedValue
         let pressureKey = pressure.map(String.init(describing:)) ?? "none"
-        let cacheKey = "metric|\(label)|\(value)|\(minimumValue)|\(style)|\(pressureKey)" as NSString
+        let cacheKey = "metric|\(label)|\(value)|\(minimumValue)|\(style)|\(pressureKey)|\(warning)" as NSString
         if let cached = blockImageCache.object(forKey: cacheKey) { return cached }
 
         let labelFont = NSFont.systemFont(ofSize: style == .readable ? 7.2 : 6.6, weight: .medium)
@@ -960,7 +977,8 @@ enum MenuBarRenderer {
             NSColor.clear.setFill()
             rect.fill()
             let labelAttrs = dynamicTextAttributes(font: labelFont)
-            let valueAttrs = dynamicTextAttributes(font: valueFont)
+            var valueAttrs = dynamicTextAttributes(font: valueFont)
+            if let warningColor = nsColor(for: warning) { valueAttrs[.foregroundColor] = warningColor }
             (label as NSString).draw(at: NSPoint(x: (width - labelSize.width) / 2,
                                      y: style == .readable ? 12.9 : 12.0),
                                      withAttributes: labelAttrs)
@@ -1138,12 +1156,17 @@ enum MenuBarRenderer {
 
     private static func batteryBlockImage(percent: Int,
                                           isCharging: Bool,
+                                          externalConnected: Bool,
+                                          warning: BatteryWarning,
                                           style: MenuBarBlockStyle) -> NSImage {
         let clampedPercent = max(0, min(100, percent))
-        let cacheKey = "battery|\(clampedPercent)|\(isCharging)|\(style)" as NSString
+        let cacheKey = "battery|\(clampedPercent)|\(isCharging)|\(externalConnected)|\(warning)|\(style)" as NSString
         if let cached = blockImageCache.object(forKey: cacheKey) { return cached }
 
-        let symbolName = batterySymbol(for: percent, isCharging: isCharging)
+        let symbolName = BatteryPowerSupport.menuBarSymbol(percent: percent,
+                                                           isCharging: isCharging,
+                                                           externalConnected: externalConnected)
+        let warningColor = nsColor(for: warning)
         let symbolPointSize: CGFloat = style == .readable ? 17.0 : 15.5
         let valueFont = NSFont.monospacedDigitSystemFont(ofSize: style == .readable ? 13.0 : 12.0,
                                                          weight: .semibold)
@@ -1159,7 +1182,7 @@ enum MenuBarRenderer {
             NSColor.clear.setFill()
             rect.fill()
             let symbolConfig = NSImage.SymbolConfiguration(pointSize: symbolPointSize, weight: .regular)
-                .applying(NSImage.SymbolConfiguration(paletteColors: [.labelColor]))
+                .applying(NSImage.SymbolConfiguration(paletteColors: [warningColor ?? .labelColor]))
             if let symbol = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
                 .withSymbolConfiguration(symbolConfig) {
                 let symbolSize = symbol.size
@@ -1176,7 +1199,8 @@ enum MenuBarRenderer {
                                         height: drawSize.height)
                 symbol.draw(in: symbolRect)
             }
-            let valueAttrs = dynamicTextAttributes(font: valueFont)
+            var valueAttrs = dynamicTextAttributes(font: valueFont)
+            if let warningColor { valueAttrs[.foregroundColor] = warningColor }
             let valueY = (height - valueSize.height) / 2
             (value as NSString).draw(at: NSPoint(x: symbolWidth + gap, y: valueY),
                                      withAttributes: valueAttrs)
@@ -1191,14 +1215,17 @@ enum MenuBarRenderer {
         [.font: font, .foregroundColor: NSColor.labelColor]
     }
 
-    static func batterySymbol(for percent: Int, isCharging: Bool) -> String {
-        if isCharging { return "battery.100.bolt" }
-        switch percent {
-        case 85...: return "battery.100"
-        case 60..<85: return "battery.75"
-        case 35..<60: return "battery.50"
-        case 10..<35: return "battery.25"
-        default: return "battery.0"
+    /// The island's low battery warning, which the menu bar reading shares.
+    private static func batteryWarning(for power: PowerReading?) -> BatteryWarning {
+        NotchSupport.menuBarBatteryWarning(percent: power?.chargePercent,
+                                           externalConnected: power?.externalConnected ?? false)
+    }
+
+    static func nsColor(for warning: BatteryWarning) -> NSColor? {
+        switch warning {
+        case .low: return .systemRed
+        case .early: return .systemOrange
+        case .none: return nil
         }
     }
 
