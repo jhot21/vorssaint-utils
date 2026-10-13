@@ -18,6 +18,7 @@ INSTALL=1
 STAGE="$install_test_dir/stage"
 stopped=()
 signed=()
+process_is_running() { return 0; }
 stop_process() { stopped+=("$1"); }
 sign_installed_bundle() { signed+=("$1"); }
 
