@@ -19,6 +19,7 @@ enum LinkRouterGuardTests {
         "UI/MenuPanel/DiskSection.swift": 2,
         "UI/Cleaner/CleanerView.swift": 1,
         "UI/Shelf/ShelfTilesView.swift": 1,
+        "UI/Notch/NotchDownloadsView.swift": 1,
         "Services/QuickTools/RecentCaptureService.swift": 1,
         "Services/RadialMenu/RadialMenuService.swift": 1,
         "Services/CommandBar/CommandBarCatalog.swift": 3,
