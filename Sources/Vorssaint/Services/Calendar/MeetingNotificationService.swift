@@ -23,6 +23,10 @@ final class MeetingNotificationService: NSObject, ObservableObject {
     private var subscription: AnyCancellable?
     private var scheduledEventIDs: Set<String> = []
     private let reconcileQueue = DispatchQueue(label: "com.vorssaint.meeting-join.reconcile")
+    /// Single timer armed at the earliest auto-dismiss deadline. CalendarService's
+    /// own refresh only fires at event start/end boundaries (or every 15 min),
+    /// which would make a "5 minutes" setting land late. Touched only on `reconcileQueue`.
+    private var dismissTimer: DispatchSourceTimer?
 
     private override init() { super.init() }
 
@@ -35,7 +39,10 @@ final class MeetingNotificationService: NSObject, ObservableObject {
                 guard let self else { return }
                 let offset = MeetingJoinNotifyOffset(rawValue: UserDefaults.standard.string(
                     forKey: DefaultsKey.meetingJoinNotifyOffset) ?? "") ?? .atStart
-                self.reconcileQueue.async { self.reconcile(events: events, offset: offset) }
+                self.reconcileQueue.async {
+                    self.sweepShownAlerts()
+                    self.reconcile(events: events, offset: offset)
+                }
             }
     }
 
@@ -49,6 +56,43 @@ final class MeetingNotificationService: NSObject, ObservableObject {
     /// stale on the first reconcile after resubscribing.
     func stop() {
         subscription = nil
+        reconcileQueue.async { self.dismissTimer?.cancel(); self.dismissTimer = nil }
+    }
+
+    /// Clears delivered alerts whose meeting started more than the configured
+    /// window ago and re-arms the timer for the next deadline. Runs before
+    /// `reconcile`'s empty-diff early return, since the ticks that matter
+    /// mid-meeting usually have nothing to add or remove. Deliberately keyed
+    /// off the start time frozen into each notification rather than
+    /// `CalendarService.events`, which drops cancelled, rescheduled and
+    /// yesterday's events while their alerts may still be on screen.
+    /// Must run on `reconcileQueue`.
+    private func sweepShownAlerts() {
+        dismissTimer?.cancel(); dismissTimer = nil
+        let dismissAfter = MeetingJoinDismissAfter(rawValue: UserDefaults.standard.string(
+            forKey: DefaultsKey.meetingJoinDismissAfter) ?? "") ?? .off
+        guard dismissAfter != .off else { return }
+        Notifier.shownMeetingJoins { [weak self] delivered, pending in
+            guard let self else { return }
+            self.reconcileQueue.async {
+                let now = Date()
+                Notifier.dismissDeliveredMeetingJoins(
+                    ids: MeetingLinkSupport.expiredAlertIDs(delivered, dismissAfter: dismissAfter, now: now))
+                self.armDismissTimer(after: MeetingLinkSupport.nextDismissDeadline(
+                    delivered + pending, dismissAfter: dismissAfter, now: now))
+            }
+        }
+    }
+
+    private func armDismissTimer(after deadline: Date?) {
+        dismissTimer?.cancel(); dismissTimer = nil
+        guard subscription != nil, let deadline else { return }
+        let timer = DispatchSource.makeTimerSource(queue: reconcileQueue)
+        // Small slack so the deadline has certainly passed when the sweep re-evaluates it.
+        timer.schedule(deadline: .now() + max(0, deadline.timeIntervalSinceNow) + 0.5)
+        timer.setEventHandler { [weak self] in self?.sweepShownAlerts() }
+        dismissTimer = timer
+        timer.resume()
     }
 
     private func reconcile(events: [CalendarEvent], offset: MeetingJoinNotifyOffset) {

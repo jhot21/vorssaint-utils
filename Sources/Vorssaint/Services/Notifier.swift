@@ -14,6 +14,7 @@ enum Notifier {
         "com.vorssaint.notification.whatsapp-organizer"
     static let meetingJoinCategoryIdentifier = "com.vorssaint.notification.meeting-join"
     private static let meetingJoinEventIDKey = "com.vorssaint.notification.meeting-join.event-id"
+    private static let meetingJoinStartKey = "com.vorssaint.notification.meeting-join.start"
     private static let meetingJoinProviderKey = "com.vorssaint.notification.meeting-join.provider"
     private static let meetingJoinBrowserURLKey = "com.vorssaint.notification.meeting-join.browser-url"
     private static let meetingJoinNativeURLKey = "com.vorssaint.notification.meeting-join.native-url"
@@ -106,6 +107,7 @@ enum Notifier {
             content.sound = .default
             var userInfo: [AnyHashable: Any] = [
                 meetingJoinEventIDKey: event.id,
+                meetingJoinStartKey: event.start.timeIntervalSince1970,
                 meetingJoinProviderKey: link.provider.rawValue,
                 meetingJoinBrowserURLKey: link.browserURL.absoluteString,
             ]
@@ -130,6 +132,34 @@ enum Notifier {
     /// already fired or was never scheduled.
     static func removeMeetingJoin(eventID: String) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [eventID])
+    }
+
+    /// Meeting-join alerts currently in Notification Center plus those still
+    /// pending, as `(delivered, pending)`. The start time comes from the
+    /// frozen `userInfo`; alerts scheduled by an older build lack it and are
+    /// skipped, so they simply never auto-dismiss.
+    static func shownMeetingJoins(
+        completion: @escaping (_ delivered: [MeetingLinkSupport.ShownAlert],
+                               _ pending: [MeetingLinkSupport.ShownAlert]) -> Void) {
+        let center = UNUserNotificationCenter.current()
+        func alert(_ content: UNNotificationContent, id: String) -> MeetingLinkSupport.ShownAlert? {
+            guard content.categoryIdentifier == meetingJoinCategoryIdentifier,
+                  let seconds = content.userInfo[meetingJoinStartKey] as? TimeInterval else { return nil }
+            return MeetingLinkSupport.ShownAlert(id: id, start: Date(timeIntervalSince1970: seconds))
+        }
+        center.getDeliveredNotifications { delivered in
+            center.getPendingNotificationRequests { pending in
+                completion(
+                    delivered.compactMap { alert($0.request.content, id: $0.request.identifier) },
+                    pending.compactMap { alert($0.content, id: $0.identifier) })
+            }
+        }
+    }
+
+    /// Removes already-delivered meeting-join alerts from Notification Center.
+    static func dismissDeliveredMeetingJoins(ids: [String]) {
+        guard !ids.isEmpty else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ids)
     }
 
     /// The event id a tapped meeting-join notification was scheduled for,

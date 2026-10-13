@@ -43,6 +43,24 @@ enum MeetingJoinNotifyOffset: String, CaseIterable, Sendable {
     }
 }
 
+/// How long after a meeting's start its alert stays in Notification Center
+/// before Vorssaint clears it. Raw values are the persisted
+/// `DefaultsKey.meetingJoinDismissAfter` value — stable once shipped.
+enum MeetingJoinDismissAfter: String, CaseIterable, Sendable {
+    case off, fiveMinutes, tenMinutes, fifteenMinutes, thirtyMinutes
+
+    /// nil means never auto-dismiss.
+    var seconds: TimeInterval? {
+        switch self {
+        case .off: return nil
+        case .fiveMinutes: return 300
+        case .tenMinutes: return 600
+        case .fifteenMinutes: return 900
+        case .thirtyMinutes: return 1800
+        }
+    }
+}
+
 /// Pure link detection and notification-scheduling decisions, no
 /// EventKit/UserNotifications imports — fully testable like
 /// `CalendarSupport.swift`. `MeetingNotificationService` is the only
@@ -163,6 +181,30 @@ enum MeetingLinkSupport {
                   triggerDate(for: event, offset: offset, now: now) != nil else { return nil }
             return event.id
         })
+    }
+
+    /// A meeting-join alert that is delivered or still pending, identified by
+    /// the start time frozen into its `userInfo` at schedule time — so expiry
+    /// never depends on the event still being in `CalendarService.events`
+    /// (cancelled, rescheduled and yesterday's events all drop out of it).
+    struct ShownAlert: Equatable, Sendable {
+        let id: String
+        let start: Date
+    }
+
+    /// Ids of alerts whose meeting started at least `dismissAfter` ago.
+    static func expiredAlertIDs(_ alerts: [ShownAlert], dismissAfter: MeetingJoinDismissAfter,
+                                now: Date) -> [String] {
+        guard let window = dismissAfter.seconds else { return [] }
+        return alerts.filter { $0.start.addingTimeInterval(window) <= now }.map(\.id)
+    }
+
+    /// The earliest future moment any of `alerts` expires, or nil when
+    /// dismissal is off or nothing is left to expire.
+    static func nextDismissDeadline(_ alerts: [ShownAlert], dismissAfter: MeetingJoinDismissAfter,
+                                    now: Date) -> Date? {
+        guard let window = dismissAfter.seconds else { return nil }
+        return alerts.map { $0.start.addingTimeInterval(window) }.filter { $0 > now }.min()
     }
 
     /// What to add and remove to make `scheduled` match `desired`, touching

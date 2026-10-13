@@ -199,5 +199,41 @@ enum MeetingLinkFeatureTests {
 
         suite.expect(MeetingLinkSupport.nextQualifyingMeeting(events: [sooner], windowMinutes: 0, now: day) == nil,
                "a zero-minute window never shows anything")
+
+        // MARK: Auto-dismiss of delivered alerts
+
+        suite.expect(MeetingJoinDismissAfter.off.seconds == nil
+                && MeetingJoinDismissAfter.fiveMinutes.seconds == 300
+                && MeetingJoinDismissAfter.thirtyMinutes.seconds == 1800,
+               "dismiss-after raw values map to seconds, with off meaning never")
+
+        let shown: [MeetingLinkSupport.ShownAlert] = [
+            .init(id: "old", start: day.addingTimeInterval(-600)),
+            .init(id: "recent", start: day.addingTimeInterval(-120)),
+            .init(id: "future", start: day.addingTimeInterval(600)),
+        ]
+        suite.expect(Set(MeetingLinkSupport.expiredAlertIDs(shown, dismissAfter: .fiveMinutes, now: day)) == ["old"],
+               "only alerts whose meeting started more than N minutes ago expire")
+        suite.expect(MeetingLinkSupport.expiredAlertIDs(shown, dismissAfter: .off, now: day).isEmpty,
+               "dismiss-after off never expires anything")
+        suite.expect(MeetingLinkSupport.expiredAlertIDs(
+                [.init(id: "edge", start: day.addingTimeInterval(-300))], dismissAfter: .fiveMinutes, now: day) == ["edge"],
+               "an alert exactly N minutes past the start is expired")
+        suite.expect(MeetingLinkSupport.expiredAlertIDs(
+                [.init(id: "early", start: day.addingTimeInterval(-300))], dismissAfter: .tenMinutes, now: day).isEmpty,
+               "the same alert is kept under a longer dismiss window")
+
+        let remaining = [MeetingLinkSupport.ShownAlert(id: "recent", start: day.addingTimeInterval(-120)),
+                         .init(id: "future", start: day.addingTimeInterval(600))]
+        suite.expect(MeetingLinkSupport.nextDismissDeadline(remaining, dismissAfter: .fiveMinutes, now: day)
+                == day.addingTimeInterval(180),
+               "the next deadline is the earliest start plus N minutes")
+        suite.expect(MeetingLinkSupport.nextDismissDeadline(remaining, dismissAfter: .off, now: day) == nil,
+               "no deadline when dismiss-after is off")
+        suite.expect(MeetingLinkSupport.nextDismissDeadline([], dismissAfter: .fiveMinutes, now: day) == nil,
+               "no deadline when there are no alerts")
+        suite.expect(MeetingLinkSupport.nextDismissDeadline(
+                [.init(id: "past", start: day.addingTimeInterval(-900))], dismissAfter: .fiveMinutes, now: day) == nil,
+               "an already-expired alert contributes no future deadline")
     }
 }

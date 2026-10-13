@@ -13,6 +13,7 @@ struct CalendarSettings: View {
     @AppStorage(DefaultsKey.meetingJoinZoomNative) private var zoomNative = true
     @AppStorage(DefaultsKey.meetingJoinTeamsNative) private var teamsNative = true
     @AppStorage(DefaultsKey.meetingJoinNotifyOffset) private var offsetRaw = MeetingJoinNotifyOffset.atStart.rawValue
+    @AppStorage(DefaultsKey.meetingJoinDismissAfter) private var dismissAfterRaw = MeetingJoinDismissAfter.off.rawValue
     @AppStorage(DefaultsKey.meetingJoinGoogleMeetBrowser) private var googleMeetBrowser = ""
 
     private var text: CalendarFeatureStrings { FeatureStrings.calendar(l10n.language) }
@@ -45,6 +46,14 @@ struct CalendarSettings: View {
                         Text(text.meetingJoinOffsetThreeMinutesBefore).tag(MeetingJoinNotifyOffset.threeMinutesBefore.rawValue)
                         Text(text.meetingJoinOffsetFiveMinutesBefore).tag(MeetingJoinNotifyOffset.fiveMinutesBefore.rawValue)
                     }
+                    Picker(text.meetingJoinDismissLabel, selection: $dismissAfterRaw) {
+                        Text(text.meetingJoinDismissOff).tag(MeetingJoinDismissAfter.off.rawValue)
+                        Text(text.meetingJoinDismissFiveMinutes).tag(MeetingJoinDismissAfter.fiveMinutes.rawValue)
+                        Text(text.meetingJoinDismissTenMinutes).tag(MeetingJoinDismissAfter.tenMinutes.rawValue)
+                        Text(text.meetingJoinDismissFifteenMinutes).tag(MeetingJoinDismissAfter.fifteenMinutes.rawValue)
+                        Text(text.meetingJoinDismissThirtyMinutes).tag(MeetingJoinDismissAfter.thirtyMinutes.rawValue)
+                    }
+                    .onChange(of: dismissAfterRaw) { _, _ in CalendarService.shared.refresh() }
                     Toggle(text.meetingJoinZoomNativeToggle, isOn: $zoomNative)
                     Toggle(text.meetingJoinTeamsNativeToggle, isOn: $teamsNative)
                     Picker(text.meetingJoinGoogleMeetBrowserLabel, selection: $googleMeetBrowser) {

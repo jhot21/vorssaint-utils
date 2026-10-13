@@ -38,6 +38,14 @@ struct CalendarFeatureStrings {
     let nextMeetingMenuBarTitle: String
     let nextMeetingMenuBarHubDescription: String
     let nextMeetingWindowLabel: String
+    // Defaulted so the memberwise inits keep compiling; every language reads
+    // in English until translated.
+    var meetingJoinDismissLabel = "Dismiss alert after meeting starts"
+    var meetingJoinDismissOff = "Never"
+    var meetingJoinDismissFiveMinutes = "5 minutes"
+    var meetingJoinDismissTenMinutes = "10 minutes"
+    var meetingJoinDismissFifteenMinutes = "15 minutes"
+    var meetingJoinDismissThirtyMinutes = "30 minutes"
 }
 
 extension FeatureStrings {

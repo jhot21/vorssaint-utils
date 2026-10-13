@@ -576,6 +576,7 @@ enum DefaultsKey {
     static let meetingJoinZoomNative = "meetingJoinZoomNative" // open Zoom links in the Zoom app when installed
     static let meetingJoinTeamsNative = "meetingJoinTeamsNative" // open Teams links in the Teams app when installed
     static let meetingJoinNotifyOffset = "meetingJoinNotifyOffset" // MeetingJoinNotifyOffset raw value
+    static let meetingJoinDismissAfter = "meetingJoinDismissAfter" // MeetingJoinDismissAfter raw value
     static let meetingJoinGoogleMeetBrowser = "meetingJoinGoogleMeetBrowser" // bundle identifier of the preferred browser; "" means system default
     static let linkRouterEnabled = "linkRouterEnabled"
     static let linkRouterRules = "linkRouterRules"                     // String: [RoutingRule] JSON
@@ -1780,6 +1781,7 @@ enum Defaults {
         DefaultsKey.meetingJoinZoomNative: true,
         DefaultsKey.meetingJoinTeamsNative: true,
         DefaultsKey.meetingJoinNotifyOffset: MeetingJoinNotifyOffset.atStart.rawValue,
+        DefaultsKey.meetingJoinDismissAfter: MeetingJoinDismissAfter.off.rawValue,
         DefaultsKey.meetingJoinGoogleMeetBrowser: "",
         DefaultsKey.linkRouterEnabled: false,
         DefaultsKey.linkRouterRules: "[]",
