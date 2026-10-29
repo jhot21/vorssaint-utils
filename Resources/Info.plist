@@ -41,12 +41,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.4.1</string>
+	<string>3.4.3</string>
 	<key>CFBundleSupportedPlatforms</key>
 	<array>
 		<string>MacOSX</string>
 	</array>
 	<key>CFBundleVersion</key>
+<<<<<<< HEAD
 	<string>101</string>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -78,6 +79,9 @@
 			</array>
 		</dict>
 	</array>
+=======
+	<string>105</string>
+>>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>

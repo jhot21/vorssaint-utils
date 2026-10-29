@@ -86,8 +86,13 @@ enum ClipboardFeatureTests {
     }
 
     static func run(_ suite: TestSuite) {
+        ClipboardSensitiveTextPreferenceTests.run(suite)
         ClipboardPreviewContract.run(suite)
+<<<<<<< HEAD
         ClipboardLinkTests.run(suite)
+=======
+        ClipboardCaptureRestoreTests.run(suite)
+>>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
         let source = SourceHost()
         func sourceCheck(declared: String? = nil, remote: Bool = false,
                          panelIsKey: Bool = false, panelClosing: Bool = false)
@@ -186,6 +191,7 @@ enum ClipboardFeatureTests {
                      && cleanerBoard.string(forType: .string) == "https://example.com/path?id=42"
                      && cleanerBoard.string(forType: .source) == nil,
                      "a rewritten copy that named no app gains no mark, so the app that copied it is still credited")
+        URLCleanerMetadataTests.run(suite)
         cleanerBoard.releaseGlobally()
         func expectEqual(_ actual: String, _ expected: String, _ label: String,
                          file: StaticString = #filePath, line: UInt = #line) {
@@ -298,6 +304,16 @@ enum ClipboardFeatureTests {
                      "a picture past the area bound is scaled down to it")
         suite.expect(scrollingPixels > 0.99 * Double(ClipboardImageRecognition.maxPixels),
                      "a picture past the area bound keeps nearly all of that area")
+        suite.expect(ClipboardImageRecognition.scaledSize(width: 6_016, height: 3_384) == nil,
+                     "a 6K capture in a screenshot preview is read whole")
+        let longCaptureHeight = ScreenshotSupport.scrollingCaptureMaximumPixels / 3_000
+        let longCapture = ClipboardImageRecognition.scaledSize(width: 3_000, height: longCaptureHeight)
+        let longCapturePixels = (longCapture?.width ?? 0) * (longCapture?.height ?? 0)
+        suite.expect(longCapture?.height == ClipboardImageRecognition.decodeMaxPixelSize(
+                        width: 3_000, height: longCaptureHeight)
+                     && longCapturePixels <= ClipboardImageRecognition.maxPixels
+                     && Double(longCapturePixels) > 0.99 * Double(ClipboardImageRecognition.maxPixels),
+                     "the largest scrolling capture in a preview is scaled to the area bound before recognition")
 
         // MARK: Clipboard history search tokens and highlight ranges
 
@@ -654,6 +670,9 @@ enum ClipboardFeatureTests {
         suite.expect(Defaults.registeredDefaults[DefaultsKey.clipboardHistoryQuickPreview] as? Bool == false,
                "clipboard history quick preview is closed by default")
 
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.clipboardHistoryShowSourceAppIcons] as? Bool == false,
+                     "source app icons are opt-in, preserving the existing list by default")
+
         // MARK: Clipboard history layout
 
         suite.expect(Defaults.registeredDefaults[DefaultsKey.clipboardHistoryLayout] as? String
@@ -925,6 +944,8 @@ enum ClipboardFeatureTests {
                          "\(language.rawValue) copy-selected button format")
             expectFormat(clipboardStrings.clearRecentConfirmFormat, ["d"],
                          "\(language.rawValue) clear-unpinned confirmation format")
+            expectFormat(FeatureStrings.clipboardRetention(language).daysFormat, ["d"],
+                         "\(language.rawValue) clipboard retention day format")
             suite.expect(!clipboardStrings.autoClearEnable.isEmpty
                    && !clipboardStrings.autoClearSecondsSuffix.isEmpty
                    && !clipboardStrings.autoClearOnSleep.isEmpty
@@ -937,6 +958,10 @@ enum ClipboardFeatureTests {
                    && !clipboardStrings.historyLayoutList.isEmpty
                    && clipboardStrings.historyLayoutCards != clipboardStrings.historyLayoutList,
                    "\(language.rawValue) clipboard history layout choice is localized")
+            suite.expect(!clipboardStrings.showSourceAppIconsInList.isEmpty
+                         && (language == .enUS || clipboardStrings.showSourceAppIconsInList
+                             != FeatureStrings.clipboard(.enUS).showSourceAppIconsInList),
+                         "\(language.rawValue) source app icons setting is localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
@@ -1141,6 +1166,70 @@ enum ClipboardFeatureTests {
             textByteLimit: 1_000)
         suite.expect(tenThousandHistory.count == 2,
                "clipboard history retainedEntries preserves entries with 10_000 limit")
+        let retentionNow = Date(timeIntervalSince1970: 1_000_000_000)
+        let freshRecent = ClipboardHistoryEntry(text: "fresh",
+                                                copiedAt: retentionNow.addingTimeInterval(-86_400))
+        let staleRecent = ClipboardHistoryEntry(text: "stale",
+                                                copiedAt: retentionNow.addingTimeInterval(-8 * 86_400))
+        let stalePinned = ClipboardHistoryEntry(text: "old pin",
+                                                copiedAt: retentionNow.addingTimeInterval(-400 * 86_400),
+                                                pinnedAt: retentionNow.addingTimeInterval(-400 * 86_400))
+        let weekHistory = ClipboardHistoryEditing.retainedEntries(
+            [stalePinned, freshRecent, staleRecent],
+            recentLimit: 0,
+            retentionDays: 7,
+            now: retentionNow)
+        suite.expect(weekHistory.map(\.id) == [stalePinned.id, freshRecent.id],
+               "clipboard history drops recent entries older than the retention days but keeps pinned ones")
+        let foreverHistory = ClipboardHistoryEditing.retainedEntries(
+            [freshRecent, staleRecent],
+            recentLimit: 0,
+            retentionDays: 0,
+            now: retentionNow)
+        suite.expect(foreverHistory.count == 2,
+               "clipboard history keeps entries of any age when retention is 0 (forever)")
+        let limitAndRetention = ClipboardHistoryEditing.retainedEntries(
+            [freshRecent, staleRecent],
+            recentLimit: 20,
+            retentionDays: 30,
+            now: retentionNow)
+        suite.expect(limitAndRetention.count == 2,
+               "clipboard history keeps entries that are inside both the limit and the retention window")
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.clipboardHistoryRetentionDays] as? Int == 0
+                && Defaults.sanitizedClipboardHistoryRetentionDays(30) == 30
+                && Defaults.sanitizedClipboardHistoryRetentionDays(0) == 0
+                && Defaults.sanitizedClipboardHistoryRetentionDays(12) == 0,
+               "clipboard history retention defaults to forever and only accepts the offered day counts")
+        let retentionLabels = FeatureStrings.clipboardRetention(.enUS)
+        suite.expect(retentionLabels.label(days: 0) == "Forever"
+                && retentionLabels.label(days: 1) == "1 day"
+                && retentionLabels.label(days: 30) == "30 days",
+               "clipboard history retention labels name forever, one day and several days")
+        let unpinnedOld = ClipboardHistoryEditing.unpinned(stalePinned, now: retentionNow)
+        let afterUnpin = ClipboardHistoryEditing.retainedEntries(
+            [freshRecent, unpinnedOld, staleRecent],
+            recentLimit: 0,
+            retentionDays: 7,
+            now: retentionNow)
+        suite.expect(!unpinnedOld.isPinned
+                && afterUnpin.contains { $0.id == stalePinned.id }
+                && !afterUnpin.contains { $0.id == staleRecent.id },
+               "unpinning an item older than the retention window keeps it as a just-used recent entry")
+        let duringEdit = ClipboardHistoryEditing.retainedEntries(
+            [freshRecent, staleRecent],
+            recentLimit: 0,
+            retentionDays: 7,
+            ageExemptIDs: [staleRecent.id],
+            now: retentionNow)
+        suite.expect(duringEdit.map(\.id) == [freshRecent.id, staleRecent.id],
+               "an entry open in the editor does not expire while its draft is unsaved")
+        let afterEdit = ClipboardHistoryEditing.retainedEntries(
+            duringEdit,
+            recentLimit: 0,
+            retentionDays: 7,
+            now: retentionNow)
+        suite.expect(afterEdit.map(\.id) == [freshRecent.id],
+               "an expired entry is dropped on the first trim after the editor lets it go")
         let previewID = UUID(uuidString: "00000000-0000-0000-0000-000000000101")!
         let nextPreviewID = UUID(uuidString: "00000000-0000-0000-0000-000000000102")!
         let updatedPreview = ClipboardHistoryEntry(id: previewID, text: "updated")
@@ -1292,7 +1381,68 @@ enum ClipboardFeatureTests {
         suite.expect(!ClipboardHistorySensitiveText.looksSensitive("http://localhost:3000/page"),
                "clipboard history does not treat normal web URLs as secrets")
         suite.expect(ClipboardHistorySensitiveText.looksSensitive("https://example.com/callback?token=abc"),
-               "clipboard history still skips URLs with obvious secret words")
+               "clipboard history still skips URLs containing a credential value")
+        for text in [
+            "echo password",
+            "security find-generic-password -h",
+            "grep -R token Sources",
+            "Error: unexpected token near ')'",
+            "Authorization failed. Please sign in again.",
+            "This command prints the secret name, not its value.",
+            "let tokenCount = 42\nprint(tokenCount)",
+            "password",
+            "tokenizer",
+            "/etc/passwd",
+            "https://example.com/docs/token-authentication",
+            "https://example.com/password/reset",
+            "TOKEN=",
+            "TOKEN=\"\"",
+            "{\"password\": \"\"}",
+            "TOKEN=\nordinary output on the next line",
+            "command --token",
+            "command --password ''",
+            "max_tokens = 4096",
+            "token_count: 5",
+            "tokens_used: 1234",
+            "password_reset_url: https://example.com",
+            "passwordless: true",
+            "command --token-count 5"
+        ] {
+            suite.expect(!ClipboardHistorySensitiveText.looksSensitive(text),
+                         "clipboard history keeps ordinary terminal text: \(text)")
+        }
+        for text in [
+            "password=hunter2",
+            "PASSWORD = hunter2",
+            "export GITHUB_TOKEN=exampleCredential",
+            "client_secret: exampleCredential",
+            "api_key=exampleCredential",
+            "apiKey: exampleCredential",
+            "sessionToken=exampleCredential",
+            "command --password hunter2",
+            "command --access-token 'example credential'",
+            "command --api-key exampleCredential",
+            "{\"password\": \"example credential\"}",
+            "Authorization: Bearer exampleCredential",
+            "curl -H 'Authorization: Bearer exampleCredential' https://example.com",
+            "ordinary output\nexport ACCESS_TOKEN=exampleCredential\nmore output",
+            "🔐 export ACCESS_TOKEN=exampleCredential",
+            "https://example.com/callback?access_token=exampleCredential",
+            "aws_secret_access_key = exampleCredential/Value",
+            "SECRET_KEY = 'example-credential'",
+            "{\"secretKey\": \"exampleCredential\"}",
+            "STRIPE_SECRET_KEY=exampleCredential",
+            "JWT_SECRET_KEY: exampleCredential",
+            "password_confirmation: hunter2",
+            "PASSWORD2 = hunter2",
+            "PASSWORD_2: hunter2",
+            "SECRET_KEY_BASE=exampleCredential",
+            "private_key = exampleCredential",
+            "command --secret-key exampleCredential"
+        ] {
+            suite.expect(ClipboardHistorySensitiveText.looksSensitive(text),
+                         "clipboard history still excludes credential assignments and headers: \(text)")
+        }
         suite.expect(ClipboardHistorySensitiveText.looksSensitive("abc1234567890-xyz-abc"),
                "clipboard history still skips compact secret-looking text")
         // Issue #423: an identifier code is ordinary content to copy around,
@@ -1320,6 +1470,15 @@ enum ClipboardFeatureTests {
         expectEqual(ClipboardHistorySensitiveText.concealedPasteboardType,
                     "org.nspasteboard.ConcealedType",
                     "the secret mark keeps the exact name the apps that write it use")
+        // A dictation app marks the text it pastes and then takes back.
+        suite.expect(ClipboardHistorySensitiveText.isTransient(["public.utf8-plain-text",
+                                                          "org.nspasteboard.TransientType"]),
+               "clipboard history leaves out content its app is about to take back")
+        suite.expect(ClipboardHistorySensitiveText.isTransient(["org.nspasteboard.AutoGeneratedType"]),
+               "clipboard history leaves out content an app made up rather than copied")
+        suite.expect(!ClipboardHistorySensitiveText.isTransient(["public.utf8-plain-text",
+                                                           "NSStringPboardType"]),
+               "ordinary copied text is not a paste about to be taken back")
 
         // MARK: Separated link copies
 
@@ -1507,8 +1666,20 @@ enum ClipboardPreviewContract {
         var keyboardSelectionPointer: NSPoint?
         enum NSCursor { static func setHiddenUntilMouseMoves(_ hidden: Bool) {} }
         enum NSEvent { static let mouseLocation = NSPoint.zero }
+        enum UserDefaults {
+            struct Preferences {
+                var skipSensitive = Defaults.registeredDefaults[
+                    DefaultsKey.clipboardHistoryFilterSensitiveText] as? Bool ?? true
+                func bool(forKey key: String) -> Bool {
+                    key == DefaultsKey.clipboardHistoryFilterSensitiveText && skipSensitive
+                }
+            }
+            static var standard = Preferences()
+        }
         let capturedEntry = PassthroughSubject<ClipboardHistoryEntry, Never>()
-        func looksSensitive(_ text: String) -> Bool { false }
+        func looksSensitive(_ text: String) -> Bool {
+            ClipboardHistorySensitiveText.looksSensitive(text)
+        }
     }
 
     static func run(_ suite: TestSuite) {
@@ -1724,6 +1895,38 @@ enum ClipboardPreviewContract {
         searchFolding(suite)
         quickSelection(suite)
         promotedSource(suite)
+        sensitiveText(suite)
+    }
+
+    private static func sensitiveText(_ suite: TestSuite) {
+        let defaultService = Service()
+        for text in [
+            "export GITHUB_TOKEN=exampleCredential",
+            "/Users/example/project2026/package.json",
+            "abc1234567890-xyz-abc",
+            "Error: unexpected token near ')'"
+        ] {
+            defaultService.promote(text, source: "com.mitchellh.ghostty", keepsSource: false)
+            suite.expect(defaultService.entries.first?.text == text,
+                         "production history records unmarked terminal text by default: \(text)")
+        }
+        Fixture.UserDefaults.standard.skipSensitive = true
+        defer { Fixture.UserDefaults.standard.skipSensitive = false }
+        let service = Service()
+        let terminalText = "Error: unexpected token near ')'"
+        let terminalApp = "com.mitchellh.ghostty"
+        service.promote(terminalText, source: terminalApp, keepsSource: false)
+        suite.expect(service.entries.map(\.text) == [terminalText]
+                     && service.latestPasteboardEntry?.sourceBundleID == terminalApp,
+                     "production history saves ordinary terminal output with the sensitive filter enabled")
+        let credential = "export GITHUB_TOKEN=exampleCredential"
+        service.promote(credential, source: terminalApp, keepsSource: false)
+        suite.expect(service.entries.map(\.text) == [terminalText],
+                     "production history still excludes a terminal credential with the filter enabled")
+        Fixture.UserDefaults.standard.skipSensitive = false
+        service.promote(credential, source: terminalApp, keepsSource: false)
+        suite.expect(service.entries.map(\.text) == [credential, terminalText],
+                     "disabling the sensitive text heuristic still permits unmarked credential text")
     }
 
     /// A copy taken out of the history's own panel is of an entry already

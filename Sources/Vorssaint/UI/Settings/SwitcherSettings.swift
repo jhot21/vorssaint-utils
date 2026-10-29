@@ -9,8 +9,10 @@ struct SwitcherSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var features = FeatureRuntime.shared
     @ObservedObject private var permissions = Permissions.shared
+    @ObservedObject private var secureInput = SecureInputMonitor.shared
     @AppStorage(DefaultsKey.switcherEnabled) private var switcherEnabled = true
     @AppStorage(DefaultsKey.switcherShortcut) private var switcherShortcutStorage = GlobalShortcut.switcherDefault.storageValue
+    @AppStorage(DefaultsKey.switcherAllWindowsShortcutEnabled) private var allWindowsShortcutEnabled = false
     @AppStorage(DefaultsKey.switcherTakeOverSystemShortcuts) private var switcherTakeOverSystemShortcuts = false
     @AppStorage(DefaultsKey.switcherIconRowMode) private var switcherIconRowMode = false
     @AppStorage(DefaultsKey.switcherSimpleMode) private var switcherSimpleMode = false
@@ -26,8 +28,15 @@ struct SwitcherSettings: View {
     @AppStorage(DefaultsKey.switcherShowShortcutHints) private var switcherShowShortcutHints = true
     @AppStorage(DefaultsKey.switcherAppearanceDelay) private var switcherAppearanceDelay = SwitcherSupport.defaultAppearanceDelayMilliseconds
     @AppStorage(DefaultsKey.switcherInstantSelection) private var switcherInstantSelection = false
+    @AppStorage(DefaultsKey.switcherMaxColumns) private var switcherMaxColumns = 0
     private var pages: SettingsPageStrings { FeatureStrings.settingsPages(l10n.language) }
     private var switcherEngaged: Bool { switcherEnabled && AppFeature.switcher.isAvailable }
+    /// Only then does the macOS switcher on ⌘Tab need explaining: without the
+    /// take-over, or without the Accessibility grant the tap needs, it answers
+    /// anyway and keeps answering after secure input ends.
+    private var switcherReplacesSystemShortcuts: Bool {
+        switcherEngaged && switcherTakeOverSystemShortcuts && permissions.accessibility
+    }
     private var switcherWindowlessAppsSelection: Binding<String> {
         Binding(
             get: {
@@ -80,6 +89,7 @@ struct SwitcherSettings: View {
             .padding(22)
         }
         .toggleStyle(.switch)
+        .observesSecureInput(isActive: switcherReplacesSystemShortcuts)
     }
 
     // MARK: - App switcher
@@ -149,6 +159,22 @@ struct SwitcherSettings: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                SettingsRow(symbol: "macwindow.on.rectangle",
+                            title: FeatureStrings.switcherShortcuts(l10n.language).allWindows,
+                            caption: FeatureStrings.switcherShortcuts(l10n.language).allWindowsCaption) {
+                    Toggle(FeatureStrings.switcherShortcuts(l10n.language).allWindows,
+                           isOn: $allWindowsShortcutEnabled)
+                        .labelsHidden()
+                        .onChange(of: allWindowsShortcutEnabled) { _, _ in
+                            AppSwitcher.shared.syncWithPreferences()
+                        }
+                }
+                if allWindowsShortcutEnabled {
+                    ShortcutPreferenceRow(role: .switcherAllWindows,
+                                          isEnabled: switcherEnabled) {
+                        AppSwitcher.shared.syncWithPreferences()
+                    }
+                }
                 SettingsRow(symbol: "command", title: l10n.s.switcherTakeOverSystemShortcuts,
                             caption: l10n.s.switcherTakeOverSystemShortcutsCaption) {
                     Toggle(l10n.s.switcherTakeOverSystemShortcuts, isOn: $switcherTakeOverSystemShortcuts)
@@ -156,6 +182,13 @@ struct SwitcherSettings: View {
                         .onChange(of: switcherTakeOverSystemShortcuts) { _, _ in
                             AppSwitcher.shared.syncWithPreferences()
                         }
+                }
+                // Secure input hides every key from the switcher, which hands
+                // ⌘Tab back to macOS until it ends. Without a word here the
+                // macOS switcher looks like the replacement stopped working.
+                if switcherReplacesSystemShortcuts, secureInput.holder != .off {
+                    SecureInputRow(blocking: .switcher)
+                        .padding(.leading, settingsRowTextInset)
                 }
                 Text(String(format: l10n.s.switcherUsageHintFormat,
                             (GlobalShortcut(storageValue: switcherShortcutStorage) ?? .switcherDefault).displayString))
@@ -178,6 +211,21 @@ struct SwitcherSettings: View {
                            step: 25)
                         .frame(width: 140)
                     Text("\(sanitizedSwitcherAppearanceDelay) ms")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .frame(width: 56, alignment: .trailing)
+                }
+            }
+            SettingsRow(symbol: "square.grid.3x2", title: l10n.s.switcherMaxColumns,
+                        caption: l10n.s.switcherMaxColumnsCaption) {
+                HStack(spacing: 8) {
+                    Slider(value: switcherMaxColumnsBinding,
+                           in: Double(SwitcherSupport.maxColumnsRange.lowerBound - 1)
+                               ... Double(SwitcherSupport.maxColumnsRange.upperBound),
+                           step: 1)
+                        .frame(width: 140)
+                        .accessibilityValue(switcherMaxColumnsLabel)
+                    Text(switcherMaxColumnsLabel)
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .frame(width: 56, alignment: .trailing)
@@ -249,6 +297,17 @@ struct SwitcherSettings: View {
                               (SwitcherWindowlessApps.finder.rawValue, l10n.s.switcherWindowlessAppsFinder),
                               (SwitcherWindowlessApps.all.rawValue, l10n.s.switcherWindowlessAppsAll)])
                 .disabled(switcherTakeOverSystemShortcuts)
+            // Replacing ⌘Tab keeps every running app in the switcher, as the
+            // system one does, so the choices above hold on All apps. Say why
+            // rather than leave them looking broken.
+            if switcherTakeOverSystemShortcuts {
+                Text(String(format: l10n.s.switcherWindowlessAppsLockedFormat,
+                            l10n.s.switcherTakeOverSystemShortcuts))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, settingsRowTextInset)
+            }
             // Per-app rules can be prepared while the switcher is off, as
             // before the redesign; the card's disabled state stops here.
             SwitcherAppRulesList()
@@ -296,6 +355,26 @@ struct SwitcherSettings: View {
 
     private var sanitizedSwitcherAppearanceDelay: Int {
         SwitcherSupport.sanitizedAppearanceDelay(milliseconds: switcherAppearanceDelay)
+    }
+
+    private var sanitizedSwitcherMaxColumns: Int? {
+        SwitcherSupport.sanitizedMaxColumns(switcherMaxColumns)
+    }
+
+    private var switcherMaxColumnsLabel: String {
+        sanitizedSwitcherMaxColumns.map(String.init) ?? l10n.s.switcherMaxColumnsAuto
+    }
+
+    /// The slider's leftmost step, one below the range, stands for Auto.
+    private var switcherMaxColumnsBinding: Binding<Double> {
+        let auto = SwitcherSupport.maxColumnsRange.lowerBound - 1
+        return Binding(
+            get: { Double(sanitizedSwitcherMaxColumns ?? auto) },
+            set: {
+                let value = Int($0.rounded())
+                switcherMaxColumns = value <= auto ? 0 : SwitcherSupport.sanitizedMaxColumns(value) ?? 0
+            }
+        )
     }
 
     private var switcherAppearanceDelayBinding: Binding<Double> {

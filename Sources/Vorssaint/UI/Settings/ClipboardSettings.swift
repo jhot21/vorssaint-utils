@@ -13,10 +13,15 @@ struct ClipboardSettings: View {
     @AppStorage(DefaultsKey.pastePlainEnabled) private var pastePlainEnabled = false
     @AppStorage(DefaultsKey.clipboardHistoryEnabled) private var enabled = false
     @AppStorage(DefaultsKey.clipboardHistoryLimit) private var limit = 50
-    @AppStorage(DefaultsKey.clipboardHistorySkipSensitive) private var skipSensitive = true
+    @AppStorage(DefaultsKey.clipboardHistoryRetentionDays) private var retentionDays = 0
+    @AppStorage(DefaultsKey.clipboardHistoryFilterSensitiveText) private var skipSensitive = false
     @AppStorage(DefaultsKey.clipboardHistoryIncludeImagesFiles) private var includeImagesFiles = true
     @AppStorage(DefaultsKey.clipboardHistoryShortcutEnabled) private var shortcutEnabled = true
+<<<<<<< HEAD
     @AppStorage(DefaultsKey.clipboardHistoryPasteAfterSelect) private var pasteAfterSelect = true
+=======
+    @AppStorage(DefaultsKey.clipboardHistoryShowSourceAppIcons) private var showSourceAppIcons = false
+>>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
     @AppStorage(DefaultsKey.clipboardHistoryLayout) private var historyLayout = ClipboardHistoryLayout.list
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreview) private var menuBarPreview = false
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreviewLength)
@@ -32,6 +37,10 @@ struct ClipboardSettings: View {
 
     private var text: ClipboardFeatureStrings {
         FeatureStrings.clipboard(l10n.language)
+    }
+
+    private var retentionText: ClipboardRetentionStrings {
+        FeatureStrings.clipboardRetention(l10n.language)
     }
 
     var body: some View {
@@ -86,6 +95,15 @@ struct ClipboardSettings: View {
                         }
                     }
                     .disabled(!enabled)
+                    Picker(retentionText.title, selection: $retentionDays) {
+                        ForEach(Defaults.allowedClipboardHistoryRetentionDays, id: \.self) { value in
+                            Text(retentionText.label(days: value)).tag(value)
+                        }
+                    }
+                    .disabled(!enabled)
+                    Text(retentionText.caption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 // Its own section because it is the one setting here that keeps
@@ -148,12 +166,18 @@ struct ClipboardSettings: View {
         .formStyle(.grouped)
         .onAppear {
             limit = Defaults.sanitizedClipboardHistoryLimit(limit)
+            retentionDays = Defaults.sanitizedClipboardHistoryRetentionDays(retentionDays)
             autoClearDelay = Defaults.sanitizedClipboardAutoClearDelay(autoClearDelay)
             menuBarPreviewLength = Defaults.sanitizedClipboardMenuBarPreviewLength(menuBarPreviewLength)
         }
         .onChange(of: limit) { _, value in
             let sanitized = Defaults.sanitizedClipboardHistoryLimit(value)
             if sanitized != value { limit = sanitized }
+            ClipboardHistoryService.shared.trimToLimit()
+        }
+        .onChange(of: retentionDays) { _, value in
+            let sanitized = Defaults.sanitizedClipboardHistoryRetentionDays(value)
+            if sanitized != value { retentionDays = sanitized }
             ClipboardHistoryService.shared.trimToLimit()
         }
         // No syncWithPreferences() here, unlike the auto-clear toggles: the
@@ -198,6 +222,7 @@ struct ClipboardSettings: View {
                 Text(text.historyLayoutCards).tag(ClipboardHistoryLayout.cards)
             }
             .pickerStyle(.segmented)
+            Toggle(text.showSourceAppIconsInList, isOn: $showSourceAppIcons)
             Button {
                 ClipboardHistoryService.shared.showHistoryWindow()
             } label: {

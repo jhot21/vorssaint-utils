@@ -99,8 +99,12 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
                                 .finderCutPaste, .autoQuit,
                                 .shelf, .windowMaximizer, .dockPreview, .keyboardDebounce, .dockClick, .spacesOrder,
                                 .middleClick, .textSnippets, .superKey, .radialMenu, .mouseClickDebounce, .notch]
+<<<<<<< HEAD
         case .toggles: return [.quickToggles, .micMute]
         case .calendar: return [.calendar]
+=======
+        case .toggles: return [.quickToggles, .micMute, .quitApps]
+>>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
         case .wallpaper: return [.wallpaper]
         }
     }
