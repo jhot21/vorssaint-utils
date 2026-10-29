@@ -713,17 +713,11 @@ final class AppUpdatesService: ObservableObject {
     /// again the moment the person is back. Opening runs off the main thread,
     /// since launching a large app can take a while.
     private func handOff(_ url: URL) {
-<<<<<<< HEAD
-        updateHandoffPending = true
-        if !LinkOpener.open(url) {
-            updateHandoffPending = false
-=======
         let request = UUID()
         pendingUpdateHandoffs.insert(request)
-        NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration()) { [weak self] _, error in
+        LinkOpener.open(url) { [weak self] error in
             guard error != nil else { return }
             DispatchQueue.main.async { self?.pendingUpdateHandoffs.remove(request) }
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
         }
     }
 

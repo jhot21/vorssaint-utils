@@ -177,6 +177,11 @@ enum ReleaseChangeAliases {
         case .connectedDevices: return ["connected devices", "usb devices"]
         case .fanControl: return ["fan control", "fan curves", "fan curve", "fan speed", "fan speeds",
             "cooling curve"]
+        case .calendar: return ["menu panel calendar", "calendar tile", "menu panel agenda"]
+        case .meetingJoin: return ["meeting join", "join meeting", "meeting alerts"]
+        case .menuBarDate: return ["menu bar date"]
+        case .menuBarNextMeeting: return ["next meeting in the menu bar"]
+        case .linkRouter: return ["link router", "unshorten"]
         }
     }
 

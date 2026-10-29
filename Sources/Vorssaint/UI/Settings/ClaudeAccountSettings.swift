@@ -55,8 +55,11 @@ struct ClaudeAccountSettings: View {
             Button(text.chooseFolder) { chooseFolder() }
             Text(text.explanation).font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Link(text.signInHelp, destination: URL(string: "https://code.claude.com/docs/en/authentication#log-in-with-multiple-accounts")!)
-                .font(.caption)
+            Button(text.signInHelp) {
+                LinkOpener.open(URL(string: "https://code.claude.com/docs/en/authentication#log-in-with-multiple-accounts")!)
+            }
+            .buttonStyle(.link)
+            .font(.caption)
         }
         .onAppear { refresh() }
         .onChange(of: selected) { _, _ in refresh() }

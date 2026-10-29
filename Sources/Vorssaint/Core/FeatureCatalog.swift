@@ -404,13 +404,9 @@ extension AppFeature {
              .soundOutputSwitcher, .audioPriority,
              .extraBrightness, .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
              .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
-<<<<<<< HEAD
-             .portManager, .menuBarDate, .linkRouter:
-=======
-             .portManager,
+             .portManager, .menuBarDate, .linkRouter,
              // Each app gets the ordinary quit request it would from its own menu.
              .quitApps:
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
             return []
         }
     }
@@ -508,14 +504,9 @@ extension AppFeature {
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
              .connectedDevices:
             return true
-<<<<<<< HEAD
-        case .focusFollowsMouse, .scrollHorizontal, .linearScroll, .diskImageInstaller, .audioPriority,
-             .wallpaper, .killProcess, .portManager, .fanControl, .notchMascot, .spacesOrder,
-             .calendar, .menuBarDate, .meetingJoin, .menuBarNextMeeting, .linkRouter:
-=======
         case .focusFollowsMouse, .scrollHorizontal, .scrollZoom, .linearScroll, .diskImageInstaller, .audioPriority,
-             .wallpaper, .killProcess, .portManager, .fanControl, .notchMascot, .spacesOrder, .quitApps:
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
+             .wallpaper, .killProcess, .portManager, .fanControl, .notchMascot, .spacesOrder, .quitApps,
+             .calendar, .menuBarDate, .meetingJoin, .menuBarNextMeeting, .linkRouter:
             return false
         }
     }

@@ -15,6 +15,14 @@ enum AppUpdateHandoffTests {
             completions.append(completionHandler)
         }
     }
+    /// The production opener hands non-web links to the workspace unchanged.
+    enum LinkOpener {
+        static func open(_ url: URL, completion: @escaping (Error?) -> Void) {
+            NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+                completion(error)
+            }
+        }
+    }
     class State {
         var pendingUpdateHandoffs = Set<UUID>()
         var checks = 0

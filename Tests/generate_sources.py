@@ -1250,6 +1250,8 @@ def main():
     scratchpad_view = "Sources/Vorssaint/UI/Notch/NotchScratchpadView.swift"
     scratchpad_reading = "Sources/Vorssaint/UI/Scratchpad/ScratchpadView.swift"
     write("NotchCompact.swift", "import AppKit\nimport Carbon.HIToolbox\nimport SwiftUI\nextension NotchCompactTests {\n"
+          # The Markdown preview opens links through the router, which this harness does not build.
+          + "enum LinkOpener {\n@discardableResult static func open(_ url: URL) -> Bool { false }\n}\n"
           + declaration("Sources/Vorssaint/UI/Notch/NotchCameraView.swift", "struct NotchCameraView:")
           + declaration("Sources/Vorssaint/UI/Notch/NotchCameraView.swift", "struct NotchCameraStopButton:")
           + declaration("Sources/Vorssaint/UI/Notch/NotchCalendarView.swift", "private struct NotchCalendarEventRow:")

@@ -1011,51 +1011,6 @@ struct SupportSettings: View {
             .padding(.vertical, 26)
         }
     }
-<<<<<<< HEAD
-
-    private var communityActions: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 9) {
-                discordButton
-                socialButton
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                discordButton
-                socialButton
-            }
-        }
-    }
-
-    private var discordButton: some View {
-        Button {
-            LinkOpener.open(AppInfo.discordURL)
-        } label: {
-            HStack(spacing: 8) {
-                DiscordMark(width: 19)
-                Text(l10n.s.discordIntroJoinButton)
-            }
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .tint(Color(red: 0.35, green: 0.40, blue: 0.94))
-    }
-
-    private var socialButton: some View {
-        Button {
-            LinkOpener.open(AppInfo.socialURL)
-        } label: {
-            HStack(spacing: 7) {
-                XLogoShape()
-                    .fill(Color.primary, style: FillStyle(eoFill: true))
-                    .frame(width: 12, height: 12)
-                Text(l10n.s.communityIntroFollowButton)
-            }
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-    }
-=======
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
 }
 
 // MARK: - Shared settings rows

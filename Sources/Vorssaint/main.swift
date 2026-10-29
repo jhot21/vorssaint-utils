@@ -25,9 +25,7 @@ if CommandLine.arguments.contains("--uninstall") {
     Uninstaller.runAndExit()
 }
 
-<<<<<<< HEAD
 LinkRouterService.shared.installEventHandler()
-=======
 #if VORSSAINT_DEVELOPMENT
 // A probe mode on its own would otherwise launch the whole app, and TCC kills
 // that from a shell whose host app lacks a Bluetooth usage description. The
@@ -38,7 +36,6 @@ if NotchPresentationProbe.isRequested(by: CommandLine.arguments) {
 }
 #endif
 
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

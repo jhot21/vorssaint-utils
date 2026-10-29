@@ -11,12 +11,8 @@ You can review or change every grant in System Settings, under Privacy and Secur
 | System Audio Recording | Yes | Volume mixer, optional live equalizer and system audio capture for recordings |
 | Microphone | Yes | Your voice in a screen recording, only when you turn it on |
 | Camera | Yes | The camera preview mirror, floating or inside the notch |
-<<<<<<< HEAD
 | Calendars | Yes | Upcoming appointments in the notch and the menu bar panel's Calendar tile |
-=======
-| Calendars | Yes | Upcoming appointments in the notch |
 | Bluetooth | Yes | Accessory battery levels in Monitor, optional accessory alerts in the notch and Bluetooth on sleep |
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
 | Files and Folders | Yes | Monitoring downloads in a folder you choose |
 | Notifications | Yes | Keep awake, battery, Monitor and update alerts |
 | Full Disk Access | Yes | A deeper uninstaller scan, Command Bar's Safari bookmarks source |

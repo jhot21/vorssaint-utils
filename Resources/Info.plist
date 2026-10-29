@@ -47,8 +47,7 @@
 		<string>MacOSX</string>
 	</array>
 	<key>CFBundleVersion</key>
-<<<<<<< HEAD
-	<string>101</string>
+	<string>105</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -79,9 +78,6 @@
 			</array>
 		</dict>
 	</array>
-=======
-	<string>105</string>
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>

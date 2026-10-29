@@ -1369,14 +1369,10 @@ final class CommandBarService: ObservableObject {
     private var builtEmojiInputs: EmojiInputs?
 
     private func rebuildCatalog(index: Bool = true) {
-<<<<<<< HEAD
         catalog = CommandBarCatalog.build(automationDenied: finderAutomationDenied,
                                           chromeBookmarks: chromeBookmarks.cachedBookmarks,
                                           firefoxBookmarks: firefoxBookmarks.cachedBookmarks,
                                           safariBookmarks: safariBookmarks.cachedBookmarks)
-        emojiEntries = CommandBarCatalog.emojiEntries(bar: FeatureStrings.commandBar(L10n.shared.language))
-=======
-        catalog = CommandBarCatalog.build(automationDenied: finderAutomationDenied)
         // The emoji rows are most of the pool and depend on nothing the
         // catalog's other rebuild triggers touch, so they are kept until one
         // of their own inputs moves. Assigning them again would also drop
@@ -1389,7 +1385,6 @@ final class CommandBarService: ObservableObject {
             emojiEntries = CommandBarCatalog.emojiEntries(bar: FeatureStrings.commandBar(L10n.shared.language))
             builtEmojiInputs = emojiInputs
         }
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
         builtLanguage = L10n.shared.language
         if index { indexEntries() }
     }

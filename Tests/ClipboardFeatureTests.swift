@@ -88,11 +88,8 @@ enum ClipboardFeatureTests {
     static func run(_ suite: TestSuite) {
         ClipboardSensitiveTextPreferenceTests.run(suite)
         ClipboardPreviewContract.run(suite)
-<<<<<<< HEAD
         ClipboardLinkTests.run(suite)
-=======
         ClipboardCaptureRestoreTests.run(suite)
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
         let source = SourceHost()
         func sourceCheck(declared: String? = nil, remote: Bool = false,
                          panelIsKey: Bool = false, panelClosing: Bool = false)

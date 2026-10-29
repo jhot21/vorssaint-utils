@@ -36,6 +36,9 @@ enum CommandBarFeatureTests {
         }
         static func snippetEntries(_ bar: CommandBarFeatureStrings) -> [CommandBarEntry] { [] }
         static func linkEntries(_ links: [Int], bar: CommandBarFeatureStrings) -> [CommandBarEntry] { [] }
+        static func bookmarkEntries<Row: CommandBarBookmarkRow>(
+            _ bookmarks: [Row], idPrefix: String, bundleID: String, sourceTitle: String,
+            allowFileScheme: Bool = false) -> [CommandBarEntry] { [] }
     }
 
     /// Runs the production `copyAnswer` against a pasteboard that can refuse
@@ -188,7 +191,8 @@ enum CommandBarFeatureTests {
         for language in AppLanguage.allCases {
             CatalogBuildHost.L10n.shared.language = language
             CatalogBuildHost.builtLanguages = []
-            let rows = CatalogBuildHost.build(automationDenied: false)
+            let rows = CatalogBuildHost.build(automationDenied: false, chromeBookmarks: [],
+                                                      firefoxBookmarks: [], safariBookmarks: [])
             suite.expect(CatalogBuildHost.builtLanguages == (language == .enUS ? [.enUS] : [language, .enUS]),
                          "the catalog indexes English alongside \(language) without rebuilding English twice")
             suite.expect(rows.count == 1 && rows[0].title == FeatureStrings.quickToggles(language).ejectTitle

@@ -116,8 +116,10 @@ struct MetricsTests {
                 RecorderExportSpeedTests.run(suite)
                 RecorderExportRenderingTests.run(suite)
             }),
-<<<<<<< HEAD
-            ("command-bar", { CommandBarFeatureTests.run(suite) }),
+            ("command-bar", {
+                CommandBarFeatureTests.run(suite)
+                CommandBarSelectionTests.run(suite)
+            }),
             ("link-router", {
                 LinkRouterMatcherTests.run(suite)
                 LinkRouterStorageTests.run(suite)
@@ -133,13 +135,7 @@ struct MetricsTests {
                 LinkPickerModelTests.run(suite)
                 LinkUnshortenTests.run(suite)
             }),
-=======
-            ("command-bar", {
-                CommandBarFeatureTests.run(suite)
-                CommandBarSelectionTests.run(suite)
-            }),
             ("transient-paste", { TransientPasteTests.run(suite) }),
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
             ("notch-music", { NotchMusicExtrasTests.run(suite) }),
             ("notch", {
                 NotchTests.run(suite)

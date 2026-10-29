@@ -10,35 +10,6 @@ All notable changes to this project are documented here. The format follows
 More reliable window switching, audio, screenshots and display recovery, with safer file handling and app removal. New options include an all-windows shortcut, Claude account selection, scroll-to-zoom, a Quit apps panel and more flexible calendar countdowns.
 
 ### Added
-<<<<<<< HEAD
-- Dynamic Island can show the keyboard input source when it changes. Command Bar's temporary layout switches stay quiet. Settings → Dynamic Island → Activity → Indicators.
-- Window layout accepts pointer shortcuts made only of modifiers. Maximize with Margin now has an adjustable margin.
-- An optional fixed Spaces order stops macOS from rearranging desktops by recent use and restores your previous choice when turned off.
-- Port Manager rows can copy their port, PID or address and open TCP listeners in a browser.
-- App usage lists offer Force Kill in their context menu when Kill Process is installed, with confirmation.
-- Return or keypad Enter confirms and copies the selected color, then closes the color picker.
-
-- The recording editor's Copy button has a menu with Copy as GIF, which copies the edited recording as an animated GIF ready to paste. Copy and ⌘C still copy the video.
-- After a screenshot is saved or copied automatically, the confirmation preview can be turned off, or kept for 1, 2, 3, 5 or 10 seconds or until dismissed. A failed or partial action still shows it, and a preview kept until dismissed has a close button and leaves the keyboard with the app in front. Settings → Screen capture → Screenshot → More options → Show confirmation preview and Confirmation duration, shown when the default action saves or copies.
-- A new shortcut, off by default (⌃⌥⌘U), uploads the latest screenshot as a temporary link and copies the link. The floating preview's link button uploads with that default expiry on a click and its arrow picks another one, and a copied link closes the preview. A capture that went through the editor or was discarded is never uploaded by the shortcut. Settings → Screen capture → Temporary links → Upload latest screenshot and Default link expiry.
-
-- On macOS 27 and later, the Volume mixer can send one app to an AirPlay speaker while everything else keeps playing where it was. Choose AirPlay in the app's output menu, and Choose AirPlay speaker… in the same menu to pick or change the speaker, in the menu bar panel, Settings and the island's mixer page.
-- Clipboard searches highlight the words they matched in the history window, the menu bar panel's Clipboard tab and Dynamic Island's Clipboard page. Control-N and Control-P move through clipboard history while searching or browsing.
-- The screenshot selection shows a Full screen button near the top of the display under the pointer, which captures that whole display in one click.
-
-- Option-Up and Option-Down move the current line or selected lines in Scratchpad, including inside Dynamic Island, and in the snippet editor.
-- Focus follows mouse can give a window keyboard focus without bringing it to the front. With raising turned off, it can also focus while the pointer moves instead of waiting for it to stop. Its hover delay can be set from 100 ms to three seconds.
-- Unshorten resolves links from known shorteners such as bit.ly before they open, without cookies or a referrer and without ever contacting the destination. Turn it on per link in the picker (Command-U), as a default, or in a rule; add your own shortener hosts. Settings → Link Router. Command-U now belongs to Unshorten, so a rewrite that used U as its key keeps working from the list but loses that shortcut until you give it another key.
-
-### Changed
-- The switcher is named Window switcher, and physical screens are consistently called displays. Translated labels are more consistent too.
-- Monitor settings put each reading's display options beside its compact label, with separate groups for the menu bar, panel and shared settings. History graphs now show their scale.
-- The Settings sidebar groups tools like the Features page and removes the duplicate Clipboard row. The volume mixer uses the same speaker icon in Features, the menu bar panel and Dynamic Island.
-- With Group dependencies on, Homebrew keeps dependency updates under the packages that need them. Those packages move up with other updates and show how many dependency updates are waiting. Dependencies that no installed package needs stay in No longer needed, including those with updates.
-- Deleting a Radial Menu profile now asks for confirmation and names the profile and what will be removed.
-- Trackpad middle click is named explicitly, and cleanup, microphone, quit-protection and Command Bar privacy messages more accurately describe what happens.
-- Pasting or copying an entry from Clipboard history moves it to the top of the recent entries, as copying the same content again elsewhere already did. Pinned entries keep their place and their ⌘1 to ⌘9 shortcuts, and the island and menu bar panel lists follow the copied entry.
-=======
 - The window switcher has an optional All windows shortcut that cycles through individual windows across apps in every layout, including Large icons. Settings → Window switcher → All windows. Thanks to BrainAPP for the suggestion.
 - AI Agents can select an existing Claude Code account profile and show the monitored account. Local usage and plan limits follow the selected profile. Settings → Dynamic Island → Content → AI Agents → Claude account.
 - Dynamic Island level controls and the menu panel's mixer can be adjusted with a mouse wheel or trackpad. Thanks to @JB-OD.
@@ -53,6 +24,7 @@ More reliable window switching, audio, screenshots and display recovery, with sa
 - Quit on close can handle selected menu bar apps that keep a Dock icon after their last window closes. The list starts empty, and existing exceptions still apply. Settings → Quit on close → Menu bar apps to quit.
 - Window layout can reserve space for Stage Manager when maximizing or arranging windows, including the green-button override. Settings → Window layout → Reserve space for Stage Manager.
 - Switch Spaces by dragging a button now accepts the middle mouse button, including upward drags for Mission Control and downward drags for App Exposé. A short click keeps its normal behavior. Settings → Mouse → Mouse button shortcuts.
+- Unshorten resolves links from known shorteners such as bit.ly before they open, without cookies or a referrer and without ever contacting the destination. Turn it on per link in the picker (Command-U), as a default, or in a rule; add your own shortener hosts. Settings → Link Router. Command-U now belongs to Unshorten, so a rewrite that used U as its key keeps working from the list but loses that shortcut until you give it another key.
 
 ### Changed
 - Homebrew opens installation, setup and password-required commands in your default terminal, without requiring Terminal Automation permission. Thanks to @hertza-haeon.
@@ -61,7 +33,6 @@ More reliable window switching, audio, screenshots and display recovery, with sa
 - Command Bar accepts British unit spellings and spaced fluid-ounce names.
 - The window switcher's icon row, previews and hints use Liquid Glass when available and enabled.
 - The window switcher allows up to 10 columns while preserving Auto and screen-width limits. Settings → Window switcher → Options → Maximum columns. Thanks to @EugeneCarldotme.
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
 
 ### Fixed
 - Display controls keep manually disabled monitors off after wake while protecting the last usable display. You can still turn a monitor back on explicitly. Thanks to @Fenrir200678.

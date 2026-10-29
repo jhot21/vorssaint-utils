@@ -6,11 +6,8 @@ import SwiftUI
 struct ClipboardQuickPanelView: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var history = ClipboardHistoryService.shared
-<<<<<<< HEAD
     @AppStorage(DefaultsKey.clipboardHistoryPasteAfterSelect) private var pasteAfterSelect = true
-=======
     @AppStorage(DefaultsKey.clipboardHistoryShowSourceAppIcons) private var showSourceAppIcons = false
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
     @FocusState private var searchFocused: Bool
     @State private var previewSelection = QuickPreviewSelection()
     @State private var previewIsEditing = false

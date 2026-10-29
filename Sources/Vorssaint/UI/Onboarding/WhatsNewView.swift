@@ -232,16 +232,9 @@ private struct UpdateSupportContent: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-<<<<<<< HEAD
-            Button {
-                LinkOpener.open(AppInfo.coffeeURL)
-            } label: {
-                Label(l10n.s.supportIntroCoffeeButton,
-                      systemImage: "cup.and.saucer.fill")
-=======
             VStack(alignment: .leading, spacing: 12) {
                 Button {
-                    openURL(AppInfo.coffeeURL)
+                    LinkOpener.open(AppInfo.coffeeURL)
                 } label: {
                     Label(l10n.s.supportIntroCoffeeButton,
                           systemImage: "cup.and.saucer.fill")
@@ -250,7 +243,7 @@ private struct UpdateSupportContent: View {
                 .controlSize(.large)
 
                 Button {
-                    openURL(AppInfo.repositoryURL)
+                    LinkOpener.open(AppInfo.repositoryURL)
                 } label: {
                     Label(l10n.s.supportIntroStarHint, systemImage: "star")
                         .font(.caption)
@@ -260,30 +253,11 @@ private struct UpdateSupportContent: View {
                 .foregroundStyle(.secondary)
                 .help(l10n.s.supportIntroStarButton)
                 .accessibilityLabel(l10n.s.supportIntroStarButton)
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
             }
 
             Text(donateThanksText)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-<<<<<<< HEAD
-
-            Button {
-                LinkOpener.open(AppInfo.repositoryURL)
-            } label: {
-                Label(l10n.s.supportIntroStarHint, systemImage: "star")
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: 440)
-            .padding(.top, 4)
-            .help(l10n.s.supportIntroStarButton)
-            .accessibilityLabel(l10n.s.supportIntroStarButton)
-=======
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

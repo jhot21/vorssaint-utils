@@ -835,15 +835,11 @@ struct MarkdownPreview: NSViewRepresentable {
                       clickedOnLink link: Any,
                       at charIndex: Int) -> Bool {
             guard let url = link as? URL else { return false }
-<<<<<<< HEAD
-            return LinkOpener.open(url)
-=======
             if url.scheme == ScratchpadSupport.taskScheme {
                 if let box = url.host.flatMap(Int.init) { onToggleTask?(box) }
                 return true
             }
-            return NSWorkspace.shared.open(url)
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
+            return LinkOpener.open(url)
         }
     }
 }

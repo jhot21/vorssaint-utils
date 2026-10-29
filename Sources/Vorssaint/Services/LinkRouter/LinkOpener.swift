@@ -20,9 +20,23 @@ enum LinkOpener {
         return openNonWeb(url)
     }
 
+    /// Like `open(_:)`, but reports a launch the system refused. A web link is
+    /// queued on the router, which always ends in a browser, so it reports
+    /// success.
+    static func open(_ url: URL, completion: @escaping (Error?) -> Void) {
+        if LinkCanonical.isWeb(url) {
+            LinkRouterService.shared.route(LinkRequest(urls: [url], senderBundleID: nil, allowsPicker: false))
+            completion(nil)
+            return
+        }
+        NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+            completion(error)
+        }
+    }
+
     /// Non-web links (mailto:, app schemes, files) are never routed. This is
-    /// the single bare NSWorkspace open in the router code, and the only one
-    /// the guard test allows here.
+    /// one of the two bare NSWorkspace opens in the router code, and the only
+    /// ones the guard test allows here.
     @discardableResult
     static func openNonWeb(_ url: URL) -> Bool {
         NSWorkspace.shared.open(url)

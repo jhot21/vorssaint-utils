@@ -17,11 +17,8 @@ struct ClipboardSettings: View {
     @AppStorage(DefaultsKey.clipboardHistoryFilterSensitiveText) private var skipSensitive = false
     @AppStorage(DefaultsKey.clipboardHistoryIncludeImagesFiles) private var includeImagesFiles = true
     @AppStorage(DefaultsKey.clipboardHistoryShortcutEnabled) private var shortcutEnabled = true
-<<<<<<< HEAD
     @AppStorage(DefaultsKey.clipboardHistoryPasteAfterSelect) private var pasteAfterSelect = true
-=======
     @AppStorage(DefaultsKey.clipboardHistoryShowSourceAppIcons) private var showSourceAppIcons = false
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
     @AppStorage(DefaultsKey.clipboardHistoryLayout) private var historyLayout = ClipboardHistoryLayout.list
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreview) private var menuBarPreview = false
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreviewLength)

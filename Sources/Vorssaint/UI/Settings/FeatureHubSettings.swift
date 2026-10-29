@@ -1206,16 +1206,11 @@ extension AppFeature {
         case .mediaTools: return s.mediaName
         case .cleaner: return s.cleanerName
         case .uninstaller: return s.uninstallerName
-<<<<<<< HEAD
-        case .killProcess: return FeatureStrings.killProcess(L10n.shared.language).pageTitle
-        case .portManager: return FeatureStrings.portManager(L10n.shared.language).title
-        case .calendar: return FeatureStrings.calendar(L10n.shared.language).title
-        case .meetingJoin: return FeatureStrings.calendar(L10n.shared.language).meetingJoinTitle
-        case .linkRouter: return FeatureStrings.linkRouter(L10n.shared.language).title
-=======
         case .killProcess: return FeatureStrings.killProcess(language).pageTitle
         case .portManager: return FeatureStrings.portManager(language).title
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
+        case .calendar: return FeatureStrings.calendar(language).title
+        case .meetingJoin: return FeatureStrings.calendar(language).meetingJoinTitle
+        case .linkRouter: return FeatureStrings.linkRouter(language).title
         case .homebrew: return s.homebrewName
         case .appUpdates: return FeatureStrings.appUpdates(language).pageTitle
         case .monitorCPU: return s.monitorShowCPU
@@ -1224,15 +1219,10 @@ extension AppFeature {
         case .monitorNetwork: return s.monitorShowNetwork
         case .monitorDisk: return s.diskSection
         case .monitorPower: return s.powerSection
-<<<<<<< HEAD
-        case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).title
-        case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
-        case .menuBarDate: return FeatureStrings.calendar(L10n.shared.language).menuBarTitle
-        case .menuBarNextMeeting: return FeatureStrings.calendar(L10n.shared.language).nextMeetingMenuBarTitle
-=======
         case .connectedDevices: return FeatureStrings.connectedDevices(language).title
         case .fanControl: return FeatureStrings.fanControl(language).title
->>>>>>> 63a57362ffe1c0f8689c8924a32fad01d40f215b
+        case .menuBarDate: return FeatureStrings.calendar(language).menuBarTitle
+        case .menuBarNextMeeting: return FeatureStrings.calendar(language).nextMeetingMenuBarTitle
         }
     }
 
