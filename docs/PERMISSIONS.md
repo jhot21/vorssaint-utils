@@ -15,11 +15,7 @@ You can review or change every grant in System Settings, under Privacy and Secur
 | Bluetooth | Yes | Accessory battery levels in Monitor, optional accessory alerts in the notch and Bluetooth on sleep |
 | Files and Folders | Yes | Monitoring downloads in a folder you choose |
 | Notifications | Yes | Keep awake, battery, Monitor and update alerts |
-<<<<<<< HEAD
-| Full Disk Access | Yes | A deeper uninstaller scan, Command Bar's Safari bookmarks source |
-=======
-| Full Disk Access | Yes | A deeper uninstaller scan and the optional cleanup offer for apps moved to the Trash |
->>>>>>> 181d0d5c371fbf23877d0c1b31be28f162dadb61
+| Full Disk Access | Yes | A deeper uninstaller scan, Command Bar's Safari bookmarks source and the optional cleanup offer for apps moved to the Trash |
 | Administrator (one time) | Yes | Password free closed lid toggling |
 | Automation | Yes | Finder actions and supported music playback controls |
 | App Management | Yes | App installs, updates and removal |
@@ -133,18 +129,13 @@ Download monitoring watches only the folder you choose in the system picker. Fol
 
 **Why it comes up.** The uninstaller hunts down the files an app leaves behind, like caches, preferences and logs. Some of those spots are protected by macOS and only open up with Full Disk Access.
 
-<<<<<<< HEAD
 **What uses it.**
 
 - **The uninstaller**, for a deeper scan.
 - **Command Bar's Safari bookmarks source**, which reads Safari's bookmarks file so you can search and open them from the bar.
+- **The optional Finder cleanup offer**, which watches for an app moving from an Applications folder into your local Trash. You choose the data to remove and confirm that you intended to uninstall the app. Cancel if an updater moved it.
 
-**If you say no.** The uninstaller still works and scans the places it can reach. It just might not surface files tucked away in protected folders. Command Bar's Safari bookmarks source stays off and produces no rows until you grant it.
-=======
-**What uses it.** The uninstaller, for a deeper scan. The optional Finder cleanup offer watches for an app moving from an Applications folder into your local Trash. You choose the data to remove and confirm that you intended to uninstall the app. Cancel if an updater moved it.
-
-**If you say no.** The uninstaller still works and scans the places it can reach. It just might not surface files tucked away in protected folders, and the cleanup offer for trashed apps stays off.
->>>>>>> 181d0d5c371fbf23877d0c1b31be28f162dadb61
+**If you say no.** The uninstaller still works and scans the places it can reach. It just might not surface files tucked away in protected folders. Command Bar's Safari bookmarks source stays off and produces no rows until you grant it, and the cleanup offer for trashed apps stays off.
 
 **Optional.** Yes. There is no pop up for Full Disk Access. You add Vorssaint in System Settings, under Privacy and Security, Full Disk Access, and Vorssaint opens that pane for you when the feature calls for it.
 
