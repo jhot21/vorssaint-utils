@@ -1597,15 +1597,11 @@ def main():
     scratchpad_service = "Sources/Vorssaint/Services/QuickTools/ScratchpadService.swift"
     scratchpad_view = "Sources/Vorssaint/UI/Notch/NotchScratchpadView.swift"
     scratchpad_reading = "Sources/Vorssaint/UI/Scratchpad/ScratchpadView.swift"
-<<<<<<< HEAD
-    write("NotchCompact.swift", "import AppKit\nimport Carbon.HIToolbox\nimport SwiftUI\nextension NotchCompactTests {\n"
+    write("NotchCompact.swift", "import AppKit\nimport AVFoundation\nimport Carbon.HIToolbox\nimport SwiftUI\nextension NotchCompactTests {\n"
           # The Markdown preview opens links through the router, which this harness does not build.
           + "enum LinkOpener {\n@discardableResult static func open(_ url: URL) -> Bool { false }\n}\n"
-=======
-    write("NotchCompact.swift", "import AppKit\nimport AVFoundation\nimport Carbon.HIToolbox\nimport SwiftUI\nextension NotchCompactTests {\n"
           + declaration("Sources/Vorssaint/UI/CameraPreview/CameraPreviewView.swift", "private struct CameraLayerView:")
               .replace("private struct CameraLayerView", "struct CameraLayerView", 1)
->>>>>>> 21682edaac2958577267ab7d0940a7b2d1662eb7
           + declaration("Sources/Vorssaint/UI/Notch/NotchCameraView.swift", "struct NotchCameraView:")
           + declaration("Sources/Vorssaint/UI/Notch/NotchCameraView.swift", "struct NotchCameraStopButton:")
           + declaration("Sources/Vorssaint/UI/Notch/NotchCalendarView.swift", "private struct NotchCalendarEventRow:")

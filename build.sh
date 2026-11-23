@@ -829,7 +829,6 @@ else
     record_step "build/$NOW_PLAYING_ADAPTER" "$NOW_PLAYING_RECIPE" "${NOW_PLAYING_SOURCES[@]}"
 fi
 
-<<<<<<< HEAD
 ICON_SOURCES=(
     Tools/MakeIcon.swift
     Resources/Brand/logo.png
@@ -840,17 +839,12 @@ if step_is_current "build/AppIcon.icns" "$ICON_RECIPE" "${ICON_SOURCES[@]}"; the
     echo "▸ App icon unchanged — skipping"
 else
     echo "▸ Generating app icon…"
-    swift Tools/MakeIcon.swift build/AppIcon.iconset
+    # Use the same pinned SDK as the app build: the default MacOSX.sdk may be 27,
+    # whose Command Line Tools copy is missing Foundation headers MakeIcon needs.
+    swift -sdk "$SDK" Tools/MakeIcon.swift build/AppIcon.iconset
     xattr -c -r build/AppIcon.iconset build/AppIcon.icns build/MenuBarIcon.png build/MenuBarIcon@2x.png build/BrandMark.png 2>/dev/null || true
     record_step "build/AppIcon.icns" "$ICON_RECIPE" "${ICON_SOURCES[@]}"
 fi
-=======
-echo "▸ Generating app icon…"
-# Use the same pinned SDK as the app build: the default MacOSX.sdk may be 27,
-# whose Command Line Tools copy is missing Foundation headers MakeIcon needs.
-swift -sdk "$SDK" Tools/MakeIcon.swift build/AppIcon.iconset
-xattr -c -r build/AppIcon.iconset build/AppIcon.icns build/MenuBarIcon.png build/MenuBarIcon@2x.png build/BrandMark.png 2>/dev/null || true
->>>>>>> 21682edaac2958577267ab7d0940a7b2d1662eb7
 ACTOOL_BIN="$(xcrun --find actool 2>/dev/null || true)"
 ICON_TMP="$(mktemp -d)"
 ADAPTIVE_SKIP=""
