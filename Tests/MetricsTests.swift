@@ -159,6 +159,7 @@ struct MetricsTests {
             ("features", {
                 FeatureCatalogTests.run(suite)
                 MenuPanelSectionGateContract.run(suite)
+                StartupGatingTests.run(suite)
             }),
             ("shortcut-clearing", { ShortcutClearingTests.run(suite) }),
             ("utilities", {
@@ -234,6 +235,7 @@ struct MetricsTests {
                 CleanerScanFlowTests.run(suite)
                 CleanerLayoutTests.run(suite)
             }),
+            ("homebrew-filter", { PanelHomebrewFilterPickerTests.run(suite) }),
             ("uninstaller", {
                 HomebrewOwnershipTests.run(suite)
                 HomebrewOperationLogRetentionTests.run(suite)
